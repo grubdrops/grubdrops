@@ -13,8 +13,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	mlog "github.com/grubdrops/grubdrops/internal/log"
 	"github.com/grubdrops/grubdrops/internal/auth/oidc"
+	mlog "github.com/grubdrops/grubdrops/internal/log"
 	"github.com/grubdrops/grubdrops/internal/platform"
 	"github.com/grubdrops/grubdrops/internal/scheduler"
 	"github.com/grubdrops/grubdrops/internal/store"
