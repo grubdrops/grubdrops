@@ -16,18 +16,18 @@ import (
 	"github.com/alexedwards/scs/v2"
 
 	"github.com/grubdrops/grubdrops/internal/auth"
-	"github.com/grubdrops/grubdrops/internal/i18n"
-	"github.com/grubdrops/grubdrops/internal/netutil"
 	"github.com/grubdrops/grubdrops/internal/auth/oidc"
 	"github.com/grubdrops/grubdrops/internal/canary"
 	"github.com/grubdrops/grubdrops/internal/gameslug"
+	"github.com/grubdrops/grubdrops/internal/i18n"
+	"github.com/grubdrops/grubdrops/internal/netutil"
 	"github.com/grubdrops/grubdrops/internal/scheduler"
 	"github.com/grubdrops/grubdrops/internal/store"
 	"github.com/grubdrops/grubdrops/internal/store/gen"
 )
 
 type settingsDeps struct {
-	loc   *time.Location // timezone for displayed times
+	loc      *time.Location // timezone for displayed times
 	s        *store.Settings
 	q        *gen.Queries // for inline accounts table
 	sch      *scheduler.Scheduler
