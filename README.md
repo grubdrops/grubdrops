@@ -83,7 +83,7 @@ no sidecar services.
 # compose.yml
 services:
   miner:
-    image: ghcr.io/ab-code520/grubdrops:latest
+    image: ghcr.io/grubdrops/grubdrops:latest
     restart: unless-stopped
     ports: ["8080:8080"]
     environment:
