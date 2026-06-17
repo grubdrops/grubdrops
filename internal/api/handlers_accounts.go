@@ -15,6 +15,7 @@ import (
 
 	"github.com/grubdrops/grubdrops/internal/authcheck"
 	"github.com/grubdrops/grubdrops/internal/gameslug"
+	"github.com/grubdrops/grubdrops/internal/i18n"
 	"github.com/grubdrops/grubdrops/internal/scheduler"
 	"github.com/grubdrops/grubdrops/internal/store/gen"
 )
