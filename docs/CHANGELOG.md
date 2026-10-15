@@ -4,6 +4,10 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Docs
+
+- Added a warning that GrubDrops is currently not working as expected.
+
 ## [1.4.2] — 2026-09-28
 
 ### Fixed
