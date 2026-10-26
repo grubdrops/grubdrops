@@ -26,6 +26,7 @@ import (
 	"github.com/grubdrops/grubdrops/internal/canary"
 	"github.com/grubdrops/grubdrops/internal/collect"
 	"github.com/grubdrops/grubdrops/internal/config"
+	"github.com/grubdrops/grubdrops/internal/discover"
 	"github.com/grubdrops/grubdrops/internal/dockerctl"
 	"github.com/grubdrops/grubdrops/internal/i18n"
 	mlog "github.com/grubdrops/grubdrops/internal/log"
@@ -527,6 +528,20 @@ func run(ctx context.Context) error {
 		})
 	})
 
+	// discoverTwitch is a dedicated backend for the Discover catalog, so its
+	// session binding and details cache never touch a mining backend.
+	discoverTwitch := twitch.New()
+	if proxyTransport != nil {
+		discoverTwitch = twitch.NewWithTransport(proxyTransport)
+	}
+	defer discoverTwitch.Close()
+	discoverSvc := discover.New(
+		discover.Source{Platform: "twitch", Timeout: 60 * time.Second,
+			Fetch: discover.TwitchFetcher(q.ListAllAccounts, sessions.Get, discoverTwitch.Catalog)},
+		discover.Source{Platform: "kick", Timeout: 30 * time.Second,
+			Fetch: discover.KickFetcher(q.ListAllAccounts, sessions.Get, kickBackend.Catalog)},
+	)
+
 	deps := api.Deps{
 		DB: db, Q: q, Session: sm,
 		OIDC:          oidcProvider,
@@ -545,6 +560,7 @@ func run(ctx context.Context) error {
 		Chosen:       ro.chosen,
 		Board:        collector.Board,
 		GamesChanged: ro.requestGamesReload,
+		Discover:     discoverSvc,
 
 		Sessions:  sessions,
 		Registry:  registry,
