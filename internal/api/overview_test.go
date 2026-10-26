@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/grubdrops/grubdrops/internal/plan"
 	"github.com/grubdrops/grubdrops/internal/runner"
 	"github.com/grubdrops/grubdrops/internal/store"
 	"github.com/grubdrops/grubdrops/internal/store/gen"
@@ -32,7 +33,13 @@ type fakePool struct {
 func (f *fakePool) Snapshots() []runner.Snapshot {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]runner.Snapshot(nil), f.snaps...)
+	out := append([]runner.Snapshot(nil), f.snaps...)
+	for i := range out {
+		if o := f.orders[out[i].AccountID]; len(o) > 0 {
+			out[i].UpNext = plan.ApplyOrder(out[i].UpNext, o)
+		}
+	}
+	return out
 }
 
 func (f *fakePool) SetOrder(id string, ids []string) {
