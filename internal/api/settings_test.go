@@ -15,17 +15,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/grubdrops/grubdrops/internal/notify"
 	"github.com/grubdrops/grubdrops/internal/store"
 	"github.com/grubdrops/grubdrops/internal/store/gen"
 )
 
 type fakeNotify struct {
-	err    error
-	events []string
+	err     error
+	events  []string
+	targets []string
 }
 
-func (f *fakeNotify) Notify(_ context.Context, e string, _ map[string]any) error {
+func (f *fakeNotify) Notify(ctx context.Context, e string, _ map[string]any) error {
 	f.events = append(f.events, e)
+	f.targets = append(f.targets, notify.TargetFrom(ctx))
 	return f.err
 }
 
