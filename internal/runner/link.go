@@ -195,7 +195,9 @@ type LinkRecheck struct {
 
 // RecheckLinks is the user's "I linked it" check: it forgets the account's
 // link refusals, asks a LinkRechecker backend to retry them now, and rescans
-// so the plan picks the drops up again.
+// so the plan picks the drops up again. A ReadyDropLister backend sweeps its
+// inventory too: a drop whose campaign ended has left the plan, and only the
+// sweep can still claim it.
 func (r *Runner) RecheckLinks(ctx context.Context) (LinkRecheck, error) {
 	r.mu.Lock()
 	r.linkRefused = nil
@@ -211,13 +213,22 @@ func (r *Runner) RecheckLinks(ctx context.Context) (LinkRecheck, error) {
 		}
 	} else {
 		// No retry hook: the rescan rechecks the platform's link state.
+		if rl, ok := r.cfg.Backend.(platform.ReadyDropLister); ok {
+			var n sweepCounts
+			r.sweepMu.Lock()
+			n, err = r.sweepReady(ctx, rl)
+			r.sweepMu.Unlock()
+			out.Claimed, out.StillNeedsLink = n.claimed, n.unlinked
+		}
+		blocked := 0
 		r.mu.Lock()
 		for _, b := range r.blocked {
 			if b.Reason == plan.ReasonNotLinked {
-				out.StillNeedsLink++
+				blocked++
 			}
 		}
 		r.mu.Unlock()
+		out.StillNeedsLink = max(out.StillNeedsLink, blocked)
 	}
 	r.Rescan()
 	return out, err

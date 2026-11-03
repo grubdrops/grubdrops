@@ -181,6 +181,22 @@ type Log struct {
 	FieldsJson string         `json:"fields_json"`
 }
 
+type NeedsLinkDrop struct {
+	AccountID    string `json:"account_id"`
+	BenefitID    string `json:"benefit_id"`
+	Platform     string `json:"platform"`
+	Game         string `json:"game"`
+	CampaignID   string `json:"campaign_id"`
+	CampaignName string `json:"campaign_name"`
+	BenefitName  string `json:"benefit_name"`
+	ImageUrl     string `json:"image_url"`
+	LinkUrl      string `json:"link_url"`
+	EndsAt       int64  `json:"ends_at"`
+	Listed       int64  `json:"listed"`
+	FirstSeen    int64  `json:"first_seen"`
+	SeenAt       int64  `json:"seen_at"`
+}
+
 type Notification struct {
 	ID          string         `json:"id"`
 	AccountID   sql.NullString `json:"account_id"`

@@ -10,6 +10,7 @@
 	import CampaignDrawer, { type CampaignTarget } from '$lib/components/CampaignDrawer.svelte';
 	import PageHead from '$lib/components/PageHead.svelte';
 	import RewardCodes from '$lib/components/RewardCodes.svelte';
+	import NeedsLinkDrops from '$lib/components/NeedsLinkDrops.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { claimStamp, etaShort, formatInt, relTime } from '$lib/format';
 	import { t, tn } from '$lib/i18n/index.svelte';
@@ -218,6 +219,7 @@
 		</span>
 	{/snippet}
 	<RewardCodes />
+	<NeedsLinkDrops />
 	{#if progress.length > 0}
 		<section class="sec" aria-label={t('inventory.in_progress')}>
 			<div class="sec-h">

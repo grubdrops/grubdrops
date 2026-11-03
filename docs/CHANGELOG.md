@@ -4,6 +4,9 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+- **Inventory lists drops that wait on a game account link.** A drop watched in full whose claim was refused because the game account isn't linked now shows in a Needs link section at the top of Inventory, grouped by account and campaign, with its image, name, campaign, game and account. Each group has a Connect button that opens the platform's link page in a new tab, and Check now, which retries the claim and clears the row when it goes through. The rows stay after the campaign ends. Once the campaign has ended and the platform no longer lists the drop as claimable, the group reads "Claim window closed" without the buttons, and it's dropped 30 days after the campaign ended. A row also leaves on its own when the drop is claimed, here or outside GrubDrops, and the section is hidden when nothing waits. It doesn't need the notification bell, and links to it land on `/inventory#needs-link`. On Twitch, Check now also sweeps the inventory, so a drop of a campaign that has ended can still be claimed once linked. The state is kept in a new `needs_link_drops` table (migration 0030). The new `GET /api/needs-link` returns `{"drops": [...]}`, each with `account_id`, `account_name`, `platform`, `benefit_id`, `benefit_name`, `image_url`, `campaign_id`, `campaign_name`, `game`, `link_url`, `ends_at` and `expired`.
+
 ## [2.3.0] — 2026-11-01
 
 ### Added

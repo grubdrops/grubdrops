@@ -18,6 +18,7 @@ import type {
 	Game,
 	Health,
 	LinkRecheck,
+	NeedsLinkDrop,
 	Overview,
 	Platform,
 	PointsMode,
@@ -107,6 +108,8 @@ export interface Api {
 	rewardCodes(): Promise<{ codes: RewardCode[] }>;
 	/** Hides a code and stops its reminder. */
 	setRewardCode(id: number, state: RewardCodeState): Promise<void>;
+	/** Finished drops not claimed because the game account is not linked. */
+	needsLink(): Promise<{ drops: NeedsLinkDrop[] }>;
 	twitchStart(id: string): Promise<DeviceStart>;
 	twitchStatus(id: string): Promise<DeviceStatus>;
 	twitchAndroidUrl(): Promise<{ login_url: string }>;
@@ -281,6 +284,7 @@ export function createClient(opts: ClientOpts): Api {
 		refreshPoints: () => post('/api/points/refresh'),
 		rewardCodes: () => get('/api/reward-codes'),
 		setRewardCode: (id, state) => send('PUT', `/api/reward-codes/${id}`, { state }) as Promise<void>,
+		needsLink: () => get('/api/needs-link'),
 		twitchStart: (id) => post(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchStatus: (id) => get(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchAndroidUrl: () => get('/api/login/twitch/android'),

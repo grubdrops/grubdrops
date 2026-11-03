@@ -122,6 +122,9 @@ type Runner struct {
 	linkRefused map[string]time.Time
 	// linkNotified holds benefits whose link refusal was already notified.
 	linkNotified map[string]bool
+	// sweepMu keeps the daily inventory sweep and a link recheck's sweep
+	// from claiming at the same time.
+	sweepMu sync.Mutex
 	// forceCheckAt is when the force watch last rechecked the plan and its
 	// channels (force.go).
 	forceCheckAt time.Time
