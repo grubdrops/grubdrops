@@ -28,6 +28,7 @@ import (
 	"github.com/grubdrops/grubdrops/internal/config"
 	"github.com/grubdrops/grubdrops/internal/discover"
 	"github.com/grubdrops/grubdrops/internal/dockerctl"
+	"github.com/grubdrops/grubdrops/internal/feed"
 	"github.com/grubdrops/grubdrops/internal/forcewatch"
 	"github.com/grubdrops/grubdrops/internal/i18n"
 	mlog "github.com/grubdrops/grubdrops/internal/log"
@@ -343,7 +344,16 @@ func run(ctx context.Context) error {
 		notifierMu.Unlock()
 	}
 
-	notifier := &indirectNotifier{mu: &notifierMu, ptr: &currentNotifier}
+	// The bell feed records every event worth showing, whatever Discord and
+	// Telegram are set to; they get each event as before.
+	hub := api.NewHub()
+	feedStore := store.NewNotificationFeed(q)
+	notifier := &feed.Tee{
+		Inner: &indirectNotifier{mu: &notifierMu, ptr: &currentNotifier},
+		Feed: &feed.Feed{Store: feedStore, OnAdd: func(it store.FeedItem) {
+			hub.Publish(api.NotificationEvent(it))
+		}},
+	}
 
 	// Effective display timezone: the in-app setting wins over the TZ env var,
 	// falling back to UTC. Held in a live-swappable Zone so a Settings change
@@ -441,7 +451,6 @@ func run(ctx context.Context) error {
 
 	collector := collect.New(db, q)
 	collector.Loc = displayZone.Location
-	hub := api.NewHub()
 	bg.Go(func() { hub.Run(ctx) })
 
 	ro := newRoster(roster{
@@ -620,6 +629,7 @@ func run(ctx context.Context) error {
 		PointsEvery:    points.DefaultEvery,
 		PointsRefresh:  pointsRefresher.RefreshNow,
 		RewardCodes:    rewardCodes,
+		Feed:           feedStore,
 		LookupCategory: ro.lookupCategory,
 
 		Sessions:  sessions,

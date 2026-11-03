@@ -18,6 +18,7 @@ import type {
 	Game,
 	Health,
 	LinkRecheck,
+	NotificationsResp,
 	Overview,
 	Platform,
 	PointsMode,
@@ -107,6 +108,10 @@ export interface Api {
 	rewardCodes(): Promise<{ codes: RewardCode[] }>;
 	/** Hides a code and stops its reminder. */
 	setRewardCode(id: number, state: RewardCodeState): Promise<void>;
+	/** The bell feed, newest first, with the unread count. */
+	notifications(): Promise<NotificationsResp>;
+	/** Marks every bell row read. */
+	readNotifications(): Promise<void>;
 	twitchStart(id: string): Promise<DeviceStart>;
 	twitchStatus(id: string): Promise<DeviceStatus>;
 	twitchAndroidUrl(): Promise<{ login_url: string }>;
@@ -281,6 +286,8 @@ export function createClient(opts: ClientOpts): Api {
 		refreshPoints: () => post('/api/points/refresh'),
 		rewardCodes: () => get('/api/reward-codes'),
 		setRewardCode: (id, state) => send('PUT', `/api/reward-codes/${id}`, { state }) as Promise<void>,
+		notifications: () => get('/api/notifications'),
+		readNotifications: () => post('/api/notifications/read'),
 		twitchStart: (id) => post(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchStatus: (id) => get(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchAndroidUrl: () => get('/api/login/twitch/android'),

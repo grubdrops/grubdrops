@@ -191,6 +191,23 @@ type Notification struct {
 	SentAt      sql.NullInt64  `json:"sent_at"`
 }
 
+type NotificationFeed struct {
+	ID           int64         `json:"id"`
+	CreatedAt    int64         `json:"created_at"`
+	Event        string        `json:"event"`
+	Kind         string        `json:"kind"`
+	AccountID    string        `json:"account_id"`
+	AccountLabel string        `json:"account_label"`
+	Platform     string        `json:"platform"`
+	Title        string        `json:"title"`
+	Body         string        `json:"body"`
+	Game         string        `json:"game"`
+	Campaign     string        `json:"campaign"`
+	ImageUrl     string        `json:"image_url"`
+	Link         string        `json:"link"`
+	ReadAt       sql.NullInt64 `json:"read_at"`
+}
+
 type PointsBalance struct {
 	AccountID string        `json:"account_id"`
 	Channel   string        `json:"channel"`

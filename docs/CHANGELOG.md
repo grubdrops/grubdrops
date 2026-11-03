@@ -4,6 +4,9 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+- **Notification bell in the top bar.** A bell at the top right shows how many notifications you haven't seen, up to 99+. Opening it lists them newest first, split into Last 24 hours and Older. Each row has the drop or reward image (or an icon), one short line, the account and how long ago. Unread rows are tinted, and opening the panel marks them all read. The gear opens Settings → Notifications. A row leads to where you fix or see it: a link-required claim opens the publisher's link page in a new tab (Inventory when there's no link), a login problem opens that account in Settings → Accounts, a watch check failure or mining error opens Settings → Health, and claims and reward codes open Inventory. The bell records claims, errors (link-required claims included), login problems, watch check failures and reward codes, whether or not Discord or Telegram is set up and whatever their toggles say; what those receive doesn't change. Rows survive a restart, arrive live, and are kept for 30 days, 500 at most. Reward codes are now marked notified even with no webhook set. Rows live in a new `notification_feed` table (migration 0030). `GET /api/notifications` lists them (`?limit`, default 100) with the unread count, `POST /api/notifications/read` marks all read (204), and the SSE stream gains a `notifications` event. Settings accepts `?account=<id>` to open that account.
+
 ## [2.3.0] — 2026-11-01
 
 ### Added

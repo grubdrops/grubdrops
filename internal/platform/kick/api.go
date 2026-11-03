@@ -33,6 +33,9 @@ func (e *ClaimNeedsLinkError) Error() string {
 	return fmt.Sprintf("kick claim: account link required (status %d): %s", e.Status, e.ConnectURL)
 }
 
+// LinkURL is the account link page Kick sent.
+func (e *ClaimNeedsLinkError) LinkURL() string { return e.ConnectURL }
+
 // Is matches ErrClaimNeedsLink and the platform-wide platform.ErrClaimNeedsLink
 // the runner checks.
 func (e *ClaimNeedsLinkError) Is(target error) bool {
