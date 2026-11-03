@@ -620,6 +620,7 @@ func run(ctx context.Context) error {
 		PointsEvery:    points.DefaultEvery,
 		PointsRefresh:  pointsRefresher.RefreshNow,
 		RewardCodes:    rewardCodes,
+		NeedsLink:      collector.NeedsLink,
 		LookupCategory: ro.lookupCategory,
 
 		Sessions:  sessions,

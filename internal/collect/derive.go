@@ -60,6 +60,50 @@ func row(s runner.Scan, t plan.Target, state, reason string, minutes int, now ti
 	}
 }
 
+// NeedsLink builds the scan's update to the account's needs-link drops: the
+// completed drops it holds refused until linked, the drops it shows claimed,
+// and, after an inventory read, the drops the inventory lists unclaimed.
+func NeedsLink(s runner.Scan) store.NeedsLinkSync {
+	var u store.NeedsLinkSync
+	if s.Err != nil {
+		return u
+	}
+	for _, b := range s.Result.Blocked {
+		req := b.Benefit.RequiredMinutes
+		if b.Reason != plan.ReasonNotLinked || req <= 0 || b.Minutes < req {
+			continue
+		}
+		pf := b.Campaign.Platform
+		if pf == "" {
+			pf = s.Platform
+		}
+		u.Refused = append(u.Refused, store.NeedsLinkDrop{
+			AccountID: s.AccountID, Platform: pf, Game: b.Campaign.Game,
+			CampaignID: b.Campaign.ID, CampaignName: b.Campaign.Name,
+			BenefitID: b.Benefit.ID, BenefitName: b.Benefit.Name, ImageURL: b.Benefit.ImageURL,
+			LinkURL: SafeLinkURL(b.Campaign.AccountLinkURL), EndsAt: b.Campaign.EndsAt,
+		})
+	}
+	for _, t := range s.Result.Claimed {
+		u.Claimed = append(u.Claimed, t.Benefit.ID)
+	}
+	for _, p := range s.Progress {
+		if p.Claimed {
+			u.Claimed = append(u.Claimed, p.BenefitID)
+		}
+	}
+	if s.InventoryOK {
+		u.Inventory = true
+		u.Listed = map[string]bool{}
+		for _, p := range s.Progress {
+			if !p.Claimed {
+				u.Listed[p.BenefitID] = true
+			}
+		}
+	}
+	return u
+}
+
 // Found returns claim-log entries for drops the inventory shows as claimed
 // that the claim log does not know yet (claimed outside GrubDrops).
 func Found(s runner.Scan, now time.Time) []store.ClaimEntry {
