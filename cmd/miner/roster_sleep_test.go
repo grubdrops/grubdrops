@@ -102,6 +102,25 @@ func TestRoster_FollowRaids(t *testing.T) {
 	assert.False(t, cfg.FollowRaids())
 }
 
+// The runner's KickDailyReward reads the saved setting, off by default, live
+// after settingsChanged.
+func TestRoster_KickDailyReward(t *testing.T) {
+	e := newRosterEnv(t)
+	e.ro.settings = store.NewSettings(e.q)
+	a := e.account(t, "a1", 1, true)
+	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
+	require.NotNil(t, cfg.KickDailyReward)
+	assert.False(t, cfg.KickDailyReward(), "off by default")
+
+	require.NoError(t, e.ro.settings.SetKickDailyReward(e.ctx, true))
+	e.ro.settingsChanged()
+	assert.True(t, cfg.KickDailyReward())
+
+	require.NoError(t, e.ro.settings.SetKickDailyReward(e.ctx, false))
+	e.ro.settingsChanged()
+	assert.False(t, cfg.KickDailyReward())
+}
+
 // sharedCatalogFake records the shared catalog a build sets.
 type sharedCatalogFake struct {
 	*platformtest.Fake

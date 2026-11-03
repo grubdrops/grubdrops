@@ -4,6 +4,12 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+- **Experimental: Kick accounts can claim the daily reward (#81).** Settings → Experimental has a Claim Kick daily reward switch, off by default, with a note under it that Kick may ban accounts that automate this. Turned on, each Kick account checks its gamification challenges when it starts and every 10 minutes after, outside the sleep window, and claims the daily one once Kick marks it claimable, which happens after 60 watch minutes in the UTC day. A claim logs one line and sends a claim notification that names the reward and its rarity when Kick's response does. A claim Kick refuses logs once and isn't tried again until the account restarts. The switch applies at the next check, without restarting any account. Twitch has no daily reward. It reads `GET /api/v1/gamification/challenges` and claims with `POST /api/v1/gamification/challenges/{id}/claim`, both on web.kick.com. `GET /api/settings` gains `kick_daily_reward`, which `PUT` accepts; it's stored as the KV key `settings:kick_daily_reward`.
+
+### Changed
+- README Features lists channel points, Points only, raids, reward codes, the sleep window, the daily inventory sweep, SSO only and the experimental Kick daily reward.
+
 ## [2.3.0] — 2026-11-01
 
 ### Added

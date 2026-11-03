@@ -280,6 +280,36 @@ type PointsClaimer interface {
 	ClaimChannelPoints(ctx context.Context, s Session, channel string) (PointsClaim, error)
 }
 
+// DailyReward is one daily reward a DailyRewardClaimer claimed. Reward and
+// Rarity are empty when the claim response did not name them.
+type DailyReward struct {
+	ID     string
+	Name   string
+	Reward string
+	Rarity string
+}
+
+// DailyRewardClaimer is optional: claim every daily reward the account has
+// earned and not yet claimed, except those skip reports true for (nil skips
+// none). Claimed holds the ones claimed now; a failed claim does not stop the
+// others and is reported in err, which wraps one DailyRewardError per failed
+// reward. Kick only.
+type DailyRewardClaimer interface {
+	ClaimDailyRewards(ctx context.Context, s Session, skip func(id string) bool) (claimed []DailyReward, err error)
+}
+
+// DailyRewardError is one daily reward claim that failed.
+type DailyRewardError struct {
+	ID  string
+	Err error
+}
+
+func (e *DailyRewardError) Error() string {
+	return "daily reward " + e.ID + ": " + e.Err.Error()
+}
+
+func (e *DailyRewardError) Unwrap() error { return e.Err }
+
 // ErrNoPointsBalance means the channel has no channel-points balance for
 // the account, e.g. the channel has channel points turned off.
 var ErrNoPointsBalance = errors.New("channel points: no balance on this channel")

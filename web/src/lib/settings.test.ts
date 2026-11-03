@@ -124,6 +124,12 @@ describe('experimental settings', () => {
 		expect(src).toContain('class:na={share.disabled}');
 		expect(src).toContain("save('exp_share_catalog', { exp_share_catalog: !s.exp_share_catalog })");
 	});
+	it('the Kick daily reward switch saves its own field and shows the ban-risk note', () => {
+		const src = readFileSync('src/routes/(app)/settings/Experimental.svelte', 'utf8');
+		expect(src).toContain("save('kick_daily_reward', { kick_daily_reward: !s.kick_daily_reward })");
+		expect(src).toContain('<p class="warn" role="note"><Icon name="alert" />{t(\'settings.kick_daily_reward_warn\')}</p>');
+		expect(t('settings.kick_daily_reward')).toBe('Claim Kick daily reward');
+	});
 	it('the page renders Experimental right after Engine', () => {
 		const src = readFileSync('src/routes/(app)/settings/+page.svelte', 'utf8');
 		const eng = src.indexOf('<Engine {s}');
