@@ -116,6 +116,10 @@ type Config struct {
 	// the backend is a platform.RaidJoiner. Read live; nil = off.
 	// SettingsChanged applies a change to the running watch.
 	FollowRaids func() bool
+	// KickDailyReward turns the daily reward claim (daily_reward.go) on when
+	// the backend is a platform.DailyRewardClaimer. Read at each check; nil =
+	// off.
+	KickDailyReward func() bool
 	// Hooks are nil-safe. Each may run on the Run goroutine or a PubSub
 	// goroutine and must not block for long. Payloads (Scan slices and maps,
 	// progress) are read-only and shared with the runner: copy before keeping

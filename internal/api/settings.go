@@ -105,6 +105,9 @@ type settingsBody struct {
 	Preempt         bool `json:"preempt"`
 	// FollowRaids joins raids from the watched Twitch channel. Read live.
 	FollowRaids bool `json:"follow_raids"`
+	// KickDailyReward claims the Kick daily reward once it is ready. Read at
+	// each check.
+	KickDailyReward bool `json:"kick_daily_reward"`
 	// ExpShareCatalog lets TV-login Twitch accounts mine the campaigns an
 	// Android login sees. Experimental; read at each scan.
 	ExpShareCatalog bool `json:"exp_share_catalog"`
@@ -213,6 +216,9 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 		return b, err
 	}
 	if b.FollowRaids, err = st.FollowRaids(ctx); err != nil {
+		return b, err
+	}
+	if b.KickDailyReward, err = st.KickDailyReward(ctx); err != nil {
 		return b, err
 	}
 	if b.ExpShareCatalog, err = st.ExpShareCatalog(ctx); err != nil {
@@ -335,6 +341,7 @@ type settingsPut struct {
 	ScanIntervalMin *int  `json:"scan_interval_min"`
 	Preempt         *bool `json:"preempt"`
 	FollowRaids     *bool `json:"follow_raids"`
+	KickDailyReward *bool `json:"kick_daily_reward"`
 	ExpShareCatalog *bool `json:"exp_share_catalog"`
 	// ShareCatalogAvailable is accepted so a client can send the GET body
 	// back. Ignored.
@@ -644,6 +651,11 @@ func (s *server) applyEngineSettings(ctx context.Context, req settingsPut) error
 	}
 	if req.FollowRaids != nil {
 		if err := st.SetFollowRaids(ctx, *req.FollowRaids); err != nil {
+			return err
+		}
+	}
+	if req.KickDailyReward != nil {
+		if err := st.SetKickDailyReward(ctx, *req.KickDailyReward); err != nil {
 			return err
 		}
 	}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '$lib/components/Icon.svelte';
 	import NewPill from '$lib/components/NewPill.svelte';
 	import { SECTION_LOOK } from '$lib/settings-look';
 	import type { Settings, SettingsPatch } from '$lib/api/types';
@@ -41,6 +42,22 @@
 				></button>
 			{/if}
 		</div>
+		<div class="row">
+			<div class="lbl">
+				<b id="daily-l">{t('settings.kick_daily_reward')}<NewPill since="2.3" /></b>
+				<small>{t('settings.kick_daily_reward_sub')}</small>
+				<p class="warn" role="note"><Icon name="alert" />{t('settings.kick_daily_reward_warn')}</p>
+				{#if errs.kick_daily_reward}<small class="bad">{t('settings.save_failed')}</small>{/if}
+			</div>
+			<button
+				type="button"
+				class="sw"
+				role="switch"
+				aria-checked={s.kick_daily_reward}
+				aria-labelledby="daily-l"
+				onclick={() => save('kick_daily_reward', { kick_daily_reward: !s.kick_daily_reward })}
+			></button>
+		</div>
 	</div>
 </section>
 
@@ -50,5 +67,21 @@
 	}
 	.na b {
 		opacity: 0.5;
+	}
+	.warn {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		margin: 6px 0 0;
+		padding: 7px 10px;
+		border-radius: 9px;
+		font-size: 12.5px;
+		line-height: 1.45;
+		color: var(--amber);
+		background: var(--amber-soft);
+	}
+	.warn :global(svg) {
+		flex: none;
+		margin-top: 2px;
 	}
 </style>

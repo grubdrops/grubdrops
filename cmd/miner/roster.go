@@ -467,6 +467,8 @@ func (ro *roster) runnerConfig(ctx context.Context, a gen.Account, b platform.Ba
 		Preempt:     ro.preempt,
 		FollowRaids: ro.followRaids,
 		SleepUntil:  ro.sleepUntilFor(a),
+		// Kick only: the runner skips a backend without the claim.
+		KickDailyReward: ro.kickDailyReward,
 		OnScan: func(ctx context.Context, s runner.Scan) {
 			ro.collector.OnScan(ctx, s)
 			ro.waker.OnScan(s)
@@ -742,6 +744,8 @@ type runSettings struct {
 	// share is the experimental share of the Android catalog with TV
 	// accounts.
 	share bool
+	// daily is the Kick daily reward claim setting.
+	daily bool
 	// sleep is on when sleepStart and sleepEnd, minutes after midnight,
 	// hold a valid window.
 	sleep                bool
@@ -786,12 +790,13 @@ func (ro *roster) readRunSettings() (c runSettings, ok bool) {
 		sw, e5 := ro.settings.SleepWindow(ctx)
 		raids, e6 := ro.settings.FollowRaids(ctx)
 		share, e7 := ro.settings.ExpShareCatalog(ctx)
-		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7); err != nil {
+		daily, e8 := ro.settings.KickDailyReward(ctx)
+		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8); err != nil {
 			// Not cached: the next read tries again.
 			ro.log().Warn("read runner settings failed", "kind", "error", "err", err)
 			return c, false
 		}
-		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, share: share}
+		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, share: share, daily: daily}
 		start, ok1 := timeutil.ParseClock(sw.Start)
 		end, ok2 := timeutil.ParseClock(sw.End)
 		c.sleep = sw.Enabled && ok1 && ok2 && start != end
@@ -823,6 +828,10 @@ func (ro *roster) preempt() bool { return ro.runSettings().preempt }
 
 // followRaids is the follow raids setting. A failed read gives off.
 func (ro *roster) followRaids() bool { return ro.runSettings().raids }
+
+// kickDailyReward is the Kick daily reward claim setting. A failed read
+// gives off.
+func (ro *roster) kickDailyReward() bool { return ro.runSettings().daily }
 
 // sharedTwitchCatalog is the Android catalog a TV account's scan merges: the
 // cached Discover catalog while the experimental share is on, else nothing.

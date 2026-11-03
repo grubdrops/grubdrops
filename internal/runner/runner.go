@@ -115,6 +115,9 @@ type Runner struct {
 	// claimFailSkipped holds benefits skipped for repeated claim failures,
 	// value = required minutes (Task 5).
 	claimFailSkipped map[string]int
+	// dailyFailed holds daily reward IDs whose claim failed this run
+	// (daily_reward.go); they are not tried again.
+	dailyFailed map[string]bool
 	// linkRefused holds benefits whose claim the platform refused until the
 	// user links an external account, value = last claim attempt. The plan
 	// blocks them as not linked; a scan retries each at most once per
@@ -921,6 +924,21 @@ func (r *Runner) Run(ctx context.Context) error {
 		go func() {
 			defer close(done)
 			r.inventorySweepLoop(sctx)
+		}()
+		defer func() {
+			cancel()
+			<-done
+		}()
+	}
+
+	// Started whatever the setting: the loop reads it at each check, so a
+	// toggle applies without a rebuild.
+	if c, ok := r.cfg.Backend.(platform.DailyRewardClaimer); ok && r.cfg.KickDailyReward != nil {
+		dctx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			r.dailyRewardLoop(dctx, c)
 		}()
 		defer func() {
 			cancel()

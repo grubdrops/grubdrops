@@ -325,6 +325,7 @@ const (
 	keyScanIntervalMin    = "settings:scan_interval_min"
 	keyPreempt            = "settings:preempt"
 	keyFollowRaids        = "settings:follow_raids"
+	keyKickDailyReward    = "settings:kick_daily_reward"
 	keyExpShareCatalog    = "settings:exp_share_catalog"
 )
 
@@ -371,6 +372,16 @@ func (s *Settings) FollowRaids(ctx context.Context) (bool, error) {
 
 func (s *Settings) SetFollowRaids(ctx context.Context, on bool) error {
 	return s.setBool(ctx, keyFollowRaids, on)
+}
+
+// KickDailyReward reports whether a Kick account claims its daily reward once
+// the day's watch-time goal is met. Experimental. Default off.
+func (s *Settings) KickDailyReward(ctx context.Context) (bool, error) {
+	return s.boolKey(ctx, keyKickDailyReward, false)
+}
+
+func (s *Settings) SetKickDailyReward(ctx context.Context, on bool) error {
+	return s.setBool(ctx, keyKickDailyReward, on)
 }
 
 // ExpShareCatalog reports whether TV-login Twitch accounts also mine the

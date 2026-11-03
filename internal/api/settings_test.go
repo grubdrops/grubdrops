@@ -470,6 +470,30 @@ func TestSettings_FollowRaids(t *testing.T) {
 	assert.Equal(t, 2, e.live)
 }
 
+// The Kick daily reward reads off by default and saves. Runners read it at
+// each check, so a change neither rescans nor pokes the watches.
+func TestSettings_KickDailyReward(t *testing.T) {
+	e := newSettingsEnv(t)
+	_, b := e.do("GET", "/settings", nil)
+	var got settingsBody
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.KickDailyReward, "off by default")
+
+	code, b := e.do("PUT", "/settings", map[string]any{"kick_daily_reward": true})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.True(t, got.KickDailyReward)
+	on, _ := e.st.KickDailyReward(context.Background())
+	assert.True(t, on, "saved")
+	assert.Equal(t, 0, e.rescans, "no rescan")
+	assert.Equal(t, 0, e.live, "read at each check")
+
+	code, b = e.do("PUT", "/settings", map[string]any{"kick_daily_reward": false})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.KickDailyReward)
+}
+
 // Sharing the Android catalog reads off by default, saves, and a change
 // rescans every runner so TV accounts list the shared campaigns now.
 func TestSettings_ExpShareCatalog(t *testing.T) {
