@@ -406,7 +406,7 @@ func (r *Runner) readyClaimFailed(ctx context.Context, d platform.DropBenefit, e
 	if needsLink {
 		slog.Warn("runner ready drop claim needs account link; not retried", "kind", "claim",
 			"account", r.cfg.AccountID, "benefit", d.ID, "benefit_name", d.Name, "err", err)
-		r.notifyNeedsLink(ctx, d)
+		r.notifyNeedsLink(ctx, d, linkURL(err, nil))
 		return
 	}
 	if n >= claimFailSkipThreshold {

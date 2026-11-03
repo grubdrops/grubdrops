@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aalejandrofer/grubdrops/internal/i18n"
+	"github.com/aalejandrofer/grubdrops/internal/notify"
 	"github.com/aalejandrofer/grubdrops/internal/plan"
 	"github.com/aalejandrofer/grubdrops/internal/platform"
 	"github.com/aalejandrofer/grubdrops/internal/platform/platformtest"
@@ -86,6 +87,50 @@ func TestClaim_LinkRefusalNotifiesOnce(t *testing.T) {
 	f0 := got[0].fields
 	if f0["drop"] != f.Campaigns[0].Benefits[0].Name || f0["game"] != "Rust" || f0["msg"] != i18n.T("es", "notify.needs_link") {
 		t.Fatalf("fields=%+v", f0)
+	}
+}
+
+type linkErr struct{ url string }
+
+func (e linkErr) Error() string        { return "needs link" }
+func (e linkErr) Is(target error) bool { return target == platform.ErrClaimNeedsLink }
+func (e linkErr) LinkURL() string      { return e.url }
+
+// The link notice marks itself for the in-app feed and carries the link page:
+// the one sent with the refusal, else the campaign's. A twitch.tv page is no
+// link page.
+func TestClaim_LinkRefusalFeedFields(t *testing.T) {
+	for _, tc := range []struct {
+		name, errURL, campURL, want string
+	}{
+		{"from the refusal", "https://kick.com/connect/acme", "https://acme.example/link", "https://kick.com/connect/acme"},
+		{"from the campaign", "", "https://acme.example/link", "https://acme.example/link"},
+		{"twitch page is none", "", "https://www.twitch.tv/drops/inventory", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := platformtest.NewFake()
+			r, n, _, _ := claimSetup(f, 2)
+			// Linked per the platform, so the plan picks it; the claim still refuses.
+			f.Campaigns[0].AccountLinkURL = tc.campURL
+			f.Campaigns[0].AccountLinked = true
+			toClaiming(t, r)
+			f.ClaimErr = linkErr{url: tc.errURL}
+			if err := r.claim(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			got := n.of("error")
+			if len(got) != 1 {
+				t.Fatalf("error notifications=%d, want 1", len(got))
+			}
+			f0 := got[0].fields
+			if f0[notify.FieldFeedKind] != notify.FeedKindNeedsLink {
+				t.Fatalf("feed kind=%v", f0[notify.FieldFeedKind])
+			}
+			link, _ := f0[notify.FieldFeedLink].(string)
+			if link != tc.want {
+				t.Fatalf("feed link=%q, want %q", link, tc.want)
+			}
+		})
 	}
 }
 

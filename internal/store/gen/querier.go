@@ -35,6 +35,7 @@ type Querier interface {
 	CountClaimsFor(ctx context.Context, arg CountClaimsForParams) (int64, error)
 	// Drops claimed at or after a unix cutoff such as start-of-today.
 	CountClaimsSince(ctx context.Context, claimedAt int64) (int64, error)
+	CountUnreadFeedNotifications(ctx context.Context) (int64, error)
 	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
 	DeleteAccount(ctx context.Context, id string) error
 	DeleteAccountCampaignLinks(ctx context.Context, accountID string) error
@@ -54,6 +55,9 @@ type Querier interface {
 	DeleteClaimFor(ctx context.Context, arg DeleteClaimForParams) error
 	DeleteClaimLog(ctx context.Context, arg DeleteClaimLogParams) (int64, error)
 	DeleteDropStatesForAccount(ctx context.Context, accountID string) error
+	DeleteFeedNotificationsBefore(ctx context.Context, createdAt int64) (int64, error)
+	// Keeps the newest rows by id, as many as given, and deletes the rest.
+	DeleteFeedNotificationsPastNewest(ctx context.Context, limit int64) (int64, error)
 	DeleteKV(ctx context.Context, key string) error
 	GetAccount(ctx context.Context, id string) (Account, error)
 	GetAdmin(ctx context.Context) (Admin, error)
@@ -66,6 +70,7 @@ type Querier interface {
 	GetSession(ctx context.Context, accountID string) (Session, error)
 	GetSettingString(ctx context.Context, key string) ([]byte, error)
 	InsertClaim(ctx context.Context, arg InsertClaimParams) error
+	InsertFeedNotification(ctx context.Context, arg InsertFeedNotificationParams) (NotificationFeed, error)
 	InsertGlobalForceChannel(ctx context.Context, arg InsertGlobalForceChannelParams) (int64, error)
 	InsertGlobalForceChannelAccount(ctx context.Context, arg InsertGlobalForceChannelAccountParams) error
 	ListAccountChannels(ctx context.Context, accountID string) ([]ListAccountChannelsRow, error)
@@ -99,6 +104,8 @@ type Querier interface {
 	ListCurrentCampaigns(ctx context.Context, arg ListCurrentCampaignsParams) ([]Campaign, error)
 	ListDropStatesForAccount(ctx context.Context, accountID string) ([]DropState, error)
 	ListEnabledAccounts(ctx context.Context) ([]Account, error)
+	// Newest first.
+	ListFeedNotifications(ctx context.Context, limit int64) ([]NotificationFeed, error)
 	ListForceChannels(ctx context.Context, accountID string) ([]ListForceChannelsRow, error)
 	ListGamesInUse(ctx context.Context) ([]ListGamesInUseRow, error)
 	ListGlobalForceChannelAccounts(ctx context.Context) ([]ForceChannelAccount, error)
@@ -123,6 +130,7 @@ type Querier interface {
 	// Campaigns announced but not yet started. Whitelist filtering is
 	// applied in Go.
 	ListUpcomingCampaigns(ctx context.Context, arg ListUpcomingCampaignsParams) ([]Campaign, error)
+	MarkFeedNotificationsRead(ctx context.Context, readAt sql.NullInt64) (int64, error)
 	MarkRewardCodeNotified(ctx context.Context, arg MarkRewardCodeNotifiedParams) error
 	MarkRewardCodeNotifySkipped(ctx context.Context, arg MarkRewardCodeNotifySkippedParams) error
 	MarkRewardCodeReminded(ctx context.Context, arg MarkRewardCodeRemindedParams) error

@@ -58,3 +58,39 @@ func ValidUserID(id string) bool {
 type Notifier interface {
 	Notify(ctx context.Context, event Event, fields map[string]any) error
 }
+
+// Feed-only fields. The in-app feed reads them; Strip removes them before
+// Discord and Telegram see an event, so those payloads never change.
+const (
+	// FieldFeedKind names a finer feed kind than the event, such as
+	// FeedKindNeedsLink for an "error" event.
+	FieldFeedKind = "feed_kind"
+	// FieldFeedLink is an outside page the feed row opens, such as a
+	// publisher's account link page.
+	FieldFeedLink = "feed_link"
+)
+
+// Feed kinds set with FieldFeedKind: the "link your account to claim" error
+// and a reward code's expiry reminder.
+const (
+	FeedKindNeedsLink      = "needs_link"
+	FeedKindRewardReminder = "reward_reminder"
+)
+
+// Strip returns fields without the feed-only fields. It returns fields
+// itself when there are none, so the common case does not copy.
+func Strip(fields map[string]any) map[string]any {
+	_, k := fields[FieldFeedKind]
+	_, l := fields[FieldFeedLink]
+	if !k && !l {
+		return fields
+	}
+	out := make(map[string]any, len(fields))
+	for key, v := range fields {
+		if key == FieldFeedKind || key == FieldFeedLink {
+			continue
+		}
+		out[key] = v
+	}
+	return out
+}

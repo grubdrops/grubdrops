@@ -80,6 +80,9 @@ type Deps struct {
 	// RewardCodes: Twitch reward codes, decrypted for the admin. Nil serves 503.
 	RewardCodes *store.RewardCodes
 
+	// Feed: the in-app notification feed behind the bell. Nil serves 503.
+	Feed *store.NotificationFeed
+
 	// Accounts and logins.
 	Sessions  *store.SessionStore
 	Registry  *platform.Registry
@@ -191,6 +194,7 @@ func (s *server) routesProtected(r chi.Router) {
 	s.routesForceWatch(r)
 	s.routesPoints(r)
 	s.routesRewards(r)
+	s.routesNotifications(r)
 	s.routesCampaigns(r)
 	s.routesDiscover(r)
 	s.routesClaims(r)
