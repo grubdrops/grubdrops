@@ -80,6 +80,10 @@ type Deps struct {
 	// RewardCodes: Twitch reward codes, decrypted for the admin. Nil serves 503.
 	RewardCodes *store.RewardCodes
 
+	// NeedsLink: completed drops refused for a missing game account link.
+	// Nil serves 503.
+	NeedsLink *store.NeedsLinkDrops
+
 	// Accounts and logins.
 	Sessions  *store.SessionStore
 	Registry  *platform.Registry
@@ -191,6 +195,7 @@ func (s *server) routesProtected(r chi.Router) {
 	s.routesForceWatch(r)
 	s.routesPoints(r)
 	s.routesRewards(r)
+	s.routesNeedsLink(r)
 	s.routesCampaigns(r)
 	s.routesDiscover(r)
 	s.routesClaims(r)

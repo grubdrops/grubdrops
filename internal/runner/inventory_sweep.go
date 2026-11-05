@@ -35,8 +35,9 @@ type ClaimCorrector interface {
 	ForgetClaim(ctx context.Context, accountID, benefitID string) error
 }
 
-// sweepCounts is one inventory sweep's tally.
-type sweepCounts struct{ claimed, failed, corrected int }
+// sweepCounts is one inventory sweep's tally. unlinked counts the drops
+// left alone because their campaign needs an account link.
+type sweepCounts struct{ claimed, failed, corrected, unlinked int }
 
 // inventorySweepLoop sweeps the inventory now and then every
 // InventorySweepEvery until ctx ends. A sweep that falls in the sleep window
@@ -76,6 +77,8 @@ func (r *Runner) sweepInventory(ctx context.Context) {
 		n   sweepCounts
 		err error
 	)
+	r.sweepMu.Lock()
+	defer r.sweepMu.Unlock()
 	switch b := r.cfg.Backend.(type) {
 	case platform.ReadyDropLister:
 		n, err = r.sweepReady(ctx, b)
@@ -133,6 +136,7 @@ func (r *Runner) sweepReady(ctx context.Context, rl platform.ReadyDropLister) (s
 			camp.Platform = r.cfg.Platform
 		}
 		if plan.Unlinked(camp) {
+			n.unlinked++
 			continue
 		}
 		r.mu.Lock()

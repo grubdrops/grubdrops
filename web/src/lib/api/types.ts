@@ -388,6 +388,24 @@ export interface RewardCode {
 
 export type RewardCodeState = 'redeemed' | 'dismissed';
 
+/** A drop watched in full that the platform will not hand over until the
+ * account links a game account. expired: the campaign ended and the
+ * platform's inventory no longer lists it. */
+export interface NeedsLinkDrop {
+	account_id: string;
+	account_name: string;
+	platform: Platform;
+	benefit_id: string;
+	benefit_name: string;
+	image_url: string;
+	campaign_id: string;
+	campaign_name: string;
+	game: string;
+	link_url: string;
+	ends_at: string | null;
+	expired: boolean;
+}
+
 /** One game in an account's own list. A game without an id is added by name. */
 export interface AccountGame {
 	id: string;

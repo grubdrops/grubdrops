@@ -55,6 +55,7 @@ type Querier interface {
 	DeleteClaimLog(ctx context.Context, arg DeleteClaimLogParams) (int64, error)
 	DeleteDropStatesForAccount(ctx context.Context, accountID string) error
 	DeleteKV(ctx context.Context, key string) error
+	DeleteNeedsLinkDrop(ctx context.Context, arg DeleteNeedsLinkDropParams) error
 	GetAccount(ctx context.Context, id string) (Account, error)
 	GetAdmin(ctx context.Context) (Admin, error)
 	GetCampaign(ctx context.Context, id string) (Campaign, error)
@@ -108,6 +109,7 @@ type Querier interface {
 	ListKVByPrefix(ctx context.Context, dollar_1 sql.NullString) ([]Kv, error)
 	// Claims the user marked collected by hand.
 	ListManualClaimLogBenefitIDs(ctx context.Context, accountID string) ([]string, error)
+	ListNeedsLinkDropIDs(ctx context.Context, accountID string) ([]string, error)
 	// Rewards neither redeemed nor dismissed.
 	ListOpenRewardCodes(ctx context.Context) ([]RewardCode, error)
 	// Campaigns that have ended. Whitelist filtering is applied in Go.
@@ -116,6 +118,8 @@ type Querier interface {
 	ListRecentClaimLog(ctx context.Context, limit int64) ([]ClaimLog, error)
 	ListRecentClaims(ctx context.Context, limit int64) ([]ListRecentClaimsRow, error)
 	ListRewardCodes(ctx context.Context) ([]RewardCode, error)
+	// Every row the claim log does not hold.
+	ListUnclaimedNeedsLinkDrops(ctx context.Context) ([]NeedsLinkDrop, error)
 	ListUnclaimedProgressForAccount(ctx context.Context, arg ListUnclaimedProgressForAccountParams) ([]Progress, error)
 	// Account and campaign pairs whose claim the platform rejected until an
 	// external account is linked.
@@ -123,9 +127,13 @@ type Querier interface {
 	// Campaigns announced but not yet started. Whitelist filtering is
 	// applied in Go.
 	ListUpcomingCampaigns(ctx context.Context, arg ListUpcomingCampaignsParams) ([]Campaign, error)
+	MarkNeedsLinkDropListed(ctx context.Context, arg MarkNeedsLinkDropListedParams) error
+	MarkNeedsLinkDropUnlisted(ctx context.Context, arg MarkNeedsLinkDropUnlistedParams) error
 	MarkRewardCodeNotified(ctx context.Context, arg MarkRewardCodeNotifiedParams) error
 	MarkRewardCodeNotifySkipped(ctx context.Context, arg MarkRewardCodeNotifySkippedParams) error
 	MarkRewardCodeReminded(ctx context.Context, arg MarkRewardCodeRemindedParams) error
+	// Unlisted drops whose campaign ended before the cutoff.
+	PruneNeedsLinkDrops(ctx context.Context, endsAt int64) error
 	// Drops rows whose account is no longer assigned to that Twitch Force watch channel.
 	PrunePointsBalances(ctx context.Context) (int64, error)
 	// A zero timestamp keeps the stored value. The error is always written.
@@ -161,6 +169,8 @@ type Querier interface {
 	UpsertClaimLog(ctx context.Context, arg UpsertClaimLogParams) error
 	UpsertDropState(ctx context.Context, arg UpsertDropStateParams) error
 	UpsertGame(ctx context.Context, arg UpsertGameParams) error
+	// Keeps first_seen. Empty text fields and a zero ends_at keep the stored value.
+	UpsertNeedsLinkDrop(ctx context.Context, arg UpsertNeedsLinkDropParams) error
 	// A successful read: new balance, error and failures cleared.
 	UpsertPointsBalance(ctx context.Context, arg UpsertPointsBalanceParams) error
 	// A read without a balance: the last good balance and fetched_at stay.
