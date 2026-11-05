@@ -24,9 +24,12 @@ type Collector struct {
 	Minutes *store.WatchMinutes
 	Scans   *store.AccountScans
 	Chosen  *store.ChosenGames
-	Board   *Board
-	Now     func() time.Time      // nil = time.Now
-	Loc     func() *time.Location // nil = time.Local; picks the minutes day
+	// NeedsLink keeps completed drops refused for a missing link past their
+	// campaign's end. nil = not kept.
+	NeedsLink *store.NeedsLinkDrops
+	Board     *Board
+	Now       func() time.Time      // nil = time.Now
+	Loc       func() *time.Location // nil = time.Local; picks the minutes day
 	// OnFound is called after each inventory-found claim OnScan records. nil
 	// = no-op. Set it before the first scan.
 	OnFound func(ctx context.Context, e store.ClaimEntry)
@@ -58,14 +61,15 @@ var _ runner.ClaimLog = (*Collector)(nil)
 
 func New(db *sql.DB, q *gen.Queries) *Collector {
 	return &Collector{
-		Claims:  store.NewClaimLog(q),
-		States:  store.NewDropStates(db, q),
-		Minutes: store.NewWatchMinutes(q),
-		Scans:   store.NewAccountScans(q),
-		Chosen:  store.NewChosenGames(db, q),
-		Board:   NewBoard(),
-		last:    map[string]map[string]store.DropState{},
-		idTried: map[string]time.Time{},
+		Claims:    store.NewClaimLog(q),
+		States:    store.NewDropStates(db, q),
+		Minutes:   store.NewWatchMinutes(q),
+		Scans:     store.NewAccountScans(q),
+		Chosen:    store.NewChosenGames(db, q),
+		Board:     NewBoard(),
+		NeedsLink: store.NewNeedsLinkDrops(db, q),
+		last:      map[string]map[string]store.DropState{},
+		idTried:   map[string]time.Time{},
 	}
 }
 
@@ -98,6 +102,11 @@ func (c *Collector) OnScan(ctx context.Context, s runner.Scan) {
 		}
 		if c.OnFound != nil {
 			c.OnFound(ctx, e)
+		}
+	}
+	if c.NeedsLink != nil {
+		if err := c.NeedsLink.Sync(ctx, s.AccountID, NeedsLink(s), now); err != nil {
+			c.logErr("collect: sync needs-link drops failed", s.AccountID, err)
 		}
 	}
 	scan := store.AccountScan{AccountID: s.AccountID, ScannedAt: s.At}
@@ -287,6 +296,11 @@ func (c *Collector) RecordClaim(ctx context.Context, accountID string, t plan.Ta
 	})
 	if err != nil {
 		return err
+	}
+	if c.NeedsLink != nil {
+		if err := c.NeedsLink.Clear(ctx, accountID, t.Benefit.ID); err != nil {
+			c.logErr("collect: clear needs-link drop failed", accountID, err)
+		}
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
