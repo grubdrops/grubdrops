@@ -2,10 +2,12 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/grubdrops/grubdrops/internal/i18n"
+	"github.com/grubdrops/grubdrops/internal/notify"
 	"github.com/grubdrops/grubdrops/internal/plan"
 	"github.com/grubdrops/grubdrops/internal/platform"
 )
@@ -17,7 +19,14 @@ func (r *Runner) blockNotLinked(ctx context.Context, benefit platform.DropBenefi
 	slog.Warn("runner claim needs account link; drop blocked until linked",
 		"kind", "claim", "account", r.cfg.AccountID,
 		"benefit", benefit.ID, "benefit_name", benefit.Name, "err", err)
-	r.notifyNeedsLink(ctx, benefit)
+	r.mu.Lock()
+	var camp *platform.Campaign
+	if r.current != nil {
+		c := r.current.Campaign
+		camp = &c
+	}
+	r.mu.Unlock()
+	r.notifyNeedsLink(ctx, benefit, linkURL(err, camp))
 	r.stopWatch(ctx)
 	r.mu.Lock()
 	if r.linkRefused == nil {
@@ -31,10 +40,23 @@ func (r *Runner) blockNotLinked(ctx context.Context, benefit platform.DropBenefi
 	r.setState(ctx, StatePicking)
 }
 
+// linkURL is the account link page for a link refusal: the one the platform
+// sent with err, else the campaign's. Empty when neither is an outside page.
+func linkURL(err error, camp *platform.Campaign) string {
+	var le interface{ LinkURL() string }
+	if errors.As(err, &le) && platform.ExternalLinkURL(le.LinkURL()) {
+		return le.LinkURL()
+	}
+	if camp != nil && platform.ExternalLinkURL(camp.AccountLinkURL) {
+		return camp.AccountLinkURL
+	}
+	return ""
+}
+
 // notifyNeedsLink sends one "link your account to claim" error per drop, so a
 // retried refusal does not repeat it. Config.LinkNotices carries that across
-// runner rebuilds and restarts.
-func (r *Runner) notifyNeedsLink(ctx context.Context, benefit platform.DropBenefit) {
+// runner rebuilds and restarts. link, when set, goes to the in-app feed only.
+func (r *Runner) notifyNeedsLink(ctx context.Context, benefit platform.DropBenefit, link string) {
 	if r.cfg.Notifier == nil {
 		return
 	}
@@ -61,9 +83,14 @@ func (r *Runner) notifyNeedsLink(ctx context.Context, benefit platform.DropBenef
 	if r.cfg.Lang != nil {
 		lang = r.cfg.Lang()
 	}
-	_ = r.cfg.Notifier.Notify(ctx, "error", r.notifyFields(map[string]any{
+	f := r.notifyFields(map[string]any{
 		"drop": benefit.Name, "msg": i18n.T(lang, "notify.needs_link"),
-	}))
+		notify.FieldFeedKind: notify.FeedKindNeedsLink,
+	})
+	if link != "" {
+		f[notify.FieldFeedLink] = link
+	}
+	_ = r.cfg.Notifier.Notify(ctx, "error", f)
 }
 
 // retryLinkRefused retries the claim of each completed, unclaimed benefit the

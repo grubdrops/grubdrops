@@ -83,6 +83,8 @@ type Deps struct {
 	// NeedsLink: completed drops refused for a missing game account link.
 	// Nil serves 503.
 	NeedsLink *store.NeedsLinkDrops
+	// Feed: the in-app notification feed behind the bell. Nil serves 503.
+	Feed *store.NotificationFeed
 
 	// Accounts and logins.
 	Sessions  *store.SessionStore
@@ -196,6 +198,7 @@ func (s *server) routesProtected(r chi.Router) {
 	s.routesPoints(r)
 	s.routesRewards(r)
 	s.routesNeedsLink(r)
+	s.routesNotifications(r)
 	s.routesCampaigns(r)
 	s.routesDiscover(r)
 	s.routesClaims(r)

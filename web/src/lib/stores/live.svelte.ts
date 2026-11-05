@@ -1,5 +1,17 @@
 import type { Api } from '$lib/api/client';
-import type { Account, Claim, ForceChannel, GamesResp, HealthEvent, Overview, PointsResp, Runner } from '$lib/api/types';
+import type {
+	Account,
+	Claim,
+	ForceChannel,
+	GamesResp,
+	HealthEvent,
+	NotificationsEvent,
+	NotificationsResp,
+	Overview,
+	PointsResp,
+	Runner
+} from '$lib/api/types';
+import { applyBellEvent } from '$lib/notifications';
 
 export interface EventSourceLike {
 	onopen: (() => void) | null;
@@ -30,6 +42,8 @@ export interface LiveStore {
 	forceWatch: ForceChannel[] | null;
 	/** Cached channel-points balances per Force watch channel, or null before they load. */
 	points: PointsResp | null;
+	/** The bell feed, newest first, or null before it loads. */
+	bell: NotificationsResp | null;
 	/** The last overview or games load failed. Cleared by the next success. */
 	failed: { overview: boolean; games: boolean };
 	unreachable: boolean;
@@ -85,6 +99,7 @@ export function createLive(deps: LiveDeps): LiveStore {
 		log: [],
 		forceWatch: null,
 		points: null,
+		bell: null,
 		failed: { overview: false, games: false },
 		unreachable: false,
 		retryIn: 0,
@@ -137,13 +152,16 @@ export function createLive(deps: LiveDeps): LiveStore {
 	const loadPoints = async () => {
 		s.points = await api.points();
 	};
+	const loadBell = async () => {
+		s.bell = await api.notifications();
+	};
 	const loadRecent = async () => {
 		s.recent = (await api.claims({ limit: MAX_RECENT })).items.slice(0, MAX_RECENT);
 	};
 
 	async function refetchAll(): Promise<void> {
 		await Promise.all(
-			[loadOverview, loadRunners, loadGames, loadAccounts, loadRecent, loadForceWatch, loadPoints].map((f) => quiet(f()))
+			[loadOverview, loadRunners, loadGames, loadAccounts, loadRecent, loadForceWatch, loadPoints, loadBell].map((f) => quiet(f()))
 		);
 		touch();
 	}
@@ -230,6 +248,13 @@ export function createLive(deps: LiveDeps): LiveStore {
 			void quiet(loadPoints());
 			// The Home Points watch tile sums the balances; they live on the overview.
 			void quiet(loadOverview());
+		});
+		src.addEventListener('notifications', (ev) => {
+			const e = parse<NotificationsEvent>(ev);
+			if (!e) return;
+			// Before the first load there is nothing to add to; that load brings the row.
+			s.bell = applyBellEvent(s.bell, e);
+			touch();
 		});
 		src.addEventListener('log', (ev) => {
 			const e = parse<HealthEvent>(ev);
