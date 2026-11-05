@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/grubdrops/grubdrops/internal/i18n"
+	"github.com/grubdrops/grubdrops/internal/notify"
 	"github.com/grubdrops/grubdrops/internal/platform"
 )
 
@@ -102,14 +103,18 @@ func (r *Runner) notifyDailyReward(ctx context.Context, d platform.DailyReward) 
 		lang = r.cfg.Lang()
 	}
 	title := i18n.T(lang, "notify.kick_daily_reward_claimed")
-	if d.Reward != "" {
-		reward := d.Reward
+	reward := d.Reward
+	if reward != "" {
 		if d.Rarity != "" {
 			reward += " (" + d.Rarity + ")"
 		}
 		title = strings.ReplaceAll(i18n.T(lang, "notify.kick_daily_reward"), "{reward}", reward)
 	}
-	f := r.notifyFields(map[string]any{"drop": title})
+	f := r.notifyFields(map[string]any{
+		"drop":                title,
+		notify.FieldFeedKind:  notify.FeedKindDailyReward,
+		notify.FieldFeedTitle: reward,
+	})
 	// Not the mined drop: drop the watch's own context.
 	for _, k := range []string{"game", "campaign", "image", "channel"} {
 		delete(f, k)

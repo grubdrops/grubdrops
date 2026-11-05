@@ -59,6 +59,8 @@
   "bell.canary_any": "Watch check failed",
   "bell.reward_code": "New code: {reward}",
   "bell.reward_reminder": "Code expires soon: {reward}",
+  "bell.daily_reward": "Kick daily reward: {reward}",
+  "bell.daily_reward_any": "Kick daily reward claimed",
   "bell.error": "Error: {msg}",
   "bell.error_any": "Mining error",
   "auth.password": "Password",

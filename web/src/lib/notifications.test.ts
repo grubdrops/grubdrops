@@ -115,6 +115,8 @@ describe('bellLine', () => {
 		expect(bellLine(note(1, { kind: 'canary', platform: '' }))).toBe('Watch check failed');
 		expect(bellLine(note(1, { kind: 'reward_code' }))).toBe('New code: Cape');
 		expect(bellLine(note(1, { kind: 'reward_reminder' }))).toBe('Code expires soon: Cape');
+		expect(bellLine(note(1, { kind: 'daily_reward', title: 'Gold (rare)' }))).toBe('Kick daily reward: Gold (rare)');
+		expect(bellLine(note(1, { kind: 'daily_reward', title: '' }))).toBe('Kick daily reward claimed');
 		expect(bellLine(note(1, { kind: 'error', body: 'boom' }))).toBe('Error: boom');
 		expect(bellLine(note(1, { kind: 'error' }))).toBe('Mining error');
 	});

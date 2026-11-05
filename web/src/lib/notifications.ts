@@ -60,7 +60,8 @@ const ICONS = {
 	auth_ok: 'check-circle',
 	canary: 'pulse',
 	reward_code: 'key',
-	reward_reminder: 'key'
+	reward_reminder: 'key',
+	daily_reward: 'gift'
 } as const satisfies Record<NotificationKind, string>;
 
 /** The icon shown when a row has no image. */
@@ -93,6 +94,8 @@ export function bellLine(n: AppNotification): string {
 			return t('bell.reward_code', { reward: title });
 		case 'reward_reminder':
 			return t('bell.reward_reminder', { reward: title });
+		case 'daily_reward':
+			return title ? t('bell.daily_reward', { reward: title }) : t('bell.daily_reward_any');
 		default:
 			return n.body ? t('bell.error', { msg: n.body }) : t('bell.error_any');
 	}

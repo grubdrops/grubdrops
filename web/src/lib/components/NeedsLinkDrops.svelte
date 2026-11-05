@@ -98,7 +98,7 @@
 	.sec {
 		margin-top: 28px;
 		min-width: 0;
-		scroll-margin-top: 72px;
+		scroll-margin-top: calc(var(--top-h) + 20px);
 	}
 	.sec:first-child {
 		margin-top: 0;

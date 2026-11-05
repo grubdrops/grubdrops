@@ -47,6 +47,17 @@ var _ Store = (*store.RewardCodes)(nil)
 // Reader reads one account's reward codes; see platform.RewardCodeReader.
 type Reader func(ctx context.Context, known func(key string) (code, expiry bool)) ([]platform.RewardCode, error)
 
+// FeedRecorder records one event in the in-app feed; *feed.Feed satisfies it.
+type FeedRecorder interface {
+	Record(ctx context.Context, event string, fields map[string]any)
+}
+
+// feedKey is one feed row the poller wrote: a reward and the notice kind.
+type feedKey struct {
+	id  int64
+	due Due
+}
+
 // Target is one account to read.
 type Target struct {
 	AccountID string
@@ -66,6 +77,10 @@ type Poller struct {
 	// Notifier gets the new-code and reminder events; nil sends nothing and
 	// marks nothing.
 	Notifier Notifier
+	// Feed records each new code and reminder in the in-app feed once,
+	// whether or not Notifier takes it. Set, Notifier sends carry
+	// notify.SkipFeed so the feed is not written twice. Nil records nothing.
+	Feed FeedRecorder
 	// AccountName labels an account in notifications; nil uses the id.
 	AccountName func(ctx context.Context, accountID string) string
 	// Lang is the notification language; nil = en.
@@ -90,6 +105,7 @@ type Poller struct {
 	mu         sync.Mutex
 	accounts   map[string]*accountState
 	notifyWait time.Time // no send before this, after a failed one
+	fed        map[feedKey]bool
 }
 
 // accountState is one account's read schedule. It lives in memory, so every
@@ -294,7 +310,8 @@ func Needs(r store.RewardCode, now time.Time, remind time.Duration) Due {
 // sent notification is recorded in the store, so restarts never repeat it.
 // A new code that no notification target takes, or that was first seen
 // already expired, is recorded as skipped and never sent. After a failed
-// send the next try waits NotifyRetry.
+// send the next try waits NotifyRetry. The feed gets each new code and
+// reminder once, sent or skipped, apart from codes first seen expired.
 func (p *Poller) Sweep(ctx context.Context) {
 	if p.Notifier == nil {
 		return
@@ -322,11 +339,17 @@ func (p *Poller) Sweep(ctx context.Context) {
 			continue
 		case DueNew:
 			if !notify.Enabled(ctx, p.Notifier, notify.EventRewardCode) {
+				p.toFeed(ctx, r, due, now)
 				p.skip(ctx, r.ID, now, "notifications off")
 				continue
 			}
 		}
-		if err := p.Notifier.Notify(ctx, notify.EventRewardCode, p.fields(ctx, r, due, now)); err != nil {
+		sctx := ctx
+		if p.Feed != nil {
+			p.toFeed(ctx, r, due, now)
+			sctx = notify.SkipFeed(ctx)
+		}
+		if err := p.Notifier.Notify(sctx, notify.EventRewardCode, p.fields(ctx, r, due, now)); err != nil {
 			slog.Warn("reward codes: notification failed; trying again later", "kind", "error", "id", r.ID, "err", err)
 			p.mu.Lock()
 			p.notifyWait = now.Add(or(p.NotifyRetry, DefaultNotifyRetry))
@@ -346,6 +369,25 @@ func (p *Poller) Sweep(ctx context.Context) {
 		if werr != nil {
 			slog.Warn("reward codes: save failed", "kind", "error", "id", r.ID, "err", werr)
 		}
+	}
+}
+
+// toFeed records r's notice in the feed, once per reward and kind while this
+// process runs, so a send retried after a failure adds no second row.
+func (p *Poller) toFeed(ctx context.Context, r store.RewardCode, due Due, now time.Time) {
+	if p.Feed == nil {
+		return
+	}
+	k := feedKey{r.ID, due}
+	p.mu.Lock()
+	if p.fed == nil {
+		p.fed = map[feedKey]bool{}
+	}
+	seen := p.fed[k]
+	p.fed[k] = true
+	p.mu.Unlock()
+	if !seen {
+		p.Feed.Record(ctx, notify.EventRewardCode, p.fields(ctx, r, due, now))
 	}
 }
 

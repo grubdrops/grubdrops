@@ -68,13 +68,17 @@ const (
 	// FieldFeedLink is an outside page the feed row opens, such as a
 	// publisher's account link page.
 	FieldFeedLink = "feed_link"
+	// FieldFeedTitle replaces the row's title, for an event whose sent text
+	// would read badly in the feed's own line.
+	FieldFeedTitle = "feed_title"
 )
 
-// Feed kinds set with FieldFeedKind: the "link your account to claim" error
-// and a reward code's expiry reminder.
+// Feed kinds set with FieldFeedKind: the "link your account to claim" error,
+// a reward code's expiry reminder and a claimed Kick daily reward.
 const (
 	FeedKindNeedsLink      = "needs_link"
 	FeedKindRewardReminder = "reward_reminder"
+	FeedKindDailyReward    = "daily_reward"
 )
 
 // Strip returns fields without the feed-only fields. It returns fields
@@ -82,15 +86,31 @@ const (
 func Strip(fields map[string]any) map[string]any {
 	_, k := fields[FieldFeedKind]
 	_, l := fields[FieldFeedLink]
-	if !k && !l {
+	_, ti := fields[FieldFeedTitle]
+	if !k && !l && !ti {
 		return fields
 	}
 	out := make(map[string]any, len(fields))
 	for key, v := range fields {
-		if key == FieldFeedKind || key == FieldFeedLink {
+		if key == FieldFeedKind || key == FieldFeedLink || key == FieldFeedTitle {
 			continue
 		}
 		out[key] = v
 	}
 	return out
+}
+
+type skipFeedKey struct{}
+
+// SkipFeed marks ctx so the in-app feed does not record the send. A caller
+// that records the feed row itself, such as the reward code poller, uses it
+// so a retried send never adds a second row.
+func SkipFeed(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipFeedKey{}, true)
+}
+
+// FeedSkipped reports whether ctx was marked with SkipFeed.
+func FeedSkipped(ctx context.Context) bool {
+	v, _ := ctx.Value(skipFeedKey{}).(bool)
+	return v
 }

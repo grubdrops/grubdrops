@@ -59,6 +59,8 @@
   "bell.canary_any": "观看检测失败",
   "bell.reward_code": "新兑换码：{reward}",
   "bell.reward_reminder": "兑换码即将过期：{reward}",
+  "bell.daily_reward": "Kick 每日奖励：{reward}",
+  "bell.daily_reward_any": "已领取 Kick 每日奖励",
   "bell.error": "错误：{msg}",
   "bell.error_any": "挖矿出错",
   "auth.password": "密码",

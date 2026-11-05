@@ -59,6 +59,8 @@
   "bell.canary_any": "İzleme kontrolü başarısız",
   "bell.reward_code": "Yeni kod: {reward}",
   "bell.reward_reminder": "Kodun süresi yakında doluyor: {reward}",
+  "bell.daily_reward": "Kick günlük ödülü: {reward}",
+  "bell.daily_reward_any": "Kick günlük ödülü alındı",
   "bell.error": "Hata: {msg}",
   "bell.error_any": "Madencilik hatası",
   "auth.password": "Parola",

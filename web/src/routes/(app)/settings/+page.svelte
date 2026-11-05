@@ -131,7 +131,8 @@
 			return;
 		}
 		// Just under where a nav jump lands a section (its scroll-margin-top), plus some slack.
-		const line = (window.matchMedia('(max-width: 720px)').matches ? 140 : 92) + 40;
+		const top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 52;
+		const line = top + (window.matchMedia('(max-width: 720px)').matches ? 88 : 40) + 40;
 		let cur: Section = 'general';
 		for (const id of SECTIONS) {
 			const el = document.getElementById(id);
@@ -283,8 +284,8 @@
 	.settings {
 		--hue: var(--accent);
 		--fill: var(--hue);
-		/* Phone: the save toast sits under the top bar (52px) and the sticky pill row (57px). */
-		--toast-top-phone: 117px;
+		/* Phone: the save toast sits under the top bar and the sticky pill row (57px). */
+		--toast-top-phone: calc(var(--top-h) + 65px);
 	}
 	.settings :global(.tile) {
 		display: inline-grid;
@@ -647,7 +648,7 @@
 		}
 		/* Phone: the index is a sticky row of pills under the top bar. */
 		.subnav {
-			top: 52px;
+			top: var(--top-h);
 			z-index: 9;
 			display: flex;
 			gap: 6px;
@@ -685,7 +686,7 @@
 		}
 		/* 40px under the top bar and the pill row. */
 		.settings :global(section.set) {
-			scroll-margin-top: 140px;
+			scroll-margin-top: calc(var(--top-h) + 88px);
 		}
 		.settings :global(.row) {
 			flex-wrap: wrap;

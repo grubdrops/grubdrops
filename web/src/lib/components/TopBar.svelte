@@ -71,7 +71,7 @@
 	.top-in {
 		max-width: 1160px;
 		margin: 0 auto;
-		height: 52px;
+		height: var(--top-h);
 		padding: 0 24px;
 		display: flex;
 		align-items: center;
@@ -151,13 +151,38 @@
 			outline-offset: -2px;
 		}
 	}
-	@media (max-width: 420px) {
+	/* Phone: brand, version and bell on the first row; every link on a second
+	   row of its own, spread across the width. It still scrolls if a longer
+	   language does not fit. */
+	@media (max-width: 560px) {
 		.top-in {
-			gap: 8px;
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr);
+			grid-template-rows: 48px 44px;
+			column-gap: 8px;
+		}
+		.brand span {
+			display: inline;
+		}
+		.end {
+			grid-column: 2;
+			justify-self: end;
+		}
+		.tabs {
+			grid-row: 2;
+			grid-column: 1 / -1;
+			align-self: stretch;
+			align-items: stretch;
+			justify-content: space-between;
+			gap: 0;
+			margin: 0 -6px;
 		}
 		.tabs a {
-			padding: 6px 5px;
+			display: flex;
+			align-items: center;
+			padding: 0 6px;
 			font-size: 13px;
+			text-underline-offset: 6px;
 		}
 	}
 </style>
