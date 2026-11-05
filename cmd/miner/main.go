@@ -348,11 +348,12 @@ func run(ctx context.Context) error {
 	// Telegram are set to; they get each event as before.
 	hub := api.NewHub()
 	feedStore := store.NewNotificationFeed(q)
+	bell := &feed.Feed{Store: feedStore, OnAdd: func(it store.FeedItem) {
+		hub.Publish(api.NotificationEvent(it))
+	}}
 	notifier := &feed.Tee{
 		Inner: &indirectNotifier{mu: &notifierMu, ptr: &currentNotifier},
-		Feed: &feed.Feed{Store: feedStore, OnAdd: func(it store.FeedItem) {
-			hub.Publish(api.NotificationEvent(it))
-		}},
+		Feed:  bell,
 	}
 
 	// Effective display timezone: the in-app setting wins over the TZ env var,
@@ -508,7 +509,7 @@ func run(ctx context.Context) error {
 	// Twitch reward codes: read at start and every 3h per account, one at a
 	// time, in the background so the watch beacon never waits on it.
 	rewardCodes := store.NewRewardCodes(q, cryptor)
-	rewardPoller := ro.newRewardPoller(rewardCodes, settingsStore, notifier, displayZone.Location)
+	rewardPoller := ro.newRewardPoller(rewardCodes, settingsStore, notifier, bell, displayZone.Location)
 	bg.Go(func() { rewardPoller.Run(ctx) })
 
 	// Now that the initial Reload has registered every enabled Kick account's

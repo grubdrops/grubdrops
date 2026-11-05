@@ -59,6 +59,8 @@
   "bell.canary_any": "Falló la comprobación de visionado",
   "bell.reward_code": "Código nuevo: {reward}",
   "bell.reward_reminder": "El código caduca pronto: {reward}",
+  "bell.daily_reward": "Recompensa diaria de Kick: {reward}",
+  "bell.daily_reward_any": "Recompensa diaria de Kick reclamada",
   "bell.error": "Error: {msg}",
   "bell.error_any": "Error de minado",
   "auth.password": "Contraseña",

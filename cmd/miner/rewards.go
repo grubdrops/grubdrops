@@ -60,11 +60,12 @@ func (ro *roster) rewardReader(accountID string) rewards.Reader {
 }
 
 // newRewardPoller builds the reward code poller on st.
-func (ro *roster) newRewardPoller(st *store.RewardCodes, settings *store.Settings, n notify.Notifier, zone func() *time.Location) *rewards.Poller {
+func (ro *roster) newRewardPoller(st *store.RewardCodes, settings *store.Settings, n notify.Notifier, fd rewards.FeedRecorder, zone func() *time.Location) *rewards.Poller {
 	return &rewards.Poller{
 		Store:    st,
 		Targets:  ro.rewardTargets,
 		Notifier: n,
+		Feed:     fd,
 		AccountName: func(_ context.Context, id string) string {
 			return ro.accountName(id)
 		},

@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aalejandrofer/grubdrops/internal/feed"
 	"github.com/aalejandrofer/grubdrops/internal/i18n"
+	"github.com/aalejandrofer/grubdrops/internal/notify"
 	"github.com/aalejandrofer/grubdrops/internal/platform"
 	"github.com/aalejandrofer/grubdrops/internal/platform/platformtest"
 )
@@ -155,5 +157,34 @@ func TestDailyReward_RunChecksAtStart(t *testing.T) {
 	<-done
 	if k.callCount() != 1 {
 		t.Fatalf("on at start: calls=%d", k.callCount())
+	}
+}
+
+// In the bell a daily reward claim is its own row kind titled with the
+// reward alone, so it reads "Kick daily reward: Gold" and not "Claimed Kick
+// daily reward: Gold". Discord and Telegram get the claim as before.
+func TestDailyReward_FeedRow(t *testing.T) {
+	for _, tc := range []struct{ reward, title string }{{"Gold", "Gold"}, {"", ""}} {
+		n := &spyNotifier{}
+		k := &dailyKick{Backend: platformtest.NewFake(), ready: []string{"d1"}, reward: tc.reward}
+		dailyRunner(k, func() bool { return true }, n).claimDailyRewards(context.Background(), k)
+		got := n.of("claim")
+		if len(got) != 1 {
+			t.Fatalf("claims=%v", n.got)
+		}
+		it, ok := feed.FromEvent(notify.EventClaim, got[0].fields)
+		if !ok || it.Kind != feed.KindDailyReward || it.Title != tc.title || it.Platform != "kick" {
+			t.Fatalf("reward %q: feed row %+v", tc.reward, it)
+		}
+		sent := notify.Strip(got[0].fields)
+		if _, has := sent[notify.FieldFeedKind]; has {
+			t.Fatalf("feed kind sent out: %v", sent)
+		}
+		if _, has := sent[notify.FieldFeedTitle]; has {
+			t.Fatalf("feed title sent out: %v", sent)
+		}
+		if sent["drop"] != got[0].fields["drop"] || sent["drop"] == "" {
+			t.Fatalf("drop changed: %v", sent)
+		}
 	}
 }

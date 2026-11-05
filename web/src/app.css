@@ -1,4 +1,6 @@
 :root {
+	/* Height of the sticky top bar; it takes a second row for the links on phones. */
+	--top-h: 52px;
 	--bg: #0d1117;
 	--surface: #161b22;
 	--surface-2: #1c2129;
@@ -203,5 +205,10 @@ html.grub-dragging * {
 @media (prefers-reduced-motion: reduce) {
 	.btn.rf.spin svg {
 		animation: none;
+	}
+}
+@media (max-width: 560px) {
+	:root {
+		--top-h: 92px;
 	}
 }

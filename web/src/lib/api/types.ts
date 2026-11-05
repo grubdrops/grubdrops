@@ -580,7 +580,8 @@ export type NotificationKind =
 	| 'auth_ok'
 	| 'canary'
 	| 'reward_code'
-	| 'reward_reminder';
+	| 'reward_reminder'
+	| 'daily_reward';
 
 /** One row of the bell feed. */
 export interface AppNotification {

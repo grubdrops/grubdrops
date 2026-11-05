@@ -58,6 +58,13 @@ func TestFromEvent(t *testing.T) {
 		{"reward reminder", notify.EventRewardCode, map[string]any{"reward": "Cape",
 			notify.FieldFeedKind: notify.FeedKindRewardReminder},
 			store.FeedItem{Event: "reward_code", Kind: KindRewardReminder, Title: "Cape"}, true},
+		{"kick daily reward", notify.EventClaim, map[string]any{"account": "k1", "platform": "kick",
+			"drop": "Kick daily reward: Gold (rare)", notify.FieldFeedKind: notify.FeedKindDailyReward,
+			notify.FieldFeedTitle: "Gold (rare)"},
+			store.FeedItem{Event: "claim", Kind: KindDailyReward, AccountID: "k1", Platform: "kick", Title: "Gold (rare)"}, true},
+		{"kick daily reward, unnamed", notify.EventClaim, map[string]any{"drop": "Kick daily reward claimed",
+			notify.FieldFeedKind: notify.FeedKindDailyReward, notify.FieldFeedTitle: ""},
+			store.FeedItem{Event: "claim", Kind: KindDailyReward}, true},
 		{"progress skipped", notify.EventProgress, map[string]any{"drop": "Cape"}, store.FeedItem{}, false},
 		{"state skipped", notify.EventState, map[string]any{}, store.FeedItem{}, false},
 		{"test skipped", notify.EventTest, map[string]any{"drop": "Cape"}, store.FeedItem{}, false},
@@ -89,7 +96,7 @@ func TestTee_RecordsWithNoTarget(t *testing.T) {
 		Feed:  &Feed{Store: st, Now: func() time.Time { return now }, OnAdd: func(it store.FeedItem) { added = append(added, it) }},
 	}
 	ctx := context.Background()
-	assert.True(t, notify.Enabled(ctx, tee, notify.EventRewardCode), "the feed takes reward codes")
+	assert.False(t, notify.Enabled(ctx, tee, notify.EventRewardCode), "the feed never turns a send on")
 	assert.False(t, notify.Enabled(ctx, tee, notify.EventProgress), "progress has no target")
 
 	require.NoError(t, tee.Notify(ctx, notify.EventClaim, map[string]any{"account": "a1", "drop": "Cape"}))
@@ -117,6 +124,19 @@ func TestTee_TargetedSendSkipsFeed(t *testing.T) {
 	ctx := notify.WithTarget(context.Background(), notify.TargetDiscord)
 	assert.ErrorIs(t, tee.Notify(ctx, notify.EventClaim, map[string]any{"drop": "Cape"}), notify.ErrNoTarget)
 	assert.False(t, notify.Enabled(ctx, tee, notify.EventClaim))
+	rows, _, err := st.List(context.Background(), 10)
+	require.NoError(t, err)
+	assert.Empty(t, rows)
+}
+
+// A send marked with notify.SkipFeed reaches Inner but not the feed.
+func TestTee_SkipFeed(t *testing.T) {
+	st := openFeed(t)
+	inner := &spy{}
+	tee := &Tee{Inner: inner, Feed: &Feed{Store: st}}
+	ctx := notify.SkipFeed(context.Background())
+	require.NoError(t, tee.Notify(ctx, notify.EventClaim, map[string]any{"drop": "Cape"}))
+	require.Len(t, inner.fields, 1)
 	rows, _, err := st.List(context.Background(), 10)
 	require.NoError(t, err)
 	assert.Empty(t, rows)

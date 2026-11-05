@@ -24,6 +24,7 @@ const (
 	KindCanary         = "canary"
 	KindRewardCode     = "reward_code"
 	KindRewardReminder = notify.FeedKindRewardReminder
+	KindDailyReward    = notify.FeedKindDailyReward
 )
 
 // Records reports whether the feed keeps event. Progress, state, test and
@@ -59,6 +60,12 @@ func FromEvent(event notify.Event, fields map[string]any) (it store.FeedItem, ok
 	case notify.EventClaim:
 		it.Kind = KindClaim
 		it.Title = str("drop")
+		if str(notify.FieldFeedKind) == KindDailyReward {
+			// The row reads "Kick daily reward: <reward>", so it keeps the
+			// reward alone, or nothing when Kick did not name it.
+			it.Kind = KindDailyReward
+			it.Title = str(notify.FieldFeedTitle)
+		}
 	case notify.EventError:
 		it.Title = str("drop")
 		if str(notify.FieldFeedKind) == notify.FeedKindNeedsLink {
@@ -159,14 +166,15 @@ type Recorder interface {
 
 // Tee sends every event to Inner unchanged, minus the feed-only fields, and
 // records it in Feed. A send aimed at one target with notify.WithTarget, such
-// as a settings test, skips the feed.
+// as a settings test, skips the feed, and so does one marked with
+// notify.SkipFeed by a caller that records the row itself.
 type Tee struct {
 	Inner notify.Notifier
 	Feed  Recorder
 }
 
 func (t *Tee) Notify(ctx context.Context, event notify.Event, fields map[string]any) error {
-	if t.Feed != nil && notify.TargetFrom(ctx) == "" {
+	if t.Feed != nil && notify.TargetFrom(ctx) == "" && !notify.FeedSkipped(ctx) {
 		t.Feed.Record(ctx, event, fields)
 	}
 	if t.Inner == nil {
@@ -175,11 +183,8 @@ func (t *Tee) Notify(ctx context.Context, event notify.Event, fields map[string]
 	return t.Inner.Notify(ctx, event, notify.Strip(fields))
 }
 
-// Enabled is true for an event the feed keeps, since the feed always takes
-// it. Otherwise, and for a send aimed at one target, Inner decides.
+// Enabled is Inner's answer: whether Discord or Telegram would get event.
+// The feed records every kept event either way, so it never turns a send on.
 func (t *Tee) Enabled(ctx context.Context, event notify.Event) bool {
-	if t.Feed != nil && notify.TargetFrom(ctx) == "" && Records(event) {
-		return true
-	}
 	return notify.Enabled(ctx, t.Inner, event)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -58,6 +59,9 @@ func (a *api) claimChallenge(ctx context.Context, sess platform.Session, id stri
 	if status != 200 && status != 201 {
 		return "", "", fmt.Errorf("claim challenge: status %d body %s", status, truncate(body, 200))
 	}
+	// The response shape is not known yet: log it so claimedReward can be fit
+	// to a real one.
+	slog.Debug("kick daily reward claim response", "challenge", id, "status", status, "body", truncate(body, 1000))
 	reward, rarity = claimedReward(body)
 	return reward, rarity, nil
 }

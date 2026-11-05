@@ -359,7 +359,7 @@
 			position: fixed;
 			left: 16px;
 			right: 16px;
-			top: 60px;
+			top: 56px;
 			width: auto;
 			max-width: none;
 		}

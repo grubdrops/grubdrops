@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/aalejandrofer/grubdrops/internal/feed"
 	"github.com/aalejandrofer/grubdrops/internal/i18n"
 	"github.com/aalejandrofer/grubdrops/internal/notify"
 	"github.com/aalejandrofer/grubdrops/internal/platform"
@@ -455,4 +456,93 @@ func TestExpiryText(t *testing.T) {
 	require.Contains(t, got, strings.ReplaceAll(i18n.T("en", "rewards.left_hours"), "{n}", "5"))
 	got = ExpiryText("en", at, at.Add(-10*time.Second), time.UTC)
 	require.Contains(t, got, strings.ReplaceAll(i18n.T("en", "rewards.left_minutes"), "{n}", "1"))
+}
+
+// bell wires the poller the way the miner does: Notifier is the feed Tee
+// around inner, and Feed is the same feed.
+func bell(t *testing.T, p *Poller, inner Notifier) *store.NotificationFeed {
+	t.Helper()
+	db, err := store.Open(context.Background(), filepath.Join(t.TempDir(), "f.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	fs := store.NewNotificationFeed(gen.New(db))
+	f := &feed.Feed{Store: fs, Now: p.Now}
+	p.Notifier = &feed.Tee{Inner: inner, Feed: f}
+	p.Feed = f
+	return fs
+}
+
+func feedRows(t *testing.T, fs *store.NotificationFeed) []store.FeedItem {
+	t.Helper()
+	rows, _, err := fs.List(context.Background(), 50)
+	require.NoError(t, err)
+	return rows
+}
+
+// The bell never counts as a notification target: a code found while Discord
+// and Telegram are off is still marked skipped, as before the bell, and
+// turning them on later sends nothing. The bell shows the code once.
+func TestSweep_BellDoesNotMarkNotified(t *testing.T) {
+	ctx := context.Background()
+	st := newStore(t)
+	inner := &gatedNotifier{off: true}
+	c := &clock{t0}
+	calls := 0
+	exp := t0.Add(30 * 24 * time.Hour)
+	p := poller(st, nil, c, Target{AccountID: "a1", Read: staticReader(&calls, reward(exp))})
+	fs := bell(t, p, inner)
+
+	p.Pass(ctx)
+	require.Equal(t, 0, inner.count())
+	list, err := st.List(ctx, false)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.True(t, list[0].NotifiedAt.IsZero(), "the bell is not a send")
+	require.True(t, t0.Equal(list[0].NotifySkippedAt))
+	rows := feedRows(t, fs)
+	require.Len(t, rows, 1)
+	require.Equal(t, feed.KindRewardCode, rows[0].Kind)
+	require.Equal(t, "Blue Creeper Cape", rows[0].Title)
+
+	inner.off = false
+	c.now = t0.Add(time.Hour)
+	p.Pass(ctx)
+	c.now = exp.Add(-time.Hour)
+	p.Sweep(ctx)
+	require.Equal(t, 0, inner.count(), "a skipped code is not sent late")
+	require.Len(t, feedRows(t, fs), 1, "and the bell shows it once")
+}
+
+// A send that fails is retried, and the bell still shows the code once.
+func TestSweep_BellOnceAcrossRetries(t *testing.T) {
+	ctx := context.Background()
+	st := newStore(t)
+	inner := &gatedNotifier{}
+	inner.err = errors.New("webhook down")
+	c := &clock{t0}
+	calls := 0
+	exp := t0.Add(30 * 24 * time.Hour)
+	p := poller(st, nil, c, Target{AccountID: "a1", Read: staticReader(&calls, reward(exp))})
+	fs := bell(t, p, inner)
+
+	p.Pass(ctx)
+	require.Equal(t, 0, inner.count())
+	require.Len(t, feedRows(t, fs), 1)
+
+	inner.err = nil
+	c.now = t0.Add(DefaultNotifyRetry + time.Minute)
+	p.Sweep(ctx)
+	require.Equal(t, 1, inner.count(), "sent on the retry")
+	require.NotContains(t, inner.sent[0].fields, notify.FieldFeedKind)
+	list, err := st.List(ctx, false)
+	require.NoError(t, err)
+	require.False(t, list[0].NotifiedAt.IsZero())
+	require.Len(t, feedRows(t, fs), 1, "no second row for the retry")
+
+	c.now = exp.Add(-time.Hour)
+	p.Sweep(ctx)
+	require.Equal(t, 2, inner.count(), "reminder sent")
+	rows := feedRows(t, fs)
+	require.Len(t, rows, 2)
+	require.Equal(t, feed.KindRewardReminder, rows[0].Kind)
 }
