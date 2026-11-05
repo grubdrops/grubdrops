@@ -4,7 +4,7 @@
 	import { relTime } from '$lib/format';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
-	import { applyBellEvent, badgeText, bellAlert, bellGroups, bellIcon, bellLine, bellTarget } from '$lib/notifications';
+	import { applyBellEvent, badgeText, bellAlert, bellGroups, bellIcon, bellLine, bellTarget, bellUrgent } from '$lib/notifications';
 	import Icon from './Icon.svelte';
 	import NewPill from './NewPill.svelte';
 
@@ -20,6 +20,8 @@
 
 	const unread = $derived(live.bell?.unread ?? 0);
 	const badge = $derived(badgeText(unread));
+	// The badge turns red while an unread reward code waits.
+	const urgentUnread = $derived((live.bell?.items ?? []).some((n) => !n.read && bellUrgent(n.kind)));
 	const groups = $derived(bellGroups(live.bell?.items ?? [], now));
 	const label = $derived(unread > 0 ? tn('bell.open', unread) : t('bell.title'));
 
@@ -97,12 +99,13 @@
 		<a
 			class="row"
 			class:unread={isUnread(n)}
+			class:urgent={bellUrgent(n.kind)}
 			href={to.href}
 			target={to.external ? '_blank' : undefined}
 			rel={to.external ? 'noopener noreferrer' : undefined}
 			onclick={() => close(false)}
 		>
-			<span class="pic" class:alert={bellAlert(n.kind)}>
+			<span class="pic" class:alert={bellAlert(n.kind)} class:urgent={bellUrgent(n.kind)}>
 				{#if n.image_url}
 					<img src={n.image_url} alt="" loading="lazy" />
 				{:else}
@@ -131,11 +134,11 @@
 		onclick={toggle}
 	>
 		<Icon name="bell" size={17} />
-		{#if badge}<span class="badge" aria-hidden="true">{badge}</span>{/if}
+		{#if badge}<span class="badge" class:urgent={urgentUnread} aria-hidden="true">{badge}</span>{/if}
 	</button>
 	<div class="pop" id="bellpop" role="dialog" aria-label={t('bell.title')} hidden={!open} bind:this={pop}>
 		<header>
-			<h3>{t('bell.title')}<NewPill since="2.4" /></h3>
+			<h3>{t('bell.title')}<NewPill since="2.3" /></h3>
 			<a class="gear" href="/settings#notifications" aria-label={t('bell.settings')} title={t('bell.settings')} onclick={() => close(false)}
 				><Icon name="gear" size={15} /></a
 			>
@@ -295,6 +298,16 @@
 	.row.unread:hover {
 		background: color-mix(in srgb, var(--accent) 22%, transparent);
 	}
+	/* Reward codes: red, read or not, so a code waiting to be redeemed stands out. */
+	.row.urgent {
+		background: var(--red-soft);
+	}
+	.row.urgent:hover {
+		background: color-mix(in srgb, var(--red) 24%, transparent);
+	}
+	.badge.urgent {
+		background: var(--red);
+	}
 	.pic {
 		flex: none;
 		width: 32px;
@@ -310,6 +323,10 @@
 	.pic.alert {
 		color: var(--amber);
 		background: var(--amber-soft);
+	}
+	.pic.urgent {
+		color: var(--red);
+		background: var(--red-soft);
 	}
 	.pic img {
 		width: 100%;

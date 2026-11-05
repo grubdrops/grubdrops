@@ -12,6 +12,7 @@
   "time.today_at": "今天 {time}",
   "time.yesterday_at": "昨天 {time}",
   "app.name": "GrubDrops",
+  "topbar.github": "GitHub 上的 GrubDrops",
   "app.copy": "复制",
   "app.copied": "已复制",
   "nav.home": "首页",

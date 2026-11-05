@@ -69,6 +69,11 @@ export function bellIcon(kind: NotificationKind): (typeof ICONS)[NotificationKin
 	return ICONS[kind] ?? 'bell';
 }
 
+/** Reward code rows are urgent: a code must be redeemed before it expires. */
+export function bellUrgent(kind: NotificationKind): boolean {
+	return kind === 'reward_code' || kind === 'reward_reminder';
+}
+
 /** Problem rows get the warning tone on their icon. */
 export function bellAlert(kind: NotificationKind): boolean {
 	return kind === 'needs_link' || kind === 'error' || kind === 'auth' || kind === 'canary';

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { AppNotification, NotificationsResp } from '$lib/api/types';
 import { setLang } from '$lib/i18n/index.svelte';
-import { MAX_BELL, applyBellEvent, badgeText, bellAlert, bellGroups, bellIcon, bellLine, bellTarget } from './notifications';
+import { MAX_BELL, applyBellEvent, badgeText, bellAlert, bellGroups, bellIcon, bellLine, bellTarget, bellUrgent } from './notifications';
 
 beforeEach(() => setLang('en'));
 
@@ -124,6 +124,9 @@ describe('bellLine', () => {
 	it('tones problems and picks an icon', () => {
 		expect(bellAlert('needs_link')).toBe(true);
 		expect(bellAlert('claim')).toBe(false);
+		expect(bellUrgent('reward_code')).toBe(true);
+		expect(bellUrgent('reward_reminder')).toBe(true);
+		expect(bellUrgent('claim')).toBe(false);
 		expect(bellIcon('claim')).toBe('gift');
 		expect(bellIcon('canary')).toBe('pulse');
 	});

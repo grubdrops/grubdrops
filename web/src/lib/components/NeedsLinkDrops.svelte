@@ -57,7 +57,7 @@
 		<div class="sec-h">
 			<h2 id="needs-link-h">
 				<span class="ic"><Icon name="alert" size={14} /></span>{t('needslink.title')}
-				{#if open > 0}<span class="n">{open}</span>{/if}<NewPill since="2.4" />
+				{#if open > 0}<span class="n">{open}</span>{/if}<NewPill since="2.3" />
 			</h2>
 		</div>
 		<p class="why">{t('needslink.why')}</p>
