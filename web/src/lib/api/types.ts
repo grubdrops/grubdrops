@@ -570,3 +570,46 @@ export interface ApiErrorBody {
 	/** 429: seconds until the call is allowed again. */
 	retry_after_sec?: number;
 }
+
+/** What a bell feed row is about; picks its icon, line and click target. */
+export type NotificationKind =
+	| 'claim'
+	| 'needs_link'
+	| 'error'
+	| 'auth'
+	| 'auth_ok'
+	| 'canary'
+	| 'reward_code'
+	| 'reward_reminder';
+
+/** One row of the bell feed. */
+export interface AppNotification {
+	id: number;
+	created_at: string | null;
+	event: string;
+	kind: NotificationKind;
+	account_id: string;
+	account_name: string;
+	platform: string;
+	/** The drop, reward or nothing. */
+	title: string;
+	/** Detail text: an error, a login reason, a code's expiry. */
+	body: string;
+	game: string;
+	campaign: string;
+	image_url: string;
+	/** An outside page to open, such as a publisher's link page. */
+	link: string;
+	read: boolean;
+}
+
+export interface NotificationsResp {
+	items: AppNotification[];
+	unread: number;
+}
+
+/** The notifications SSE event: a new row, or read when every row was marked read. */
+export interface NotificationsEvent {
+	item?: AppNotification;
+	read?: boolean;
+}

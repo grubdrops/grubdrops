@@ -19,6 +19,7 @@ import type {
 	Health,
 	LinkRecheck,
 	NeedsLinkDrop,
+	NotificationsResp,
 	Overview,
 	Platform,
 	PointsMode,
@@ -110,6 +111,10 @@ export interface Api {
 	setRewardCode(id: number, state: RewardCodeState): Promise<void>;
 	/** Finished drops not claimed because the game account is not linked. */
 	needsLink(): Promise<{ drops: NeedsLinkDrop[] }>;
+	/** The bell feed, newest first, with the unread count. */
+	notifications(): Promise<NotificationsResp>;
+	/** Marks every bell row read. */
+	readNotifications(): Promise<void>;
 	twitchStart(id: string): Promise<DeviceStart>;
 	twitchStatus(id: string): Promise<DeviceStatus>;
 	twitchAndroidUrl(): Promise<{ login_url: string }>;
@@ -285,6 +290,8 @@ export function createClient(opts: ClientOpts): Api {
 		rewardCodes: () => get('/api/reward-codes'),
 		setRewardCode: (id, state) => send('PUT', `/api/reward-codes/${id}`, { state }) as Promise<void>,
 		needsLink: () => get('/api/needs-link'),
+		notifications: () => get('/api/notifications'),
+		readNotifications: () => post('/api/notifications/read'),
 		twitchStart: (id) => post(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchStatus: (id) => get(`/api/accounts/${enc(id)}/twitch/device`),
 		twitchAndroidUrl: () => get('/api/login/twitch/android'),

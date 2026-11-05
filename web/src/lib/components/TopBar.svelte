@@ -5,6 +5,7 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import VersionPopover from './VersionPopover.svelte';
 	import NewPill from './NewPill.svelte';
+	import NotificationBell from './NotificationBell.svelte';
 
 	let { version, update }: { version: string; update: UpdateInfo | null } = $props();
 
@@ -51,7 +52,10 @@
 				>
 			{/each}
 		</nav>
-		<VersionPopover current={version} {update} />
+		<div class="end">
+			<VersionPopover current={version} {update} />
+			<NotificationBell />
+		</div>
 	</div>
 </header>
 
@@ -92,6 +96,14 @@
 	.tabs {
 		display: flex;
 		gap: 2px;
+	}
+	/* Version and bell sit together at the right edge. */
+	.end {
+		margin-left: auto;
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 4px;
 	}
 	.tabs a {
 		padding: 6px 10px;

@@ -388,6 +388,9 @@ func (p *Poller) fields(ctx context.Context, r store.RewardCode, due Due, now ti
 	if !r.ExpiresAt.IsZero() {
 		f["expires"] = ExpiryText(lang, r.ExpiresAt, now, p.zone())
 	}
+	if due == DueReminder {
+		f[notify.FieldFeedKind] = notify.FeedKindRewardReminder
+	}
 	return f
 }
 

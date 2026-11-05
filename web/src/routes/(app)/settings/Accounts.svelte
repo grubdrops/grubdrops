@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { api } from '$lib/app';
 	import type { Account, Platform } from '$lib/api/types';
 	import { STATUS_KEYS } from '$lib/account-panel';
@@ -44,6 +45,18 @@
 	// A removed account closes its drawer.
 	$effect(() => {
 		if (act.open && !live.accounts.some((a) => a.id === act.open)) act.close();
+	});
+
+	// ?account=<id>, from a bell row, opens that account's drawer once the accounts load.
+	$effect(() => {
+		const want = page.url.searchParams.get('account');
+		if (!want || !live.accounts.some((a) => a.id === want)) return;
+		untrack(() => {
+			act.openPanel(want);
+			const url = new URL(page.url.href);
+			url.searchParams.delete('account');
+			void goto(url.pathname + url.search + url.hash, { replace: true, reset: false });
+		});
 	});
 
 	async function commitOrder(next: Account[]): Promise<void> {

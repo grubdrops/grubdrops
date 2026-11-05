@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Api } from '$lib/api/client';
-import type { Claim, ForceChannel, HealthEvent, PointsResp, Runner } from '$lib/api/types';
+import type { AppNotification, Claim, ForceChannel, HealthEvent, NotificationsResp, PointsResp, Runner } from '$lib/api/types';
 import { createLive, upsertBy, type EventSourceLike } from './live.svelte';
 
 class FakeSource implements EventSourceLike {
@@ -31,6 +31,7 @@ function setup(session: () => Promise<{ authed: boolean }> = async () => ({ auth
 		claims: vi.fn(async () => ({ total: 0, items: [], games: [], accounts: [] })),
 		forceWatch: vi.fn(async () => ({ channels: [] as ForceChannel[] })),
 		points: vi.fn(async (): Promise<PointsResp> => ({ refresh_every_sec: 3600, accounts: [], channels: [] })),
+		notifications: vi.fn(async (): Promise<NotificationsResp> => ({ items: [], unread: 0 })),
 		session: vi.fn(session)
 	};
 	const sources: FakeSource[] = [];
@@ -158,6 +159,21 @@ describe('live events', () => {
 		cur().emit('runner', r('a', 'idle'));
 		await settle();
 		expect(calls()).toEqual([2, 2]);
+	});
+
+	it('notifications event adds a row once and read clears the badge', async () => {
+		const { live, cur, api } = setup();
+		cur().onopen!();
+		await settle();
+		expect(api.notifications).toHaveBeenCalledTimes(1);
+		const n = { id: 7, kind: 'claim', read: false } as AppNotification;
+		cur().emit('notifications', { item: n });
+		cur().emit('notifications', { item: n });
+		expect(live.bell?.items.map((x) => x.id)).toEqual([7]);
+		expect(live.bell?.unread).toBe(1);
+		cur().emit('notifications', { read: true });
+		expect(live.bell?.unread).toBe(0);
+		expect(live.bell?.items[0].read).toBe(true);
 	});
 
 	it('log event prepends, capped at 50', () => {
