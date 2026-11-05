@@ -11,6 +11,8 @@ All notable changes to GrubDrops.
 
 ### Changed
 - On phones the top bar has two rows: logo, version and bell on top, and every page link on the row below, so none is cut off and the bell stays in view.
+- Reward codes show red in the bell: a red icon and row, and the unread badge turns red while an unread code waits, since a code must be redeemed before it expires.
+- The top bar has a GitHub link again, left of the bell. It opens the GrubDrops repository in a new tab.
 - Debug logs show the Kick daily reward claim response, to learn the reward name format.
 - README Features lists channel points, Points only, raids, reward codes, the sleep window, the daily inventory sweep, SSO only and the experimental Kick daily reward.
 

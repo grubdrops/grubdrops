@@ -12,6 +12,7 @@
   "time.today_at": "Bugün {time}",
   "time.yesterday_at": "Dün {time}",
   "app.name": "GrubDrops",
+  "topbar.github": "GitHub'da GrubDrops",
   "app.copy": "Kopyala",
   "app.copied": "Kopyalandı",
   "nav.home": "Ana sayfa",

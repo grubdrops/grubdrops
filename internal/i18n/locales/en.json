@@ -12,6 +12,7 @@
   "time.today_at": "Today {time}",
   "time.yesterday_at": "Yest. {time}",
   "app.name": "GrubDrops",
+  "topbar.github": "GrubDrops on GitHub",
   "app.copy": "Copy",
   "app.copied": "Copied",
   "nav.home": "Home",
