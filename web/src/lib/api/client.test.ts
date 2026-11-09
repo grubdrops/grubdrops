@@ -45,6 +45,19 @@ describe('client', () => {
 		expect(hdr(calls[0], 'X-CSRF-Token')).toBe('tok');
 	});
 
+	it('dismissNeedsLink and restoreNeedsLink post the group with CSRF', async () => {
+		const { api, calls } = setup([{ status: 204 }, { status: 204 }]);
+		const g = { account_id: 'acc 1', campaign_id: 'c-day1', campaign_name: 'ignored' };
+		await api.dismissNeedsLink(g);
+		await api.restoreNeedsLink(g);
+		expect(calls.map((c) => c.url)).toEqual(['/api/needs-link/dismiss', '/api/needs-link/restore']);
+		for (const c of calls) {
+			expect(c.init.method).toBe('POST');
+			expect(hdr(c, 'X-CSRF-Token')).toBe('tok');
+			expect(JSON.parse(c.init.body as string)).toEqual({ account_id: 'acc 1', campaign_id: 'c-day1' });
+		}
+	});
+
 	it('setSkipSleep puts the flag with CSRF', async () => {
 		const { api, calls } = setup([{ status: 204 }]);
 		await api.setSkipSleep('acc 1', true);

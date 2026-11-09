@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NeedsLinkDrop } from '$lib/api/types';
-import { groupNeedsLink, openCount } from './needs-link';
+import { dismissKey, groupNeedsLink, needsLinkRows, openCount, type NeedsLinkRow } from './needs-link';
 
 function drop(id: string, over: Partial<NeedsLinkDrop> = {}): NeedsLinkDrop {
 	return {
@@ -57,5 +57,51 @@ describe('groupNeedsLink', () => {
 	it('is empty for no drops', () => {
 		expect(groupNeedsLink([])).toEqual([]);
 		expect(openCount([])).toBe(0);
+	});
+});
+
+describe('needsLinkRows', () => {
+	const kinds = (rows: NeedsLinkRow[]) => rows.map((r) => [r.kind, r.group.campaign_id, r.group.expired]);
+
+	it('lists every group when none is dismissed', () => {
+		const g = groupNeedsLink([drop('r1'), drop('d1', { campaign_id: 'c-day1' })]);
+		expect(kinds(needsLinkRows(g, new Map()))).toEqual([
+			['group', 'c-iem', false],
+			['group', 'c-day1', false]
+		]);
+	});
+
+	it('folds a dismissed group into one line where it stood', () => {
+		const g = groupNeedsLink([drop('r1'), drop('d1', { campaign_id: 'c-day1' }), drop('d3', { campaign_id: 'c-day3' })]);
+		const rows = needsLinkRows(g, new Map([[dismissKey(g[1]), g[1]]]));
+		expect(kinds(rows)).toEqual([
+			['group', 'c-iem', false],
+			['dismissed', 'c-day1', false],
+			['group', 'c-day3', false]
+		]);
+		expect(rows[1]).toMatchObject({ key: 'k1:c-day1' });
+		const open = rows.flatMap((r) => (r.kind === 'group' ? [r.group] : []));
+		expect(openCount(open)).toBe(2);
+	});
+
+	it('gives a campaign split into open and closed groups one line', () => {
+		const g = groupNeedsLink([drop('r1'), drop('r2', { expired: true })]);
+		const rows = needsLinkRows(g, new Map([[dismissKey(g[0]), g[0]]]));
+		expect(kinds(rows)).toEqual([['dismissed', 'c-iem', false]]);
+	});
+
+	it('keeps the line of a group the server stopped listing, at the end', () => {
+		const old = groupNeedsLink([drop('d1', { campaign_id: 'c-day1' })])[0];
+		const now = groupNeedsLink([drop('r1')]);
+		expect(kinds(needsLinkRows(now, new Map([[dismissKey(old), old]])))).toEqual([
+			['group', 'c-iem', false],
+			['dismissed', 'c-day1', false]
+		]);
+		expect(kinds(needsLinkRows([], new Map([[dismissKey(old), old]])))).toEqual([['dismissed', 'c-day1', false]]);
+	});
+
+	it('keys a dismiss by account and campaign', () => {
+		expect(dismissKey({ account_id: 'k1', campaign_id: 'c-iem' })).toBe('k1:c-iem');
+		expect(dismissKey({ account_id: 't1', campaign_id: 'c-iem' })).not.toBe('k1:c-iem');
 	});
 });

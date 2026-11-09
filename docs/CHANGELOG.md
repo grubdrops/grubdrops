@@ -4,6 +4,9 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+- **Needs link groups can be dismissed.** Each group in Inventory's Needs link section has a Dismiss button after Check now, closed groups too, for drops you'll never claim, such as a game you don't own. A dismissed group folds into a "Dismissed <campaign>" line with Undo, and the section count drops by its drops. Once you leave the page the group is gone for good, and the section hides when nothing else waits. A failed dismiss or undo leaves the group as it was and says "Dismiss failed" or "Undo failed". A dismissed group stays hidden across restarts and when the platform refuses its drops again, and a drop the campaign adds later starts hidden. A claim still removes a dismissed drop, and it's still dropped 30 days after the campaign ended. Bell rows already sent stay as they are. `POST /api/needs-link/dismiss` with `{"account_id": "...", "campaign_id": "..."}` hides every drop of that account and campaign, and `POST /api/needs-link/restore` with the same body shows them again; both answer 204, or 404 when the account has no drop in that campaign. `GET /api/needs-link` leaves dismissed drops out. The mark is a new `dismissed_at` column on `needs_link_drops` (migration 0032).
+
 ## [2.3.1] — 2026-11-09
 
 ### Added
