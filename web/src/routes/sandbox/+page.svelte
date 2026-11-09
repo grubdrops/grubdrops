@@ -16,7 +16,9 @@
 			created: '2026-11-09',
 			title: 'Needs link: dismiss a group, three ways',
 			desc: 'GRUB-74. A Needs link group for a game the account will never link (Escape from Tarkov on TTik3r, 20 drops) can be hidden per account and campaign; the API is built. A a Dismiss text button after Check now that folds the group into an Undo line, B an x on the group header with an Undo toast, C a Hide button plus a Hidden list at the bottom of the panel to show groups again.',
-			tags: ['inventory', 'for approval']
+			tags: ['inventory', 'dismiss'],
+			done: true,
+			chosen: 'Variant A (Dismiss button, Undo until you leave), now live on /inventory'
 		},
 		{
 			slug: 'bell-filters',

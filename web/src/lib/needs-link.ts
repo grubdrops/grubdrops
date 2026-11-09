@@ -46,6 +46,32 @@ export function groupNeedsLink(drops: NeedsLinkDrop[]): NeedsLinkGroup[] {
 	return [...all.filter((g) => !g.expired), ...all.filter((g) => g.expired)];
 }
 
+/** The account and campaign a dismiss targets: open and closed groups of a campaign share it. */
+export function dismissKey(g: { account_id: string; campaign_id: string }): string {
+	return `${g.account_id}:${g.campaign_id}`;
+}
+
+/** One row of the section: a group, or the Undo line of a dismissed one. */
+export type NeedsLinkRow = { kind: 'group'; group: NeedsLinkGroup } | { kind: 'dismissed'; key: string; group: NeedsLinkGroup };
+
+/** The section's rows. A dismissed group folds into one Undo line where it stood; a dismissed
+ * group the server no longer lists keeps its line at the end, so Undo stays until the page is left.
+ * dismissed maps dismissKey to the group as it was when dismissed. */
+export function needsLinkRows(groups: NeedsLinkGroup[], dismissed: ReadonlyMap<string, NeedsLinkGroup>): NeedsLinkRow[] {
+	const rows: NeedsLinkRow[] = [];
+	const seen = new Set<string>();
+	for (const g of groups) {
+		const key = dismissKey(g);
+		if (!dismissed.has(key)) rows.push({ kind: 'group', group: g });
+		else if (!seen.has(key)) {
+			seen.add(key);
+			rows.push({ kind: 'dismissed', key, group: dismissed.get(key)! });
+		}
+	}
+	for (const [key, g] of dismissed) if (!seen.has(key)) rows.push({ kind: 'dismissed', key, group: g });
+	return rows;
+}
+
 /** Open drops across groups: the count the section heading shows. */
 export function openCount(groups: NeedsLinkGroup[]): number {
 	return groups.reduce((n, g) => n + (g.expired ? 0 : g.drops.length), 0);

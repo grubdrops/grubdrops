@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
 	import { api } from '$lib/app';
+	import { ApiError } from '$lib/api/client';
 	import type { NeedsLinkDrop } from '$lib/api/types';
 	import BoxArt from '$lib/components/BoxArt.svelte';
 	import Icon from '$lib/components/Icon.svelte';
@@ -9,7 +10,7 @@
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
-	import { groupNeedsLink, openCount } from '$lib/needs-link';
+	import { dismissKey, groupNeedsLink, needsLinkRows, openCount, type NeedsLinkGroup } from '$lib/needs-link';
 
 	const live = getLive();
 
@@ -48,11 +49,75 @@
 		return () => clearInterval(reload);
 	});
 
+	/** Groups dismissed on this visit, by dismissKey: they fold into an Undo line until the page is left. */
+	let dismissed = $state(new Map<string, NeedsLinkGroup>());
+	let busy = $state(new Set<string>());
+	/** The failed action per dismissKey, shown like Check now's result. */
+	let failed = $state(new Map<string, 'dismiss' | 'undo'>());
+
+	function setBusy(key: string, on: boolean): void {
+		const next = new Set(busy);
+		if (on) next.add(key);
+		else next.delete(key);
+		busy = next;
+	}
+
+	function setFailed(key: string, what: 'dismiss' | 'undo' | null): void {
+		const next = new Map(failed);
+		if (what) next.set(key, what);
+		else next.delete(key);
+		failed = next;
+	}
+
+	async function dismiss(g: NeedsLinkGroup): Promise<void> {
+		const key = dismissKey(g);
+		setBusy(key, true);
+		setFailed(key, null);
+		try {
+			await api.dismissNeedsLink(g);
+		} catch (e) {
+			// 404: nothing of it is left to hide, so fold it all the same.
+			if (!(e instanceof ApiError && e.status === 404)) {
+				setFailed(key, 'dismiss');
+				return;
+			}
+		} finally {
+			setBusy(key, false);
+		}
+		dismissed = new Map(dismissed).set(key, g);
+	}
+
+	async function undo(key: string, g: NeedsLinkGroup): Promise<void> {
+		setBusy(key, true);
+		setFailed(key, null);
+		try {
+			await api.restoreNeedsLink(g);
+		} catch (e) {
+			// 404: claimed or pruned meanwhile, so there is nothing to show again.
+			if (!(e instanceof ApiError && e.status === 404)) {
+				setFailed(key, 'undo');
+				return;
+			}
+		} finally {
+			setBusy(key, false);
+		}
+		const next = new Map(dismissed);
+		next.delete(key);
+		dismissed = next;
+		await load();
+	}
+
 	const groups = $derived(groupNeedsLink(drops));
-	const open = $derived(openCount(groups));
+	const rows = $derived(needsLinkRows(groups, dismissed));
+	const open = $derived(openCount(rows.flatMap((r) => (r.kind === 'group' ? [r.group] : []))));
 </script>
 
-{#if groups.length > 0}
+{#snippet failure(key: string)}
+	{@const what = failed.get(key)}
+	{#if what}<span class="res" role="status">{t(what === 'undo' ? 'needslink.undo_failed' : 'needslink.dismiss_failed')}</span>{/if}
+{/snippet}
+
+{#if rows.length > 0}
 	<section id="needs-link" class="sec" aria-labelledby="needs-link-h">
 		<div class="sec-h">
 			<h2 id="needs-link-h">
@@ -62,33 +127,45 @@
 		</div>
 		<p class="why">{t('needslink.why')}</p>
 		<div class="panel">
-			{#each groups as g (g.key)}
-				<div class="grp" class:closed={g.expired}>
-					<div class="gh">
-						<div class="what">
-							<div class="t">{g.campaign_name || g.game}</div>
-							<div class="c">
-								{#if g.campaign_name && g.game}<span>{g.game}</span>{/if}
-								<span class="acct"><PlatformMark platform={g.platform} size="sm" />{g.account_name}</span>
-								{#if g.expired}<span class="tag">{t('needslink.expired')}</span>{/if}
+			{#each rows as r (r.kind === 'group' ? r.group.key : `dismissed:${r.key}`)}
+				{@const g = r.group}
+				{@const key = dismissKey(g)}
+				{#if r.kind === 'dismissed'}
+					<div class="grp gone">
+						<span class="gone-t">{t('needslink.dismissed')} <b>{g.campaign_name || g.game}</b></span>
+						<button type="button" class="undo" disabled={busy.has(key)} onclick={() => undo(key, g)}>{t('needslink.undo')}</button>
+						{@render failure(key)}
+					</div>
+				{:else}
+					<div class="grp" class:closed={g.expired}>
+						<div class="gh">
+							<div class="what">
+								<div class="t">{g.campaign_name || g.game}</div>
+								<div class="c">
+									{#if g.campaign_name && g.game}<span>{g.game}</span>{/if}
+									<span class="acct"><PlatformMark platform={g.platform} size="sm" />{g.account_name}</span>
+									{#if g.expired}<span class="tag">{t('needslink.expired')}</span>{/if}
+								</div>
+							</div>
+							<div class="acts">
+								{#if !g.expired}
+									{#if g.href}<a class="btn go" href={g.href} target="_blank" rel="noopener noreferrer">{t('needslink.connect')}</a>{/if}
+									<LinkRecheck accountIds={[g.account_id]} />
+								{/if}
+								<button type="button" class="quiet" disabled={busy.has(key)} onclick={() => dismiss(g)}>{t('needslink.dismiss')}</button>
+								{@render failure(key)}
 							</div>
 						</div>
-						{#if !g.expired}
-							<div class="acts">
-								{#if g.href}<a class="btn go" href={g.href} target="_blank" rel="noopener noreferrer">{t('needslink.connect')}</a>{/if}
-								<LinkRecheck accountIds={[g.account_id]} />
-							</div>
-						{/if}
+						<ul class="drops">
+							{#each g.drops as d (d.benefit_id)}
+								<li>
+									<span class="img"><BoxArt src={d.image_url || null} name={d.benefit_name} size="sm" /></span>
+									<span class="nm">{d.benefit_name}</span>
+								</li>
+							{/each}
+						</ul>
 					</div>
-					<ul class="drops">
-						{#each g.drops as d (d.benefit_id)}
-							<li>
-								<span class="img"><BoxArt src={d.image_url || null} name={d.benefit_name} size="sm" /></span>
-								<span class="nm">{d.benefit_name}</span>
-							</li>
-						{/each}
-					</ul>
-				</div>
+				{/if}
 			{/each}
 		</div>
 	</section>
@@ -211,6 +288,71 @@
 	.btn:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 2px;
+	}
+	.quiet {
+		background: none;
+		border: 0;
+		border-radius: 6px;
+		padding: 1px 4px;
+		font: inherit;
+		font-size: 12px;
+		color: var(--t2);
+		cursor: pointer;
+		white-space: nowrap;
+	}
+	.quiet:hover:not(:disabled) {
+		color: var(--text);
+		background: var(--surface-3);
+	}
+	.quiet:disabled,
+	.undo:disabled {
+		cursor: default;
+		opacity: 0.7;
+	}
+	.quiet:focus-visible,
+	.undo:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.res {
+		font-size: 12px;
+		color: var(--t2);
+	}
+	.gone {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 9px 14px;
+		font-size: 12px;
+		color: var(--t2);
+		background: var(--surface-2);
+		min-width: 0;
+	}
+	.gone-t {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.gone-t b {
+		font-weight: 500;
+		color: var(--text);
+	}
+	.undo {
+		flex: none;
+		background: none;
+		border: 0;
+		border-radius: 4px;
+		padding: 0 2px;
+		font: inherit;
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--accent);
+		cursor: pointer;
+	}
+	.undo:hover:not(:disabled) {
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 	.drops {
 		list-style: none;
