@@ -205,14 +205,17 @@ export interface DiscoverCampaign {
 	ends_at: string | null;
 	link_url: string;
 	needs_link: boolean;
+	/** True when the campaign had not started at fetch time. */
+	upcoming?: boolean;
 	rewards: DiscoverReward[];
 }
 
-/** error: '' on success, else needs_android, timeout or failed. */
+/** error: '' on success, else needs_android, timeout or failed. count is live campaigns, upcoming the ones not started. */
 export interface DiscoverPlatform {
 	ok: boolean;
 	error: '' | 'needs_android' | 'timeout' | 'failed';
 	count: number;
+	upcoming?: number;
 }
 
 export interface DiscoverResp {
@@ -220,6 +223,8 @@ export interface DiscoverResp {
 	next_refresh_at: string | null;
 	platforms: Partial<Record<Platform, DiscoverPlatform>>;
 	campaigns: DiscoverCampaign[];
+	/** Campaigns not started yet, soonest first. */
+	upcoming?: DiscoverCampaign[];
 }
 
 export interface SearchHit {

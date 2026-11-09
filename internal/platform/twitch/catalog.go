@@ -42,8 +42,10 @@ type catalogData struct {
 	} `json:"currentUser"`
 }
 
-// Catalog lists every ACTIVE drop campaign on the account's drops dashboard
-// with its rewards and channel allow-list, regardless of any game whitelist.
+// Catalog lists every ACTIVE and UPCOMING drop campaign on the account's
+// drops dashboard with its rewards and channel allow-list, regardless of any
+// game whitelist. Status is "active" or "upcoming"; expired ones are left out.
+// Upcoming campaigns ride the same DropCampaignDetails fan-out and cache.
 // It needs an Android-client token. It has no side effects on mining state:
 // the allow-list rides on the campaign, never into this backend's capture,
 // and no PubSub. A campaign whose details fail keeps its row with no
@@ -81,7 +83,8 @@ func (b *Backend) Catalog(ctx context.Context, s platform.Session) ([]platform.C
 
 	out := make([]platform.Campaign, 0, len(page.CurrentUser.DropCampaigns))
 	for _, c := range page.CurrentUser.DropCampaigns {
-		if c.Status != "ACTIVE" || c.ID == "" || strings.ContainsAny(c.ID, "| ") {
+		status := catalogStatus(c.Status)
+		if status == "" || c.ID == "" || strings.ContainsAny(c.ID, "| ") {
 			continue
 		}
 		out = append(out, platform.Campaign{
@@ -93,7 +96,7 @@ func (b *Backend) Catalog(ctx context.Context, s platform.Session) ([]platform.C
 			Name:               c.Name,
 			StartsAt:           parseISO(c.StartAtRaw),
 			EndsAt:             parseISO(c.EndAtRaw),
-			Status:             "active",
+			Status:             status,
 			AccountLinked:      c.Self.IsAccountConnected,
 			AccountLinkChecked: true,
 			AccountLinkURL:     c.AccountLinkURL,
@@ -128,4 +131,16 @@ func (b *Backend) Catalog(ctx context.Context, s platform.Session) ([]platform.C
 	close(jobs)
 	wg.Wait()
 	return out, nil
+}
+
+// catalogStatus maps a dashboard status to the Catalog one: "active",
+// "upcoming", or "" for a campaign the catalog leaves out.
+func catalogStatus(raw string) string {
+	switch raw {
+	case "ACTIVE":
+		return "active"
+	case "UPCOMING":
+		return "upcoming"
+	}
+	return ""
 }
