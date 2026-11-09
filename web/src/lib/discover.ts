@@ -136,6 +136,34 @@ export function sortGroups(groups: DiscoverGroup[], sort: DiscoverSort): Discove
 	return newest.sort((a, b) => key(b) - key(a) || byName(a, b));
 }
 
+/** Whether c has not started at now. No start date counts as started. */
+export function isUpcoming(c: DiscoverCampaign, now: number): boolean {
+	return startMs(c) > now;
+}
+
+/**
+ * The live and upcoming lists re-split by start time at now, so an upcoming
+ * campaign turns live on time without a refetch. Upcoming is soonest first.
+ */
+export function splitByStart(
+	campaigns: DiscoverCampaign[],
+	upcoming: DiscoverCampaign[],
+	now: number
+): { live: DiscoverCampaign[]; upcoming: DiscoverCampaign[] } {
+	const live: DiscoverCampaign[] = [];
+	const soon: DiscoverCampaign[] = [];
+	for (const c of [...campaigns, ...upcoming]) (isUpcoming(c, now) ? soon : live).push(c);
+	soon.sort((a, b) => startMs(a) - startMs(b) || a.game.localeCompare(b.game) || a.name.localeCompare(b.name));
+	return { live, upcoming: soon };
+}
+
+/** Upcoming campaigns grouped by game, soonest start first for games and their campaigns. */
+export function groupUpcoming(campaigns: DiscoverCampaign[], chosen: ChosenName[]): DiscoverGroup[] {
+	const groups = groupByGame(campaigns, chosen);
+	for (const g of groups) g.campaigns.sort((a, b) => startMs(a) - startMs(b) || a.name.localeCompare(b.name));
+	return groups.sort((a, b) => startMs(a.campaigns[0]) - startMs(b.campaigns[0]) || byName(a, b));
+}
+
 /** Whole minutes until iso, floored at 0; null when there is no end. */
 export function minutesLeft(iso: string | null, now: number): number | null {
 	if (!iso) return null;
