@@ -16,7 +16,9 @@
 			created: '2026-11-09',
 			title: 'Upcoming campaigns on Discover, three layouts',
 			desc: 'Discover now gets campaigns that have not started yet, with their drops where Twitch or Kick list them. A puts them in an Upcoming section after the live list, B behind a Live / Upcoming switch, C inside each game card tagged with the start. Each starts in the display time zone and turns live on time; the clock buttons skip ahead to show it.',
-			tags: ['discover', 'for approval']
+			tags: ['discover', 'upcoming'],
+			done: true,
+			chosen: 'Variant B (Live / Upcoming switch), now live on /discover'
 		},
 		{
 			slug: 'add-game-hint',
