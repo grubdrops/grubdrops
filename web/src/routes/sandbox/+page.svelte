@@ -16,7 +16,9 @@
 			created: '2026-11-09',
 			title: 'Inventory In progress shows every started drop, three layouts',
 			desc: 'In progress lists every drop with minutes on each account, not only the one mined now (GitHub #81). A one flat list with a Mining tag on the current drop, B grouped per account with the current drop on a tinted row, C the current drop as a big row with the waiting drops compact under it.',
-			tags: ['inventory', 'for approval']
+			tags: ['inventory', 'for approval'],
+			done: true,
+			chosen: 'Variant B (grouped per account), now live on /inventory'
 		},
 		{
 			slug: 'add-game-hint',

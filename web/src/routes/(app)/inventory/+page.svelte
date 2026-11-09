@@ -11,13 +11,27 @@
 	import PageHead from '$lib/components/PageHead.svelte';
 	import RewardCodes from '$lib/components/RewardCodes.svelte';
 	import NeedsLinkDrops from '$lib/components/NeedsLinkDrops.svelte';
+	import NewPill from '$lib/components/NewPill.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { claimStamp, etaShort, formatInt, relTime } from '$lib/format';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { queues } from '$lib/upnext';
 	import { getLive } from '$lib/live-context';
 	import { prefs } from '$lib/prefs.svelte';
-	import { inProgress, pageCount, pageQuery, pageRange, PAGE_SIZES, readPageSize, validPageSize, writePageSize } from '$lib/inventory';
+	import {
+		pageCount,
+		pageQuery,
+		pageRange,
+		PAGE_SIZES,
+		progressGroups,
+		progressRows,
+		readPageSize,
+		validPageSize,
+		writePageSize,
+		type ProgressGroup,
+		type ProgressRow
+	} from '$lib/inventory';
+	import { sleepLine } from '$lib/accounts';
 	import { refreshLabel } from '$lib/cooldown';
 	import { createRefresh } from '$lib/refresh.svelte';
 
@@ -27,6 +41,29 @@
 
 	function openCampaign(c: Claim): void {
 		if (c.campaign_id) drawer = { platform: c.platform, id: c.campaign_id, highlight: c.benefit_id };
+	}
+
+	function openTarget(r: ProgressRow): void {
+		const x = r.target;
+		if (x.campaign_id) drawer = { platform: x.platform, id: x.campaign_id, highlight: x.benefit_id };
+	}
+
+	const WAIT_KEYS = {
+		not_linked: 'campaign.blocked_link',
+		precondition: 'campaign.blocked_precondition',
+		skipped: 'campaign.blocked_skipped'
+	} as const;
+
+	/** Why a started drop waits: its block reason, else it is queued. */
+	function waitText(r: ProgressRow): string {
+		return r.reason ? t(WAIT_KEYS[r.reason]) : t('upnext.title');
+	}
+
+	/** "Mining: War Thunder", the sleep window line, or Waiting. */
+	function groupLine(g: ProgressGroup): string {
+		if (g.current) return t('accounts.mining_line', { game: g.current.target.game });
+		if (g.runner.state === 'sleep_window') return sleepLine(g.runner.sleep_until);
+		return t('home.state_waiting');
 	}
 
 	/** A click anywhere on a row opens its campaign, except on the row's own controls. */
@@ -60,7 +97,8 @@
 	const filter = $derived<ClaimsQuery>({ game: game || undefined, account: account || undefined, q: q || undefined });
 	const pages = $derived(pageCount(total, size));
 	const range = $derived(pageRange(page, size, total));
-	const progress = $derived(inProgress(live.runners));
+	const progress = $derived(progressRows(live.runners));
+	const groups = $derived(progressGroups(progress));
 	const qs = $derived(queues(live.runners));
 	const queuedTotal = $derived(qs.reduce((n, x) => n + x.items.length, 0));
 	const kpi = $derived(live.overview?.kpis);
@@ -226,31 +264,44 @@
 				<h2>
 					<svg viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.6" aria-hidden="true"
 						><circle cx="8" cy="8" r="6" stroke="var(--surface-3)" /><path d="M8 2a6 6 0 0 1 6 6" stroke-linecap="round" /></svg
-					>{t('inventory.in_progress')} <span class="n">{progress.length}</span>
+					>{t('inventory.in_progress')} <span class="n">{progress.length}</span><NewPill since="2.3" />
 				</h2>
 			</div>
-			<div class="panel">
-				{#each progress as p (p.runner.account_id)}
-					<div class="prog">
-						<div class="what">
-							<div class="t">{p.target.benefit_name}</div>
-							<div class="c">
-								<span>{p.target.game} · {p.target.campaign_name}</span>
-								<span class="acct"><PlatformMark platform={p.runner.platform} size="sm" />{p.runner.account_name}</span>
-							</div>
+			<div class="pgroups">
+				{#each groups as g (g.runner.account_id)}
+					<div class="panel">
+						<div class="pg-h">
+							<span class="pg-acct"><PlatformMark platform={g.runner.platform} size="sm" /><span>{g.runner.account_name}</span></span>
+							<span class="pg-st" class:on={!!g.current}>{groupLine(g)}</span>
 						</div>
-						<div class="bw">
-							<div class="num">
-								<span>{t('inventory.min_of', { m: p.target.minutes, req: p.target.required_minutes })}</span>
-								<span>{p.pct}%</span>
-							</div>
-							<div class="bar"><i style="width:{p.pct}%"></i></div>
-						</div>
-						<div class="eta">
-							{t('inventory.eta', { eta: etaShort(p.left) })}<span
-								>{t('inventory.eta_on', { account: p.runner.account_name })}</span
+						{#each g.rows as p (p.target.benefit_id)}
+							<button
+								type="button"
+								class="prog"
+								class:cur={p.current}
+								aria-haspopup="dialog"
+								title={t('campaign.open')}
+								disabled={!p.target.campaign_id}
+								onclick={() => openTarget(p)}
 							>
-						</div>
+								<span class="what">
+									<span class="t">{p.target.benefit_name}</span>
+									<span class="c">{p.target.game} · {p.target.campaign_name}</span>
+								</span>
+								<span class="bw">
+									<span class="num">
+										<span>{t('inventory.min_of', { m: p.target.minutes, req: p.target.required_minutes })}</span>
+										<span>{p.pct}%</span>
+									</span>
+									<span class="bar" class:wait={!p.current}><i style="width:{p.pct}%"></i></span>
+								</span>
+								{#if p.current}
+									<span class="eta">{t('inventory.eta', { eta: etaShort(p.left) })}</span>
+								{:else}
+									<span class="eta w" class:link={p.reason === 'not_linked'}>{waitText(p)}</span>
+								{/if}
+							</button>
+						{/each}
 					</div>
 				{/each}
 			</div>
@@ -513,46 +564,131 @@
 		outline-offset: 2px;
 	}
 
+	.pgroups {
+		display: grid;
+		gap: 10px;
+	}
+	.pg-h {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 14px;
+		background: var(--surface-2);
+	}
+	.pg-acct {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+		font-size: 13px;
+		font-weight: 500;
+	}
+	.pg-acct > span:last-child {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.pg-st {
+		flex: none;
+		max-width: 60%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 12px;
+		color: var(--t3);
+	}
+	.pg-st.on {
+		color: var(--accent);
+		font-weight: 500;
+	}
 	.prog {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 240px 110px;
+		grid-template-columns: minmax(0, 1fr) 220px 110px;
 		gap: 16px;
 		align-items: center;
-		padding: 12px 14px;
+		width: 100%;
+		padding: 10px 14px;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+	.pg-h + .prog,
+	.prog + .prog {
+		border-top: 1px solid var(--border-soft);
+	}
+	.prog:hover:not([disabled]) {
+		background: var(--surface-2);
+	}
+	.prog[disabled] {
+		cursor: default;
+	}
+	.prog:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+	.prog.cur {
+		background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+	}
+	.prog.cur:hover:not([disabled]) {
+		background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+	}
+	.prog .what {
+		min-width: 0;
 	}
 	.prog .t {
+		display: block;
 		font-size: 13px;
 		font-weight: 500;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.prog:not(.cur) .t {
+		font-weight: 400;
+		color: var(--t2);
+	}
 	.prog .c {
+		display: block;
 		font-size: 12px;
 		color: var(--t2);
-		display: flex;
-		align-items: center;
-		gap: 8px;
 		margin-top: 3px;
-		flex-wrap: wrap;
+		overflow-wrap: anywhere;
+	}
+	.prog .bw {
+		display: block;
 	}
 	.prog .num {
 		font: 12px var(--mono);
+		font-variant-numeric: tabular-nums;
 		color: var(--t3);
 		display: flex;
 		justify-content: space-between;
 		margin-bottom: 5px;
+	}
+	.prog .bar {
+		display: block;
+	}
+	.prog .bar.wait i {
+		background: var(--t3);
+		opacity: 0.6;
 	}
 	.prog .eta {
 		text-align: right;
 		font-size: 13px;
 		font-weight: 500;
 	}
-	.prog .eta span {
-		display: block;
+	.prog .eta.w {
 		font-size: 12px;
-		color: var(--t3);
 		font-weight: 400;
+		color: var(--t3);
+	}
+	.prog .eta.link {
+		color: var(--amber);
 	}
 	.tag {
 		font-size: 11px;
@@ -770,6 +906,7 @@
 		}
 		.prog .eta {
 			grid-area: eta;
+			align-self: start;
 		}
 		.prog .bw {
 			grid-area: bar;

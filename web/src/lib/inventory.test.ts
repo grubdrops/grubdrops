@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Runner, Target } from '$lib/api/types';
 import runnersMining from '$lib/fixtures/runners.mining.json';
 import {
-	inProgress,
+	progressGroups,
 	progressRows,
 	pageCount,
 	pageQuery,
@@ -13,17 +13,6 @@ import {
 } from './inventory';
 
 const R = () => structuredClone(runnersMining) as Runner[];
-
-describe('inProgress', () => {
-	it('sorts by pct desc', () => {
-		const p = inProgress(R());
-		expect(p.map((x) => x.pct)).toEqual([70, 30]);
-		expect(p.some((x) => x.runner.state === 'needs_login')).toBe(false);
-	});
-	it('left minutes', () => {
-		expect(inProgress(R())[0].left).toBe(18);
-	});
-});
 
 describe('progressRows', () => {
 	const tgt = (id: string, minutes: number, req = 60): Target => ({
@@ -98,7 +87,36 @@ describe('progressRows', () => {
 		expect(progressRows([runner('a', { state: 'needs_login', up_next: [tgt('x', 20)] })])).toEqual([]);
 	});
 	it('lists the fixture runners', () => {
-		expect(progressRows(R()).map((x) => x.pct)).toEqual([70, 30]);
+		const rows = progressRows(R());
+		expect(rows.map((x) => x.pct)).toEqual([70, 30]);
+		expect(rows[0].left).toBe(18);
+	});
+});
+
+describe('progressGroups', () => {
+	const tgt = (id: string, minutes: number): Target => ({ ...R()[0].current!, benefit_id: id, minutes, required_minutes: 60 });
+	const runner = (id: string, over: Partial<Runner>): Runner => ({
+		...R()[0],
+		account_id: id,
+		account_name: id,
+		current: null,
+		up_next: [],
+		blocked: [],
+		...over
+	});
+	it('groups per account with the current drop first', () => {
+		const gs = progressGroups(
+			progressRows([
+				runner('a', { current: tgt('a-cur', 6), up_next: [tgt('a-q', 50)] }),
+				runner('b', { state: 'sleep_window', up_next: [tgt('b-q1', 10), tgt('b-q2', 40)] }),
+				runner('c', { current: tgt('c-cur', 30) })
+			])
+		);
+		expect(gs.map((g) => g.runner.account_id)).toEqual(['c', 'a', 'b']);
+		expect(gs[1].current?.target.benefit_id).toBe('a-cur');
+		expect(gs[1].rows.map((x) => x.target.benefit_id)).toEqual(['a-cur', 'a-q']);
+		expect(gs[2].current).toBeNull();
+		expect(gs[2].rows.map((x) => x.target.benefit_id)).toEqual(['b-q2', 'b-q1']);
 	});
 });
 

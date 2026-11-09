@@ -297,7 +297,6 @@
   "inventory.in_progress": "进行中",
   "inventory.min_of": "{m} / {req} 分钟",
   "inventory.eta": "约 {eta}",
-  "inventory.eta_on": "账号 {account}",
   "inventory.claimed": "已领取",
   "inventory.filter_game": "游戏",
   "inventory.filter_account": "账号",

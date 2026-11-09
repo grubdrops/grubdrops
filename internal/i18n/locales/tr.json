@@ -297,7 +297,6 @@
   "inventory.in_progress": "Devam eden",
   "inventory.min_of": "{m} / {req} dk",
   "inventory.eta": "~{eta}",
-  "inventory.eta_on": "{account} hesabında",
   "inventory.claimed": "Alındı",
   "inventory.filter_game": "Oyun",
   "inventory.filter_account": "Hesap",
