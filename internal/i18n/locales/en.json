@@ -297,7 +297,6 @@
   "inventory.in_progress": "In progress",
   "inventory.min_of": "{m} / {req} min",
   "inventory.eta": "~{eta}",
-  "inventory.eta_on": "on {account}",
   "inventory.claimed": "Claimed",
   "inventory.filter_game": "Game",
   "inventory.filter_account": "Account",
