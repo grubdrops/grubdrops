@@ -19,6 +19,7 @@ import type {
 	Health,
 	LinkRecheck,
 	NeedsLinkDrop,
+	NeedsLinkGroupRef,
 	NotificationsResp,
 	Overview,
 	Platform,
@@ -111,6 +112,10 @@ export interface Api {
 	setRewardCode(id: number, state: RewardCodeState): Promise<void>;
 	/** Finished drops not claimed because the game account is not linked. */
 	needsLink(): Promise<{ drops: NeedsLinkDrop[] }>;
+	/** Hides one account's drops of one campaign from needsLink, also when refused again. 404 when it has none. */
+	dismissNeedsLink(g: NeedsLinkGroupRef): Promise<void>;
+	/** Shows a dismissed group again. */
+	restoreNeedsLink(g: NeedsLinkGroupRef): Promise<void>;
 	/** The bell feed, newest first, with the unread count. */
 	notifications(): Promise<NotificationsResp>;
 	/** Marks every bell row read. */
@@ -290,6 +295,10 @@ export function createClient(opts: ClientOpts): Api {
 		rewardCodes: () => get('/api/reward-codes'),
 		setRewardCode: (id, state) => send('PUT', `/api/reward-codes/${id}`, { state }) as Promise<void>,
 		needsLink: () => get('/api/needs-link'),
+		dismissNeedsLink: (g) =>
+			post('/api/needs-link/dismiss', { account_id: g.account_id, campaign_id: g.campaign_id }),
+		restoreNeedsLink: (g) =>
+			post('/api/needs-link/restore', { account_id: g.account_id, campaign_id: g.campaign_id }),
 		notifications: () => get('/api/notifications'),
 		readNotifications: () => post('/api/notifications/read'),
 		twitchStart: (id) => post(`/api/accounts/${enc(id)}/twitch/device`),

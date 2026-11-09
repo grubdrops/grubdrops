@@ -195,6 +195,7 @@ type NeedsLinkDrop struct {
 	Listed       int64  `json:"listed"`
 	FirstSeen    int64  `json:"first_seen"`
 	SeenAt       int64  `json:"seen_at"`
+	DismissedAt  int64  `json:"dismissed_at"`
 }
 
 type Notification struct {

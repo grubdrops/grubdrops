@@ -411,6 +411,12 @@ export interface NeedsLinkDrop {
 	expired: boolean;
 }
 
+/** The account and campaign a Needs link dismiss or restore targets. */
+export interface NeedsLinkGroupRef {
+	account_id: string;
+	campaign_id: string;
+}
+
 /** One game in an account's own list. A game without an id is added by name. */
 export interface AccountGame {
 	id: string;

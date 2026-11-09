@@ -1,5 +1,5 @@
 -- name: UpsertNeedsLinkDrop :exec
--- Keeps first_seen. Empty text fields and a zero ends_at keep the stored value.
+-- Keeps first_seen and dismissed_at. Empty text fields and a zero ends_at keep the stored value.
 INSERT INTO needs_link_drops (account_id, benefit_id, platform, game, campaign_id, campaign_name, benefit_name, image_url, link_url, ends_at, listed, first_seen, seen_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
 ON CONFLICT(account_id, benefit_id) DO UPDATE SET
@@ -31,11 +31,27 @@ DELETE FROM needs_link_drops WHERE account_id = ? AND benefit_id = ?;
 DELETE FROM needs_link_drops WHERE listed = 0 AND ends_at > 0 AND ends_at < ?;
 
 -- name: ListUnclaimedNeedsLinkDrops :many
--- Every row the claim log does not hold.
+-- Every shown row the claim log does not hold.
 SELECT * FROM needs_link_drops
-WHERE NOT EXISTS (
+WHERE dismissed_at = 0 AND NOT EXISTS (
     SELECT 1 FROM claim_log
     WHERE claim_log.account_id = needs_link_drops.account_id
       AND claim_log.benefit_id = needs_link_drops.benefit_id
 )
 ORDER BY account_id ASC, ends_at DESC, campaign_id ASC, benefit_id ASC;
+
+-- name: SetNeedsLinkGroupDismissed :execrows
+-- Hides or shows every row of one account and campaign. dismissed_at 0 shows.
+UPDATE needs_link_drops SET dismissed_at = ? WHERE account_id = ? AND campaign_id = ?;
+
+-- name: InheritNeedsLinkDismissal :exec
+-- A new row in a hidden group starts hidden too.
+UPDATE needs_link_drops SET dismissed_at = (
+    SELECT MAX(d.dismissed_at) FROM needs_link_drops AS d
+    WHERE d.account_id = needs_link_drops.account_id AND d.campaign_id = needs_link_drops.campaign_id
+)
+WHERE needs_link_drops.account_id = ? AND needs_link_drops.dismissed_at = 0 AND needs_link_drops.campaign_id <> '' AND EXISTS (
+    SELECT 1 FROM needs_link_drops AS d
+    WHERE d.account_id = needs_link_drops.account_id AND d.campaign_id = needs_link_drops.campaign_id
+      AND d.dismissed_at > 0
+);
