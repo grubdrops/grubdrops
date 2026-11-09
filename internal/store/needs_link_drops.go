@@ -78,6 +78,11 @@ func (s *NeedsLinkDrops) Sync(ctx context.Context, accountID string, u NeedsLink
 			return err
 		}
 	}
+	if len(u.Refused) > 0 {
+		if err := q.InheritNeedsLinkDismissal(ctx, accountID); err != nil {
+			return err
+		}
+	}
 	if u.Inventory {
 		ids, err := q.ListNeedsLinkDropIDs(ctx, accountID)
 		if err != nil {
@@ -107,8 +112,28 @@ func (s *NeedsLinkDrops) Clear(ctx context.Context, accountID, benefitID string)
 	return s.Q.DeleteNeedsLinkDrop(ctx, gen.DeleteNeedsLinkDropParams{AccountID: accountID, BenefitID: benefitID})
 }
 
-// Unclaimed lists every row the claim log does not hold, by account, then
-// latest campaign end first.
+// Dismiss hides the account's rows of campaignID from Unclaimed, now and
+// when the platform refuses them again. Rows the campaign gains later start
+// hidden. False when the account has no row in that campaign.
+func (s *NeedsLinkDrops) Dismiss(ctx context.Context, accountID, campaignID string, at time.Time) (bool, error) {
+	return s.setDismissed(ctx, accountID, campaignID, max(at.Unix(), 1))
+}
+
+// Restore shows the account's rows of campaignID again. False when the
+// account has no row in that campaign.
+func (s *NeedsLinkDrops) Restore(ctx context.Context, accountID, campaignID string) (bool, error) {
+	return s.setDismissed(ctx, accountID, campaignID, 0)
+}
+
+func (s *NeedsLinkDrops) setDismissed(ctx context.Context, accountID, campaignID string, at int64) (bool, error) {
+	n, err := s.Q.SetNeedsLinkGroupDismissed(ctx, gen.SetNeedsLinkGroupDismissedParams{
+		DismissedAt: at, AccountID: accountID, CampaignID: campaignID,
+	})
+	return n > 0, err
+}
+
+// Unclaimed lists every row neither dismissed nor in the claim log, by
+// account, then latest campaign end first.
 func (s *NeedsLinkDrops) Unclaimed(ctx context.Context) ([]NeedsLinkDrop, error) {
 	rows, err := s.Q.ListUnclaimedNeedsLinkDrops(ctx)
 	if err != nil {

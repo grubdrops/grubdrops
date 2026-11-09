@@ -30,10 +30,55 @@ type needsLinkDropJSON struct {
 
 func (s *server) routesNeedsLink(r chi.Router) {
 	r.Get("/needs-link", s.getNeedsLink)
+	r.Post("/needs-link/dismiss", s.postNeedsLinkDismiss(true))
+	r.Post("/needs-link/restore", s.postNeedsLinkDismiss(false))
+}
+
+// postNeedsLinkDismiss hides, or with dismiss false shows again, one group:
+// body {"account_id":"…","campaign_id":"…"}. A hidden group stays out of
+// GET /api/needs-link when the platform refuses its drops again. 204 on
+// success, 404 when the account has no row in that campaign.
+func (s *server) postNeedsLinkDismiss(dismiss bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.d.NeedsLink == nil {
+			writeErr(w, http.StatusServiceUnavailable, "unavailable")
+			return
+		}
+		var body struct {
+			AccountID  string `json:"account_id"`
+			CampaignID string `json:"campaign_id"`
+		}
+		if !readJSON(w, r, &body) {
+			return
+		}
+		if body.AccountID == "" {
+			writeErr(w, http.StatusBadRequest, "bad_request")
+			return
+		}
+		ctx := r.Context()
+		var ok bool
+		var err error
+		if dismiss {
+			ok, err = s.d.NeedsLink.Dismiss(ctx, body.AccountID, body.CampaignID, s.overviewNow())
+		} else {
+			ok, err = s.d.NeedsLink.Restore(ctx, body.AccountID, body.CampaignID)
+		}
+		if err != nil {
+			slog.Warn("api: save needs-link dismissal failed", "kind", "error",
+				"account", body.AccountID, "campaign", body.CampaignID, "err", err)
+			writeErr(w, http.StatusInternalServerError, "internal")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusNotFound, "not_found")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // getNeedsLink lists the completed drops refused for a missing link that
-// are not claimed yet, by account, latest campaign end first.
+// are neither claimed nor dismissed, by account, latest campaign end first.
 func (s *server) getNeedsLink(w http.ResponseWriter, r *http.Request) {
 	if s.d.NeedsLink == nil {
 		writeErr(w, http.StatusServiceUnavailable, "unavailable")
