@@ -56,18 +56,26 @@ function dayKey(ms: number, zone: string): string {
 	}).format(new Date(ms));
 }
 
-/** Calendar day before a YYYY-MM-DD string, by UTC date math. */
-function prevDay(ymd: string): string {
+/** Calendar day off days from a YYYY-MM-DD string, by UTC date math. */
+function shiftDay(ymd: string, days: number): string {
 	const d = new Date(`${ymd}T00:00:00Z`);
-	d.setUTCDate(d.getUTCDate() - 1);
+	d.setUTCDate(d.getUTCDate() + days);
 	return d.toISOString().slice(0, 10);
 }
 
 export function dayBucket(iso: string, now: number, zone: string): 'today' | 'yesterday' | 'earlier' {
 	const k = dayKey(Date.parse(iso), zone);
 	if (k === dayKey(now, zone)) return 'today';
-	if (k === prevDay(dayKey(now, zone))) return 'yesterday';
+	if (k === shiftDay(dayKey(now, zone), -1)) return 'yesterday';
 	return 'earlier';
+}
+
+/** Which calendar day in zone a future time falls on, seen from now. */
+export function startBucket(iso: string, now: number, zone: string): 'today' | 'tomorrow' | 'later' {
+	const k = dayKey(Date.parse(iso), zone);
+	if (k === dayKey(now, zone)) return 'today';
+	if (k === shiftDay(dayKey(now, zone), 1)) return 'tomorrow';
+	return 'later';
 }
 
 export function shortDate(iso: string, zone: string): string {

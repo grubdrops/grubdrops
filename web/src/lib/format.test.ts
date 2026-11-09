@@ -11,6 +11,7 @@ import {
 	noteParts,
 	relTime,
 	shortDate,
+	startBucket,
 	uptime
 } from './format';
 import { setLang } from './i18n/index.svelte';
@@ -58,6 +59,15 @@ test('dayBucket uses the settings zone', () => {
 	expect(dayBucket(iso, now, 'Asia/Shanghai')).toBe('today');
 	expect(dayBucket(iso, now, 'UTC')).toBe('yesterday');
 	expect(dayBucket('2026-10-23T10:00:00Z', now, 'UTC')).toBe('earlier');
+});
+
+test('startBucket uses the settings zone', () => {
+	expect(startBucket('2026-10-25T21:00:00Z', now, 'UTC')).toBe('today');
+	expect(startBucket('2026-10-26T17:00:00Z', now, 'UTC')).toBe('tomorrow');
+	expect(startBucket('2026-10-27T01:00:00Z', now, 'UTC')).toBe('later');
+	// 17:00 UTC is already past midnight on the 26th in Shanghai, so it is tomorrow there.
+	expect(startBucket('2026-10-25T17:00:00Z', now, 'Asia/Shanghai')).toBe('tomorrow');
+	expect(startBucket('2026-10-25T17:00:00Z', now, 'UTC')).toBe('today');
 });
 
 test('shortDate', () => {
