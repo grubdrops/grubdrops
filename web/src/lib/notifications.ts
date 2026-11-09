@@ -22,15 +22,101 @@ export function applyBellEvent(s: NotificationsResp | null, ev: NotificationsEve
 	return { items: [it, ...s.items].slice(0, MAX_BELL), unread: s.unread + (it.read ? 0 : 1) };
 }
 
+function isRecent(n: AppNotification, now: number): boolean {
+	const at = n.created_at ? Date.parse(n.created_at) : NaN;
+	return Number.isFinite(at) && now - at < DAY;
+}
+
 /** Rows from the last 24 hours, then the older ones, each newest first as given. */
 export function bellGroups(items: AppNotification[], now: number): { recent: AppNotification[]; older: AppNotification[] } {
 	const recent: AppNotification[] = [];
 	const older: AppNotification[] = [];
-	for (const n of items) {
-		const at = n.created_at ? Date.parse(n.created_at) : NaN;
-		(Number.isFinite(at) && now - at < DAY ? recent : older).push(n);
-	}
+	for (const n of items) (isRecent(n, now) ? recent : older).push(n);
 	return { recent, older };
+}
+
+/** The bell's tabs, in order. */
+export const BELL_TABS = ['all', 'claims', 'alerts'] as const;
+export type BellTab = (typeof BELL_TABS)[number];
+
+/**
+ * Claims holds what the miner won, reward codes included; Alerts holds what needs fixing.
+ * A code is a reward, so it sits with claims and keeps its red row there.
+ */
+const TAB_OF = {
+	claim: 'claims',
+	daily_reward: 'claims',
+	reward_code: 'claims',
+	reward_reminder: 'claims',
+	needs_link: 'alerts',
+	auth: 'alerts',
+	auth_ok: 'alerts',
+	error: 'alerts',
+	canary: 'alerts'
+} as const satisfies Record<NotificationKind, Exclude<BellTab, 'all'>>;
+
+/** Whether a row shows under tab. A kind the UI doesn't know shows under Alerts. */
+export function inBellTab(n: AppNotification, tab: BellTab): boolean {
+	return tab === 'all' || (TAB_OF[n.kind] ?? 'alerts') === tab;
+}
+
+/** One bell row: a single notification, or needs-link rows folded together, newest first. */
+export interface BellEntry {
+	/** The newest row; the entry sits in its place and leads where it leads. */
+	n: AppNotification;
+	/** Every folded row, n first. Set only when two or more were folded. */
+	group?: AppNotification[];
+}
+
+/** The fold key of a needs-link row: same account and campaign, or same link page without a campaign. */
+function foldKey(n: AppNotification): string {
+	if (n.kind !== 'needs_link') return '';
+	const what = n.campaign ? `c:${n.campaign}` : n.link ? `l:${n.link}` : '';
+	return what ? `${n.account_id}\u0000${what}` : '';
+}
+
+/** Folds needs-link rows for the same account and campaign into one entry, in the place of the newest. */
+export function bellFold(items: AppNotification[]): BellEntry[] {
+	const out: BellEntry[] = [];
+	const seen = new Map<string, BellEntry>();
+	for (const n of items) {
+		const key = foldKey(n);
+		const e = key ? seen.get(key) : undefined;
+		if (e) {
+			(e.group ??= [e.n]).push(n);
+			continue;
+		}
+		const entry: BellEntry = { n };
+		if (key) seen.set(key, entry);
+		out.push(entry);
+	}
+	return out;
+}
+
+/** The rows of one tab, folded, split into the last 24 hours and older by each entry's newest row. */
+export function bellSections(items: AppNotification[], tab: BellTab, now: number): { recent: BellEntry[]; older: BellEntry[] } {
+	const recent: BellEntry[] = [];
+	const older: BellEntry[] = [];
+	for (const e of bellFold(items.filter((n) => inBellTab(n, tab)))) (isRecent(e.n, now) ? recent : older).push(e);
+	return { recent, older };
+}
+
+type Unread = (n: AppNotification) => boolean;
+const notRead: Unread = (n) => !n.read;
+
+/** Whether an entry holds an unread row. */
+export function bellEntryUnread(e: BellEntry, unread: Unread = notRead): boolean {
+	return (e.group ?? [e.n]).some(unread);
+}
+
+/** Unread entries in tab: a folded group counts once. The bell badge still counts every row. */
+export function bellTabCount(items: AppNotification[], tab: BellTab, unread: Unread = notRead): number {
+	return bellFold(items.filter((n) => inBellTab(n, tab))).filter((e) => bellEntryUnread(e, unread)).length;
+}
+
+/** A tab's count turns red while an unread reward code waits in it. All stays plain. */
+export function bellTabUrgent(items: AppNotification[], tab: BellTab, unread: Unread = notRead): boolean {
+	return tab !== 'all' && items.some((n) => bellUrgent(n.kind) && inBellTab(n, tab) && unread(n));
 }
 
 /** Where a row leads: the page that fixes or shows it. External opens in a new tab. */
