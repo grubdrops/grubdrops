@@ -70,6 +70,8 @@ type Querier interface {
 	GetRewardCodeByKey(ctx context.Context, arg GetRewardCodeByKeyParams) (RewardCode, error)
 	GetSession(ctx context.Context, accountID string) (Session, error)
 	GetSettingString(ctx context.Context, key string) ([]byte, error)
+	// A new row in a hidden group starts hidden too.
+	InheritNeedsLinkDismissal(ctx context.Context, accountID string) error
 	InsertClaim(ctx context.Context, arg InsertClaimParams) error
 	InsertFeedNotification(ctx context.Context, arg InsertFeedNotificationParams) (NotificationFeed, error)
 	InsertGlobalForceChannel(ctx context.Context, arg InsertGlobalForceChannelParams) (int64, error)
@@ -125,7 +127,7 @@ type Querier interface {
 	ListRecentClaimLog(ctx context.Context, limit int64) ([]ClaimLog, error)
 	ListRecentClaims(ctx context.Context, limit int64) ([]ListRecentClaimsRow, error)
 	ListRewardCodes(ctx context.Context) ([]RewardCode, error)
-	// Every row the claim log does not hold.
+	// Every shown row the claim log does not hold.
 	ListUnclaimedNeedsLinkDrops(ctx context.Context) ([]NeedsLinkDrop, error)
 	ListUnclaimedProgressForAccount(ctx context.Context, arg ListUnclaimedProgressForAccountParams) ([]Progress, error)
 	// Account and campaign pairs whose claim the platform rejected until an
@@ -156,6 +158,8 @@ type Querier interface {
 	SetAccountSortOrder(ctx context.Context, arg SetAccountSortOrderParams) error
 	SetGameTwitchID(ctx context.Context, arg SetGameTwitchIDParams) error
 	SetGameTwitchName(ctx context.Context, arg SetGameTwitchNameParams) (int64, error)
+	// Hides or shows every row of one account and campaign. dismissed_at 0 shows.
+	SetNeedsLinkGroupDismissed(ctx context.Context, arg SetNeedsLinkGroupDismissedParams) (int64, error)
 	SetRewardCodeDismissed(ctx context.Context, arg SetRewardCodeDismissedParams) (int64, error)
 	SetRewardCodeRedeemed(ctx context.Context, arg SetRewardCodeRedeemedParams) (int64, error)
 	SumAllWatchMinutes(ctx context.Context) (int64, error)
@@ -177,7 +181,7 @@ type Querier interface {
 	UpsertClaimLog(ctx context.Context, arg UpsertClaimLogParams) error
 	UpsertDropState(ctx context.Context, arg UpsertDropStateParams) error
 	UpsertGame(ctx context.Context, arg UpsertGameParams) error
-	// Keeps first_seen. Empty text fields and a zero ends_at keep the stored value.
+	// Keeps first_seen and dismissed_at. Empty text fields and a zero ends_at keep the stored value.
 	UpsertNeedsLinkDrop(ctx context.Context, arg UpsertNeedsLinkDropParams) error
 	// A successful read: new balance, error and failures cleared.
 	UpsertPointsBalance(ctx context.Context, arg UpsertPointsBalanceParams) error
