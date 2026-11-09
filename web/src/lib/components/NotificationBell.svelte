@@ -4,7 +4,22 @@
 	import { relTime } from '$lib/format';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
-	import { applyBellEvent, badgeText, bellAlert, bellGroups, bellIcon, bellLine, bellTarget, bellUrgent } from '$lib/notifications';
+	import {
+		BELL_TABS,
+		applyBellEvent,
+		badgeText,
+		bellAlert,
+		bellEntryUnread,
+		bellIcon,
+		bellLine,
+		bellSections,
+		bellTabCount,
+		bellTabUrgent,
+		bellTarget,
+		bellUrgent,
+		type BellEntry,
+		type BellTab
+	} from '$lib/notifications';
 	import Icon from './Icon.svelte';
 	import NewPill from './NewPill.svelte';
 
@@ -17,12 +32,23 @@
 	let fresh = $state(new Set<number>());
 	let trigger: HTMLButtonElement | undefined = $state();
 	let pop: HTMLDivElement | undefined = $state();
+	let tablist: HTMLDivElement | undefined = $state();
+	let tab = $state<BellTab>('all');
+	// Folded needs-link rows the user opened, by the id of their newest row.
+	let expanded = $state(new Set<number>());
 
+	const TAB_LABEL: Record<BellTab, () => string> = {
+		all: () => t('bell.tab_all'),
+		claims: () => t('bell.tab_claims'),
+		alerts: () => t('bell.tab_alerts')
+	};
+
+	const items = $derived(live.bell?.items ?? []);
 	const unread = $derived(live.bell?.unread ?? 0);
 	const badge = $derived(badgeText(unread));
 	// The badge turns red while an unread reward code waits.
-	const urgentUnread = $derived((live.bell?.items ?? []).some((n) => !n.read && bellUrgent(n.kind)));
-	const groups = $derived(bellGroups(live.bell?.items ?? [], now));
+	const urgentUnread = $derived(items.some((n) => !n.read && bellUrgent(n.kind)));
+	const groups = $derived(bellSections(items, tab, now));
 	const label = $derived(unread > 0 ? tn('bell.open', unread) : t('bell.title'));
 
 	// Mark the feed read on the server; the badge clears now, the SSE echo is a no-op.
@@ -34,6 +60,8 @@
 
 	async function show(): Promise<void> {
 		open = true;
+		tab = 'all';
+		expanded = new Set();
 		now = Date.now();
 		failed = false;
 		if (!live.bell) {
@@ -89,37 +117,103 @@
 	});
 
 	const isUnread = (n: AppNotification) => !n.read || fresh.has(n.id);
+
+	function flip(id: number): void {
+		const s = new Set(expanded);
+		if (s.has(id)) s.delete(id);
+		else s.add(id);
+		expanded = s;
+	}
+
+	// Arrow keys move between tabs, as a tablist does.
+	function onTabKey(e: KeyboardEvent): void {
+		const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+		if (!step) return;
+		e.preventDefault();
+		const i = BELL_TABS.indexOf(tab);
+		tab = BELL_TABS[(i + step + BELL_TABS.length) % BELL_TABS.length];
+		tablist?.querySelector<HTMLElement>(`[data-tab="${tab}"]`)?.focus();
+	}
 </script>
 
 <svelte:window onpointerdown={onWindowPointer} onkeydown={onWindowKey} />
 
-{#snippet row(n: AppNotification)}
+{#snippet pic(n: AppNotification, count: number)}
+	<span class="pic" class:alert={bellAlert(n.kind)} class:urgent={bellUrgent(n.kind)}>
+		{#if n.image_url}
+			<img src={n.image_url} alt="" loading="lazy" />
+		{:else}
+			<Icon name={bellIcon(n.kind)} size={16} />
+		{/if}
+		{#if count > 1}<span class="stack" aria-hidden="true">{count}</span>{/if}
+	</span>
+{/snippet}
+
+{#snippet meta(n: AppNotification)}
+	<span class="meta"
+		>{#if n.account_name}<span class="who">{n.account_name}</span>{' · '}{/if}{relTime(n.created_at, now)}</span
+	>
+{/snippet}
+
+{#snippet row(e: BellEntry)}
+	{@const n = e.n}
 	{@const to = bellTarget(n)}
-	<li>
+	{@const unreadRow = bellEntryUnread(e, isUnread)}
+	{@const kids = e.group}
+	<li class:grp={!!kids}>
 		<a
 			class="row"
-			class:unread={isUnread(n)}
+			class:unread={unreadRow}
 			class:urgent={bellUrgent(n.kind)}
+			class:hasmore={!!kids}
 			href={to.href}
 			target={to.external ? '_blank' : undefined}
 			rel={to.external ? 'noopener noreferrer' : undefined}
 			onclick={() => close(false)}
 		>
-			<span class="pic" class:alert={bellAlert(n.kind)} class:urgent={bellUrgent(n.kind)}>
-				{#if n.image_url}
-					<img src={n.image_url} alt="" loading="lazy" />
-				{:else}
-					<Icon name={bellIcon(n.kind)} size={16} />
-				{/if}
-			</span>
+			{@render pic(n, kids?.length ?? 0)}
 			<span class="txt">
-				<span class="line">{bellLine(n)}</span>
-				<span class="meta"
-					>{#if n.account_name}<span class="who">{n.account_name}</span>{' · '}{/if}{relTime(n.created_at, now)}</span
-				>
+				{#if kids}
+					<span class="line">{tn('bell.needs_link_group', kids.length)}</span>
+					{#if n.campaign}<span class="meta camp">{n.campaign}</span>{/if}
+				{:else}
+					<span class="line">{bellLine(n)}</span>
+				{/if}
+				{@render meta(n)}
 			</span>
-			{#if isUnread(n)}<span class="sr">{t('bell.unread')}</span>{/if}
+			{#if unreadRow}<span class="sr">{t('bell.unread')}</span>{/if}
 		</a>
+		{#if kids}
+			{@const shown = expanded.has(n.id)}
+			<button
+				type="button"
+				class="more"
+				aria-expanded={shown}
+				aria-controls={`bellgrp-${n.id}`}
+				aria-label={shown ? t('bell.hide_drops') : tn('bell.show_drops', kids.length)}
+				title={shown ? t('bell.hide_drops') : tn('bell.show_drops', kids.length)}
+				onclick={() => flip(n.id)}><Icon name={shown ? 'chevron-up' : 'chevron-down'} size={15} /></button
+			>
+			{#if shown}
+				<ul class="kids" id={`bellgrp-${n.id}`}>
+					{#each kids as k (k.id)}
+						{@const kto = bellTarget(k)}
+						<li>
+							<a
+								class="row kid"
+								href={kto.href}
+								target={kto.external ? '_blank' : undefined}
+								rel={kto.external ? 'noopener noreferrer' : undefined}
+								onclick={() => close(false)}
+							>
+								<span class="line">{k.title || bellLine(k)}</span>
+								<span class="ago">{relTime(k.created_at, now)}</span>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		{/if}
 	</li>
 {/snippet}
 
@@ -143,24 +237,52 @@
 				><Icon name="gear" size={15} /></a
 			>
 		</header>
-		<div class="body">
+		{#if live.bell && items.length > 0}
+			<div class="tabs" role="tablist" tabindex="-1" aria-label={t('bell.tabs')} bind:this={tablist} onkeydown={onTabKey}>
+				{#each BELL_TABS as x (x)}
+					{@const k = bellTabCount(items, x, isUnread)}
+					<button
+						type="button"
+						role="tab"
+						data-tab={x}
+						id={`belltab-${x}`}
+						aria-selected={tab === x}
+						aria-controls="bellbody"
+						tabindex={tab === x ? 0 : -1}
+						onclick={() => (tab = x)}
+					>
+						{TAB_LABEL[x]()}{#if k > 0}<span class="n" class:urgent={bellTabUrgent(items, x, isUnread)} aria-hidden="true"
+								>{badgeText(k)}</span
+							><span class="sr">{tn('bell.tab_unread', k)}</span>{/if}
+					</button>
+				{/each}
+			</div>
+		{/if}
+		<div
+			class="body"
+			id="bellbody"
+			role={live.bell && items.length > 0 ? 'tabpanel' : undefined}
+			aria-labelledby={live.bell && items.length > 0 ? `belltab-${tab}` : undefined}
+		>
 			{#if failed}
 				<p class="empty">{t('bell.load_failed')}</p>
 			{:else if !live.bell}
 				<p class="empty">{t('bell.loading')}</p>
-			{:else if live.bell.items.length === 0}
+			{:else if items.length === 0}
 				<p class="empty">{t('bell.empty')}</p>
+			{:else if groups.recent.length === 0 && groups.older.length === 0}
+				<p class="empty">{t('bell.tab_empty')}</p>
 			{:else}
 				{#if groups.recent.length > 0}
 					<h4>{t('bell.recent')}</h4>
 					<ul>
-						{#each groups.recent as n (n.id)}{@render row(n)}{/each}
+						{#each groups.recent as e (e.n.id)}{@render row(e)}{/each}
 					</ul>
 				{/if}
 				{#if groups.older.length > 0}
 					<h4>{t('bell.older')}</h4>
 					<ul>
-						{#each groups.older as n (n.id)}{@render row(n)}{/each}
+						{#each groups.older as e (e.n.id)}{@render row(e)}{/each}
 					</ul>
 				{/if}
 			{/if}
@@ -240,7 +362,6 @@
 		justify-content: space-between;
 		gap: 8px;
 		padding: 10px 10px 8px 14px;
-		border-bottom: 1px solid var(--border-soft);
 	}
 	h3 {
 		margin: 0;
@@ -258,7 +379,9 @@
 		background: var(--surface-3);
 	}
 	.gear:focus-visible,
-	.row:focus-visible {
+	.row:focus-visible,
+	.more:focus-visible,
+	.tabs button:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: -2px;
 	}
@@ -266,6 +389,7 @@
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		padding: 4px 6px 6px;
+		border-top: 1px solid var(--border-soft);
 	}
 	h4 {
 		margin: 8px 8px 4px;
@@ -309,6 +433,7 @@
 		background: var(--red);
 	}
 	.pic {
+		position: relative;
 		flex: none;
 		width: 32px;
 		height: 32px;
@@ -352,6 +477,121 @@
 	}
 	.who {
 		color: var(--t2);
+	}
+	/* Segmented tabs under the title, three equal parts so they fit 360px and a phone. */
+	.tabs {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 2px;
+		margin: 0 10px 8px;
+		padding: 2px;
+		border-radius: 8px;
+		background: var(--surface);
+	}
+	.tabs button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		min-width: 0;
+		height: 28px;
+		padding: 0 6px;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--t2);
+		font: inherit;
+		font-size: 12.5px;
+		font-weight: 500;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	.tabs button:hover {
+		color: var(--text);
+	}
+	.tabs button[aria-selected='true'] {
+		background: var(--surface-3);
+		color: var(--text);
+	}
+	/* Unread count in a tab; red while an unread reward code waits in it. */
+	.n {
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		box-sizing: border-box;
+		border-radius: 999px;
+		background: var(--accent-soft);
+		color: var(--accent);
+		font-size: 10.5px;
+		font-weight: 650;
+		line-height: 16px;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	.n.urgent {
+		background: var(--red-soft);
+		color: var(--red);
+	}
+	/* A folded needs-link row: count on the image, chevron over the right edge. */
+	.grp {
+		position: relative;
+	}
+	.row.hasmore {
+		padding-right: 44px;
+	}
+	.stack {
+		position: absolute;
+		right: 0;
+		bottom: 0;
+		min-width: 14px;
+		padding: 0 3px;
+		box-sizing: border-box;
+		border-top-left-radius: 5px;
+		background: rgba(0, 0, 0, 0.72);
+		color: #fff;
+		font-size: 9.5px;
+		font-weight: 650;
+		line-height: 13px;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	.meta.camp {
+		color: var(--t2);
+	}
+	.more {
+		position: absolute;
+		top: 9px;
+		right: 6px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		border: 0;
+		border-radius: 6px;
+		background: none;
+		color: var(--t2);
+		cursor: pointer;
+	}
+	.more:hover,
+	.more[aria-expanded='true'] {
+		color: var(--text);
+		background: var(--surface-3);
+	}
+	.kids {
+		margin: 2px 0 4px 50px;
+		gap: 0;
+	}
+	.row.kid {
+		justify-content: space-between;
+		padding: 5px 8px;
+		font-size: 12.5px;
+	}
+	.ago {
+		flex: none;
+		font-size: 12px;
+		color: var(--t3);
 	}
 	.empty {
 		margin: 0;
