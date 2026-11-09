@@ -12,6 +12,13 @@
 
 	const mockups: Mockup[] = [
 		{
+			slug: 'bell-filters',
+			created: '2026-11-09',
+			title: 'Bell filters, three ways to split the feed',
+			desc: 'Ten "Link your account" rows for one campaign buried the one claim. V1 tabs All, Claims, Alerts with unread counts (codes under Claims). V2 multi-select chips: Claims, Links, Login, Errors, Codes. V3 the tabs of V1 plus repeated link rows for one account and campaign folded into one expandable row.',
+			tags: ['bell', 'for approval']
+		},
+		{
 			slug: 'add-game-hint',
 			created: '2026-11-01',
 			title: 'Field hint: one line plus tagged examples, three layouts',
