@@ -9,9 +9,11 @@ import (
 	"github.com/grubdrops/grubdrops/internal/platform"
 )
 
-// Catalog lists every active Kick drop campaign with its rewards, regardless
-// of any game whitelist. It rides the utls transport, so no browser is
-// needed; s may be an empty session. It has no side effects on mining state.
+// Catalog lists every active and upcoming Kick drop campaign with its
+// rewards, regardless of any game whitelist. Status is "active" or
+// "upcoming" by the campaign window; expired ones are left out. It rides
+// the utls transport, so no browser is needed; s may be an empty session.
+// It has no side effects on mining state.
 // RequiredMinutes is Kick's value as sent: 0 when the payload carries none.
 func (b *Backend) Catalog(ctx context.Context, s platform.Session) ([]platform.Campaign, error) {
 	if ks, err := decodeSession(s); err == nil && len(ks.Cookies) == 0 {
@@ -43,9 +45,10 @@ func (b *Backend) Catalog(ctx context.Context, s platform.Session) ([]platform.C
 		case strings.EqualFold(c.Status, "expired"), !camp.EndsAt.IsZero() && camp.EndsAt.Before(now):
 			continue
 		case !camp.StartsAt.IsZero() && camp.StartsAt.After(now):
-			continue
+			camp.Status = "upcoming"
+		default:
+			camp.Status = "active"
 		}
-		camp.Status = "active"
 		for _, r := range c.Rewards {
 			camp.Benefits = append(camp.Benefits, platform.DropBenefit{
 				ID:              r.ID,

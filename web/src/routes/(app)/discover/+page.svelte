@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { replaceState } from '$app/navigation';
 	import { api } from '$lib/app';
-	import type { DiscoverResp, Platform } from '$lib/api/types';
+	import type { DiscoverCampaign, DiscoverResp, Platform } from '$lib/api/types';
 	import BoxArt from '$lib/components/BoxArt.svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import NewPill from '$lib/components/NewPill.svelte';
 	import PageHead from '$lib/components/PageHead.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { refreshLabel } from '$lib/cooldown';
-	import { filterGroups, groupByGame, minutesLeft, sortGroups, type DiscoverSort } from '$lib/discover';
-	import { formatInt, relTime, shortDate } from '$lib/format';
+	import { filterGroups, groupByGame, groupUpcoming, minutesLeft, sortGroups, splitByStart, type DiscoverSort } from '$lib/discover';
+	import { clock, formatInt, relTime, shortDate, startBucket } from '$lib/format';
 	import { linkHref } from '$lib/games';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
@@ -33,10 +35,24 @@
 	let adding = $state<string | null>(null);
 	let addFailed = $state<string | null>(null);
 
+	// The tab rides the URL hash, so a reload or a shared link keeps it.
+	type Tab = 'live' | 'upcoming';
+	let tab = $state<Tab>(typeof location !== 'undefined' && location.hash === '#upcoming' ? 'upcoming' : 'live');
+	function pick(next: Tab): void {
+		tab = next;
+		replaceState(next === 'upcoming' ? '#upcoming' : location.pathname + location.search, {});
+	}
+
 	const chosen = $derived(live.games?.games ?? []);
-	const groups = $derived(groupByGame(data?.campaigns ?? [], chosen));
-	const shown = $derived(sortGroups(filterGroups(groups, { q, platform, hideAdded }), sort));
-	const head = $derived(data ? tn('discover.head', groups.length) : undefined);
+	const split = $derived(splitByStart(data?.campaigns ?? [], data?.upcoming ?? [], now));
+	const liveGroups = $derived(groupByGame(split.live, chosen));
+	const upGroups = $derived(groupUpcoming(split.upcoming, chosen));
+	const groups = $derived(tab === 'upcoming' ? upGroups : liveGroups);
+	const filtered = $derived(filterGroups(groups, { q, platform, hideAdded }));
+	const shown = $derived(tab === 'upcoming' ? filtered : sortGroups(filtered, sort));
+	const head = $derived(
+		data ? (tab === 'upcoming' ? tn('discover.head_upcoming', upGroups.length) : tn('discover.head', liveGroups.length)) : undefined
+	);
 	const stamp = $derived(data?.fetched_at ? t('discover.fetched', { rel: relTime(data.fetched_at, now) }) : undefined);
 	const twitchState = $derived(data?.platforms.twitch);
 	const kickState = $derived(data?.platforms.kick);
@@ -99,6 +115,29 @@
 		return t('discover.left_m', { n: m });
 	}
 
+	/** Time until the start: "in 5h". */
+	function until(iso: string): string {
+		const m = minutesLeft(iso, now) ?? 0;
+		if (m >= 2 * 1440) return t('discover.in_d', { n: Math.floor(m / 1440) });
+		if (m >= 60) return t('discover.in_h', { n: Math.floor(m / 60) });
+		return t('discover.in_m', { n: Math.max(1, m) });
+	}
+
+	/** The start in the settings zone: "starts today 21:00", "starts Nov 16". */
+	function starts(iso: string): string {
+		const time = clock(iso, prefs.zone, prefs.fmt);
+		switch (startBucket(iso, now, prefs.zone)) {
+			case 'today':
+				return t('discover.starts_today', { time });
+			case 'tomorrow':
+				return t('discover.starts_tomorrow', { time });
+			default:
+				return t('discover.starts', { date: shortDate(iso, prefs.zone) });
+		}
+	}
+
+	const ends = (c: DiscoverCampaign) => (c.ends_at ? t('discover.ends', { date: shortDate(c.ends_at, prefs.zone) }) : undefined);
+
 	const name = (p: Platform) => (p === 'twitch' ? 'Twitch' : 'Kick');
 </script>
 
@@ -133,6 +172,17 @@
 		{/each}
 
 		<div class="filters">
+			<div class="tabs">
+				<div class="seg" role="group" aria-label={t('discover.tabs')}>
+					<button type="button" aria-pressed={tab === 'live'} onclick={() => pick('live')}
+						>{t('discover.tab_live')}<span class="n">{split.live.length}</span></button
+					>
+					<button type="button" aria-pressed={tab === 'upcoming'} onclick={() => pick('upcoming')}
+						>{t('discover.tab_upcoming')}<span class="n">{split.upcoming.length}</span></button
+					>
+				</div>
+				<NewPill since="2.3" />
+			</div>
 			<input
 				class="search"
 				type="search"
@@ -151,12 +201,14 @@
 					>
 				{/each}
 			</div>
-			<div class="fgroup" role="group" aria-label={t('discover.sort')}>
-				<span>{t('discover.sort')}</span>
-				{#each [['name', 'discover.sort_name'], ['newest', 'discover.sort_newest'], ['ending', 'discover.sort_ending']] as const as [s, key] (s)}
-					<button type="button" class="chip" class:on={sort === s} aria-pressed={sort === s} onclick={() => (sort = s)}>{t(key)}</button>
-				{/each}
-			</div>
+			{#if tab === 'live'}
+				<div class="fgroup" role="group" aria-label={t('discover.sort')}>
+					<span>{t('discover.sort')}</span>
+					{#each [['name', 'discover.sort_name'], ['newest', 'discover.sort_newest'], ['ending', 'discover.sort_ending']] as const as [s, key] (s)}
+						<button type="button" class="chip" class:on={sort === s} aria-pressed={sort === s} onclick={() => (sort = s)}>{t(key)}</button>
+					{/each}
+				</div>
+			{/if}
 			<label class="toggle">
 				<input type="checkbox" bind:checked={hideAdded} />
 				<span>{t('discover.hide_added')}</span>
@@ -164,7 +216,9 @@
 		</div>
 
 		{#if shown.length === 0}
-			<p class="empty">{groups.length === 0 ? t('discover.empty') : t('discover.no_match')}</p>
+			<p class="empty">
+				{groups.length > 0 ? t('discover.no_match') : tab === 'upcoming' ? t('discover.no_upcoming') : t('discover.empty')}
+			</p>
 		{/if}
 		<div class="list">
 			{#each shown as g (g.key)}
@@ -189,11 +243,15 @@
 									<div class="ch">
 										<PlatformMark platform={c.platform} />
 										<span class="cn">{c.name}</span>
-										<small title={c.ends_at ? t('discover.ends', { date: shortDate(c.ends_at, prefs.zone) }) : undefined}
-											>{#if sort === 'newest' && c.starts_at}{t('discover.started', { date: shortDate(c.starts_at, prefs.zone) })} · {/if}{left(
-												c.ends_at
-											)}{#if c.ends_at} · {t('discover.ends', { date: shortDate(c.ends_at, prefs.zone) })}{/if}</small
-										>
+										{#if tab === 'upcoming' && c.starts_at}
+											<small class="when" title={ends(c)}>{until(c.starts_at)}{' · '}<b>{starts(c.starts_at)}</b></small>
+										{:else}
+											<small title={ends(c)}
+												>{#if sort === 'newest' && c.starts_at}{t('discover.started', { date: shortDate(c.starts_at, prefs.zone) })}{' · '}{/if}{left(
+													c.ends_at
+												)}{#if c.ends_at}{' · '}{ends(c)}{/if}</small
+											>
+										{/if}
 									</div>
 									{#if c.needs_link}
 										<p class="link">
@@ -212,7 +270,7 @@
 											{/each}
 										</ul>
 									{:else}
-										<p class="muted">{t('discover.no_rewards')}</p>
+										<p class="muted">{tab === 'upcoming' ? t('discover.no_drops_yet') : t('discover.no_rewards')}</p>
 									{/if}
 								</li>
 							{/each}
@@ -263,6 +321,7 @@
 		cursor: default;
 	}
 	.btn:focus-visible,
+	.seg button:focus-visible,
 	.chip:focus-visible,
 	.add-btn:focus-visible,
 	.search:focus-visible {
@@ -292,6 +351,45 @@
 		align-items: center;
 		gap: 6px 16px;
 		margin-bottom: 14px;
+	}
+	.tabs {
+		flex: 0 0 100%;
+		display: flex;
+		align-items: center;
+	}
+	.seg {
+		display: flex;
+	}
+	.seg button {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 500;
+		padding: 5px 14px;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--t2);
+		cursor: pointer;
+	}
+	.seg button:first-child {
+		border-radius: 8px 0 0 8px;
+	}
+	.seg button + button {
+		border-left: 0;
+		border-radius: 0 8px 8px 0;
+	}
+	.seg button:hover {
+		color: var(--text);
+	}
+	.seg button[aria-pressed='true'] {
+		background: var(--accent-soft);
+		color: var(--text);
+	}
+	.seg .n {
+		font: 12px var(--mono);
+		color: var(--t3);
 	}
 	.search {
 		flex: 1 1 100%;
@@ -453,6 +551,11 @@
 		font: 12px var(--mono);
 		white-space: nowrap;
 	}
+	.ch small.when b {
+		font-weight: 500;
+		color: var(--accent);
+		white-space: nowrap;
+	}
 	.link {
 		display: flex;
 		align-items: center;
@@ -583,6 +686,7 @@
 		.ch small {
 			grid-column: 2;
 			margin-top: -4px;
+			white-space: normal;
 		}
 		.rewards,
 		.link,

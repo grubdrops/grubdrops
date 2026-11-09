@@ -222,3 +222,65 @@ func TestDiscover_RefreshBypassesCacheAfterMinRefresh(t *testing.T) {
 	require.NotNil(t, got.NextRefreshAt)
 	assert.Equal(t, now.Add(discover.DefaultMinRefresh).UTC().Format(time.RFC3339), *got.NextRefreshAt)
 }
+
+func TestDiscover_UpcomingSplitAndCounted(t *testing.T) {
+	soon := time.Date(2098, 3, 1, 0, 0, 0, 0, time.UTC)
+	later := time.Date(2098, 6, 1, 0, 0, 0, 0, time.UTC)
+	svc := discover.New(
+		discover.Source{Platform: "twitch", Timeout: time.Second, Fetch: fixed([]platform.Campaign{
+			{ID: "t-live", Platform: "twitch", Game: "Rust", Status: "active"},
+			{ID: "t-later", Platform: "twitch", Game: "Apex Legends", Status: "upcoming", StartsAt: later,
+				Benefits: []platform.DropBenefit{{Name: "Charm", RequiredMinutes: 90}}},
+		}, nil)},
+		discover.Source{Platform: "kick", Timeout: time.Second, Fetch: fixed([]platform.Campaign{
+			{ID: "k-soon", Platform: "kick", Game: "Rust", Status: "upcoming", StartsAt: soon},
+		}, nil)},
+	)
+	e := newDiscoverEnv(t, svc)
+	_, b := e.do("GET", "/api/discover", "", nil)
+	var got discoverJSON
+	require.NoError(t, json.Unmarshal(b, &got))
+
+	assert.Equal(t, discoverPlatformJSON{OK: true, Count: 1, Upcoming: 1}, got.Platforms["twitch"])
+	assert.Equal(t, discoverPlatformJSON{OK: true, Upcoming: 1}, got.Platforms["kick"])
+	require.Len(t, got.Campaigns, 1)
+	assert.Equal(t, "t-live", got.Campaigns[0].ID)
+	assert.False(t, got.Campaigns[0].Upcoming)
+	require.Len(t, got.Upcoming, 2)
+	assert.Equal(t, "k-soon", got.Upcoming[0].ID, "soonest start first")
+	assert.Equal(t, "t-later", got.Upcoming[1].ID)
+	assert.True(t, got.Upcoming[1].Upcoming)
+	require.NotNil(t, got.Upcoming[1].StartsAt)
+	assert.Equal(t, "2098-06-01T00:00:00Z", *got.Upcoming[1].StartsAt)
+	assert.Equal(t, []discoverRewardJSON{{Name: "Charm", Minutes: 90}}, got.Upcoming[1].Rewards)
+}
+
+// A cached upcoming campaign turns live once its start passes, with no
+// refetch: the view decides by the clock.
+func TestDiscover_UpcomingGoesLiveAtStart(t *testing.T) {
+	start := time.Date(2030, 1, 1, 12, 0, 0, 0, time.UTC)
+	var n atomic.Int32
+	svc := discover.New(discover.Source{Platform: "kick", Timeout: time.Second, Fetch: func(context.Context) ([]platform.Campaign, error) {
+		n.Add(1)
+		return []platform.Campaign{{ID: "k1", Platform: "kick", Game: "Rust", Status: "upcoming", StartsAt: start}}, nil
+	}})
+	snap := svc.Get(context.Background(), false)
+
+	before := discoverView(snap, svc, nil, start.Add(-time.Minute))
+	assert.Empty(t, before.Campaigns)
+	require.Len(t, before.Upcoming, 1)
+
+	after := discoverView(snap, svc, nil, start.Add(time.Minute))
+	assert.Empty(t, after.Upcoming)
+	require.Len(t, after.Campaigns, 1)
+	assert.False(t, after.Campaigns[0].Upcoming)
+	assert.Equal(t, discoverPlatformJSON{OK: true, Count: 1}, after.Platforms["kick"])
+	assert.EqualValues(t, 1, n.Load(), "same snapshot, no refetch")
+}
+
+func TestCampaignUpcoming_NoStartUsesStatus(t *testing.T) {
+	now := time.Now()
+	assert.True(t, campaignUpcoming(platform.Campaign{Status: "upcoming"}, now))
+	assert.False(t, campaignUpcoming(platform.Campaign{Status: "active"}, now))
+	assert.False(t, campaignUpcoming(platform.Campaign{Status: "upcoming", StartsAt: now.Add(-time.Second)}, now), "start passed")
+}

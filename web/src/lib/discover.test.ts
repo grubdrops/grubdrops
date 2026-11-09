@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { DiscoverCampaign } from '$lib/api/types';
-import { filterGroups, gameSlug, groupByGame, isAdded, minutesLeft, sortGroups } from './discover';
+import {
+	filterGroups,
+	gameSlug,
+	groupByGame,
+	groupUpcoming,
+	isAdded,
+	isUpcoming,
+	minutesLeft,
+	sortGroups,
+	splitByStart
+} from './discover';
 
 const camp = (p: Partial<DiscoverCampaign> & Pick<DiscoverCampaign, 'id' | 'game'>): DiscoverCampaign => ({
 	platform: 'twitch',
@@ -139,5 +149,49 @@ describe('minutesLeft', () => {
 	it('is null without an end', () => {
 		expect(minutesLeft(null, now)).toBeNull();
 		expect(minutesLeft('bad', now)).toBeNull();
+	});
+});
+
+describe('isUpcoming', () => {
+	const now = Date.parse('2099-01-01T00:00:00Z');
+	it('is true only for a start after now', () => {
+		expect(isUpcoming(camp({ id: 'a', game: 'Rust', starts_at: '2099-01-01T00:00:01Z' }), now)).toBe(true);
+		expect(isUpcoming(camp({ id: 'b', game: 'Rust', starts_at: '2099-01-01T00:00:00Z' }), now)).toBe(false);
+		expect(isUpcoming(camp({ id: 'c', game: 'Rust', starts_at: null }), now)).toBe(false);
+	});
+});
+
+describe('splitByStart', () => {
+	const now = Date.parse('2099-01-01T00:00:00Z');
+	const live = camp({ id: 'live', game: 'Rust', starts_at: '2098-12-01T00:00:00Z' });
+	const started = camp({ id: 'started', game: 'Apex', starts_at: '2098-12-31T23:00:00Z', upcoming: true });
+	const later = camp({ id: 'later', game: 'Apex', starts_at: '2099-01-08T00:00:00Z', upcoming: true });
+	const soon = camp({ id: 'soon', game: 'Zed', starts_at: '2099-01-01T06:00:00Z', upcoming: true });
+	it('moves a started upcoming campaign to live', () => {
+		const out = splitByStart([live], [started, later, soon], now);
+		expect(out.live.map((c) => c.id)).toEqual(['live', 'started']);
+	});
+	it('orders upcoming soonest first', () => {
+		const out = splitByStart([live], [later, soon], now);
+		expect(out.upcoming.map((c) => c.id)).toEqual(['soon', 'later']);
+	});
+});
+
+describe('groupUpcoming', () => {
+	it('orders games and campaigns by soonest start', () => {
+		const groups = groupUpcoming(
+			[
+				camp({ id: 'r2', game: 'Rust', starts_at: '2099-01-09T00:00:00Z' }),
+				camp({ id: 'a1', game: 'Apex', starts_at: '2099-01-05T00:00:00Z' }),
+				camp({ id: 'r1', game: 'Rust', starts_at: '2099-01-02T00:00:00Z', platform: 'kick' })
+			],
+			[{ name: 'Apex', slug: 'apex' }]
+		);
+		expect(groups.map((g) => [g.name, g.campaigns.map((c) => c.id)])).toEqual([
+			['Rust', ['r1', 'r2']],
+			['Apex', ['a1']]
+		]);
+		expect(groups[1].added).toBe(true);
+		expect(groups[0].platforms).toEqual(['kick', 'twitch']);
 	});
 });

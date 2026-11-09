@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -31,15 +32,18 @@ type discoverCampaignJSON struct {
 	EndsAt    *string              `json:"ends_at"`
 	LinkURL   string               `json:"link_url"`
 	NeedsLink bool                 `json:"needs_link"`
+	Upcoming  bool                 `json:"upcoming"`
 	Rewards   []discoverRewardJSON `json:"rewards"`
 }
 
 // discoverPlatformJSON is one platform's outcome. Error is "" on success, else
-// needs_android, timeout or failed.
+// needs_android, timeout or failed. Count is live campaigns, Upcoming the
+// ones not started yet.
 type discoverPlatformJSON struct {
-	OK    bool   `json:"ok"`
-	Error string `json:"error"`
-	Count int    `json:"count"`
+	OK       bool   `json:"ok"`
+	Error    string `json:"error"`
+	Count    int    `json:"count"`
+	Upcoming int    `json:"upcoming"`
 }
 
 type discoverJSON struct {
@@ -47,6 +51,9 @@ type discoverJSON struct {
 	NextRefreshAt *string                         `json:"next_refresh_at"`
 	Platforms     map[string]discoverPlatformJSON `json:"platforms"`
 	Campaigns     []discoverCampaignJSON          `json:"campaigns"`
+	// Upcoming lists campaigns not started yet, soonest first. Each moves to
+	// Campaigns once its start passes, with no refetch.
+	Upcoming []discoverCampaignJSON `json:"upcoming"`
 }
 
 func (s *server) routesDiscover(r chi.Router) {
@@ -60,7 +67,7 @@ func (s *server) serveDiscover(w http.ResponseWriter, r *http.Request, refresh b
 		return
 	}
 	snap := s.d.Discover.Get(r.Context(), refresh)
-	writeJSON(w, http.StatusOK, discoverView(snap, s.d.Discover, s.chosenTwitchArt(r)))
+	writeJSON(w, http.StatusOK, discoverView(snap, s.d.Discover, s.chosenTwitchArt(r), time.Now()))
 }
 
 // chosenTwitchArt maps each chosen game with a known Twitch id, by
@@ -84,15 +91,25 @@ func (s *server) chosenTwitchArt(r *http.Request) map[string]string {
 
 // discoverView builds the Discover body. chosenArt fills in, after the
 // snapshot's own Twitch art, for games only a chosen game's id covers.
-func discoverView(snap discover.Snapshot, svc *discover.Service, chosenArt map[string]string) discoverJSON {
+// Campaigns not started at now go to Upcoming.
+func discoverView(snap discover.Snapshot, svc *discover.Service, chosenArt map[string]string, now time.Time) discoverJSON {
 	out := discoverJSON{
 		FetchedAt:     rfc3339(snap.FetchedAt),
 		NextRefreshAt: rfc3339(svc.NextRefresh()),
 		Platforms:     make(map[string]discoverPlatformJSON, len(snap.Results)),
 		Campaigns:     []discoverCampaignJSON{},
+		Upcoming:      []discoverCampaignJSON{},
 	}
 	for name, res := range snap.Results {
-		out.Platforms[name] = discoverPlatformJSON{OK: res.Err == nil, Error: discover.ErrCode(res.Err), Count: len(res.Campaigns)}
+		p := discoverPlatformJSON{OK: res.Err == nil, Error: discover.ErrCode(res.Err)}
+		for _, c := range res.Campaigns {
+			if campaignUpcoming(c, now) {
+				p.Upcoming++
+			} else {
+				p.Count++
+			}
+		}
+		out.Platforms[name] = p
 	}
 	art := twitchArtBySlug(snap)
 	for k, u := range chosenArt {
@@ -102,20 +119,54 @@ func discoverView(snap discover.Snapshot, svc *discover.Service, chosenArt map[s
 	}
 	for _, res := range snap.Results {
 		for _, c := range res.Campaigns {
-			out.Campaigns = append(out.Campaigns, discoverCampaign(c, art))
+			cj := discoverCampaign(c, art)
+			if campaignUpcoming(c, now) {
+				cj.Upcoming = true
+				out.Upcoming = append(out.Upcoming, cj)
+			} else {
+				out.Campaigns = append(out.Campaigns, cj)
+			}
 		}
 	}
 	sort.SliceStable(out.Campaigns, func(i, j int) bool {
-		a, b := out.Campaigns[i], out.Campaigns[j]
-		if ga, gb := strings.ToLower(a.Game), strings.ToLower(b.Game); ga != gb {
-			return ga < gb
+		return byGame(out.Campaigns[i], out.Campaigns[j])
+	})
+	sort.SliceStable(out.Upcoming, func(i, j int) bool {
+		a, b := out.Upcoming[i], out.Upcoming[j]
+		if sa, sb := derefStr(a.StartsAt), derefStr(b.StartsAt); sa != sb {
+			return sa < sb
 		}
-		if a.Platform != b.Platform {
-			return a.Platform < b.Platform
-		}
-		return a.ID < b.ID
+		return byGame(a, b)
 	})
 	return out
+}
+
+// byGame orders campaigns by game, then platform, then id.
+func byGame(a, b discoverCampaignJSON) bool {
+	if ga, gb := strings.ToLower(a.Game), strings.ToLower(b.Game); ga != gb {
+		return ga < gb
+	}
+	if a.Platform != b.Platform {
+		return a.Platform < b.Platform
+	}
+	return a.ID < b.ID
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// campaignUpcoming reports whether c has not started at now. The start time
+// decides, so a cached catalog turns a campaign live on time; with no start
+// time the platform's status does.
+func campaignUpcoming(c platform.Campaign, now time.Time) bool {
+	if !c.StartsAt.IsZero() {
+		return c.StartsAt.After(now)
+	}
+	return c.Status == "upcoming"
 }
 
 // twitchArtBySlug maps each Twitch game in snap, by gameslug.Slug of its

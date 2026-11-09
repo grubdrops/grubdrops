@@ -3,6 +3,7 @@ package kick
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,7 +11,7 @@ import (
 	"github.com/grubdrops/grubdrops/internal/platform"
 )
 
-func TestCatalog_ActiveCampaignsWithRewards(t *testing.T) {
+func TestCatalog_CampaignsWithRewards(t *testing.T) {
 	f := &fakeDoer{resp: map[string]fakeResp{
 		"https://web.kick.com/api/v1/drops/campaigns": {200, `{"data":[
 			{"id":"c-rust","category":{"banner_image_url":"","id":13,"image_url":"https://files.kick.com/images/subcategories/13/banner/coajjj.jpg","name":"Rust","slug":"rust"},"name":"Rust Drops","status":"active",
@@ -24,8 +25,9 @@ func TestCatalog_ActiveCampaignsWithRewards(t *testing.T) {
 
 	camps, err := b.Catalog(context.Background(), platform.Session{})
 	require.NoError(t, err)
-	require.Len(t, camps, 1)
+	require.Len(t, camps, 2, "expired left out")
 	c := camps[0]
+	assert.Equal(t, "upcoming", camps[1].Status, "c-soon kept as upcoming")
 	assert.Equal(t, "Rust", c.Game)
 	assert.Equal(t, "https://files.kick.com/images/subcategories/13/banner/coajjj.jpg", c.BoxArtURL, "category image")
 	assert.Equal(t, "active", c.Status)
@@ -34,6 +36,33 @@ func TestCatalog_ActiveCampaignsWithRewards(t *testing.T) {
 	assert.Equal(t, 90, c.Benefits[0].RequiredMinutes)
 	assert.Equal(t, "https://ext.cdn.kick.com/drops/reward-image/a.png", c.Benefits[0].ImageURL)
 	assert.Empty(t, b.campaignChannels, "catalog must not touch the mining caches")
+}
+
+// Campaigns not started yet stay in, flagged upcoming with their rewards;
+// expired ones, by status or by end, are still left out.
+func TestCatalog_KeepsUpcomingDropsExpired(t *testing.T) {
+	f := &fakeDoer{resp: map[string]fakeResp{
+		"https://web.kick.com/api/v1/drops/campaigns": {200, `{"data":[
+			{"id":"c-live","game":"Rust","name":"Live","status":"active","starts_at":"2026-01-01T00:00:00Z","ends_at":"2099-01-01T00:00:00Z"},
+			{"id":"c-soon","game":"Rust","name":"Soon","status":"upcoming","starts_at":"2098-01-01T00:00:00Z","ends_at":"2099-01-01T00:00:00Z",
+			 "rewards":[{"id":"r1","name":"Crate","required_units":120,"image_url":"drops/reward-image/a.png"}]},
+			{"id":"c-old","game":"Rust","name":"Old","status":"expired"},
+			{"id":"c-ended","game":"Rust","name":"Ended","status":"active","ends_at":"2020-01-01T00:00:00Z"}
+		]}`},
+	}}
+	camps, err := withFake(f).Catalog(context.Background(), platform.Session{})
+	require.NoError(t, err)
+	byID := map[string]platform.Campaign{}
+	for _, c := range camps {
+		byID[c.ID] = c
+	}
+	require.Len(t, byID, 2, "expired and ended left out")
+	assert.Equal(t, "active", byID["c-live"].Status)
+	up := byID["c-soon"]
+	assert.Equal(t, "upcoming", up.Status)
+	assert.Equal(t, time.Date(2098, 1, 1, 0, 0, 0, 0, time.UTC), up.StartsAt)
+	require.Len(t, up.Benefits, 1)
+	assert.Equal(t, 120, up.Benefits[0].RequiredMinutes)
 }
 
 func TestGameImage(t *testing.T) {

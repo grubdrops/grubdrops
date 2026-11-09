@@ -12,11 +12,20 @@
 
 	const mockups: Mockup[] = [
 		{
+			slug: 'discover-upcoming',
+			created: '2026-11-09',
+			title: 'Upcoming campaigns on Discover, three layouts',
+			desc: 'Discover now gets campaigns that have not started yet, with their drops where Twitch or Kick list them. A puts them in an Upcoming section after the live list, B behind a Live / Upcoming switch, C inside each game card tagged with the start. Each starts in the display time zone and turns live on time; the clock buttons skip ahead to show it.',
+			tags: ['discover', 'upcoming'],
+			done: true,
+			chosen: 'Variant B (Live / Upcoming switch), now live on /discover'
+		},
+		{
 			slug: 'inventory-all-progress',
 			created: '2026-11-09',
 			title: 'Inventory In progress shows every started drop, three layouts',
 			desc: 'In progress lists every drop with minutes on each account, not only the one mined now (GitHub #81). A one flat list with a Mining tag on the current drop, B grouped per account with the current drop on a tinted row, C the current drop as a big row with the waiting drops compact under it.',
-			tags: ['inventory', 'for approval'],
+			tags: ['inventory', 'progress'],
 			done: true,
 			chosen: 'Variant B (grouped per account), now live on /inventory'
 		},

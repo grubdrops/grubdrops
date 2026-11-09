@@ -375,3 +375,15 @@ func TestBuild_EndingSoonestTiesByRemainingThenRank(t *testing.T) {
 	})
 	eq(t, ids(res.Queue), []string{"c1", "b1", "a1"})
 }
+
+// Discover lists upcoming campaigns with their drops; nothing mines one
+// before its start, even when it is the only chosen campaign.
+func TestBuild_UpcomingNeverPicked(t *testing.T) {
+	up := camp("up", "twitch", "Rust", ben("u1", 30), ben("u2", 60))
+	up.Status = "upcoming"
+	res := Build(Input{Games: rust, Campaigns: []platform.Campaign{up}})
+	eq(t, ids(res.Queue), []string{})
+	if len(res.Blocked) != 0 {
+		t.Fatalf("blocked %v", res.Blocked)
+	}
+}
