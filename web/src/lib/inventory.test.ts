@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Runner } from '$lib/api/types';
+import type { Runner, Target } from '$lib/api/types';
 import runnersMining from '$lib/fixtures/runners.mining.json';
 import {
-	inProgress,
+	progressGroups,
+	progressRows,
 	pageCount,
 	pageQuery,
 	pageRange,
@@ -13,14 +14,109 @@ import {
 
 const R = () => structuredClone(runnersMining) as Runner[];
 
-describe('inProgress', () => {
-	it('sorts by pct desc', () => {
-		const p = inProgress(R());
-		expect(p.map((x) => x.pct)).toEqual([70, 30]);
-		expect(p.some((x) => x.runner.state === 'needs_login')).toBe(false);
+describe('progressRows', () => {
+	const tgt = (id: string, minutes: number, req = 60): Target => ({
+		game: 'Rust',
+		platform: 'twitch',
+		campaign_id: 'c1',
+		campaign_name: 'Rust Drops',
+		benefit_id: id,
+		benefit_name: id,
+		image_url: '',
+		required_minutes: req,
+		minutes,
+		ends_at: null,
+		channels: [],
+		channel_count: 0
 	});
-	it('left minutes', () => {
-		expect(inProgress(R())[0].left).toBe(18);
+	const runner = (id: string, over: Partial<Runner>): Runner => ({
+		...R()[0],
+		account_id: id,
+		account_name: id,
+		current: null,
+		up_next: [],
+		blocked: [],
+		...over
+	});
+	const ids = (rows: ReturnType<typeof progressRows>) => rows.map((x) => `${x.runner.account_id}:${x.target.benefit_id}`);
+
+	it('lists the current drop and started queued drops', () => {
+		const rows = progressRows([runner('a', { current: tgt('cur', 6), up_next: [tgt('q1', 30), tgt('q2', 12)] })]);
+		expect(ids(rows)).toEqual(['a:cur', 'a:q1', 'a:q2']);
+		expect(rows.map((x) => x.current)).toEqual([true, false, false]);
+	});
+	it('puts current drops first, then by percent', () => {
+		const rows = progressRows([
+			runner('a', { current: tgt('a-cur', 3), up_next: [tgt('a-q', 50)] }),
+			runner('b', { current: tgt('b-cur', 30), up_next: [tgt('b-q', 20)] })
+		]);
+		expect(ids(rows)).toEqual(['b:b-cur', 'a:a-cur', 'a:a-q', 'b:b-q']);
+	});
+	it('does not list the current drop twice', () => {
+		const rows = progressRows([
+			runner('a', {
+				current: tgt('x', 20),
+				up_next: [tgt('x', 20), tgt('y', 10)],
+				blocked: [{ target: tgt('y', 10), reason: 'skipped' }]
+			})
+		]);
+		expect(ids(rows)).toEqual(['a:x', 'a:y']);
+		expect(rows[1].reason).toBeUndefined();
+	});
+	it('keeps the same drop on two accounts', () => {
+		const rows = progressRows([runner('a', { up_next: [tgt('x', 20)] }), runner('b', { up_next: [tgt('x', 40)] })]);
+		expect(ids(rows)).toEqual(['b:x', 'a:x']);
+	});
+	it('leaves out zero-minute and complete drops', () => {
+		const rows = progressRows([runner('a', { up_next: [tgt('zero', 0), tgt('done', 60), tgt('over', 90), tgt('half', 30)] })]);
+		expect(ids(rows)).toEqual(['a:half']);
+	});
+	it('includes blocked drops only with progress', () => {
+		const rows = progressRows([
+			runner('a', {
+				blocked: [
+					{ target: tgt('b0', 0), reason: 'not_linked' },
+					{ target: tgt('b1', 15), reason: 'precondition' }
+				]
+			})
+		]);
+		expect(ids(rows)).toEqual(['a:b1']);
+		expect(rows[0]).toMatchObject({ current: false, reason: 'precondition', pct: 25, left: 45 });
+	});
+	it('skips signed-out accounts', () => {
+		expect(progressRows([runner('a', { state: 'needs_login', up_next: [tgt('x', 20)] })])).toEqual([]);
+	});
+	it('lists the fixture runners', () => {
+		const rows = progressRows(R());
+		expect(rows.map((x) => x.pct)).toEqual([70, 30]);
+		expect(rows[0].left).toBe(18);
+	});
+});
+
+describe('progressGroups', () => {
+	const tgt = (id: string, minutes: number): Target => ({ ...R()[0].current!, benefit_id: id, minutes, required_minutes: 60 });
+	const runner = (id: string, over: Partial<Runner>): Runner => ({
+		...R()[0],
+		account_id: id,
+		account_name: id,
+		current: null,
+		up_next: [],
+		blocked: [],
+		...over
+	});
+	it('groups per account with the current drop first', () => {
+		const gs = progressGroups(
+			progressRows([
+				runner('a', { current: tgt('a-cur', 6), up_next: [tgt('a-q', 50)] }),
+				runner('b', { state: 'sleep_window', up_next: [tgt('b-q1', 10), tgt('b-q2', 40)] }),
+				runner('c', { current: tgt('c-cur', 30) })
+			])
+		);
+		expect(gs.map((g) => g.runner.account_id)).toEqual(['c', 'a', 'b']);
+		expect(gs[1].current?.target.benefit_id).toBe('a-cur');
+		expect(gs[1].rows.map((x) => x.target.benefit_id)).toEqual(['a-cur', 'a-q']);
+		expect(gs[2].current).toBeNull();
+		expect(gs[2].rows.map((x) => x.target.benefit_id)).toEqual(['b-q2', 'b-q1']);
 	});
 });
 
