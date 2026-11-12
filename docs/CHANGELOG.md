@@ -4,6 +4,8 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+## [2.3.2] — 2026-11-12
+
 ### Changed
 
 - Project moves to the `grubdrops` GitHub org. Images are now `ghcr.io/grubdrops/grubdrops` and `ghcr.io/grubdrops/grubdrops-browser`. Update the `image:` line in your compose file, and `GRUB_KICK_SIDECAR_IMAGE` if you set it. Go module path is now `github.com/grubdrops/grubdrops`.
