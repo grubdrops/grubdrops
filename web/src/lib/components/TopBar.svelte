@@ -56,7 +56,7 @@
 			<VersionPopover current={version} {update} />
 			<a
 				class="gh"
-				href="https://github.com/grubdrops/GrubDrops"
+				href="https://github.com/grubdrops/grubdrops"
 				target="_blank"
 				rel="noreferrer"
 				aria-label={t('topbar.github')}
