@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grubdrops/grubdrops/internal/netutil"
 	"github.com/gorilla/websocket"
+	"github.com/grubdrops/grubdrops/internal/netutil"
 )
 
 // PubSubEndpoint is Twitch's PubSub edge. Uses the legacy v1 protocol

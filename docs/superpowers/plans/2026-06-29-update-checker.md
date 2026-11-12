@@ -701,7 +701,7 @@ Then, immediately after the GitHub link's closing `</a>` (line 22), add the badg
 
 ```html
       {{if .UpdateAvailable}}
-      <a class="update-pill" href="https://github.com/grubdrops/grubdrops/releases/latest" target="_blank" rel="noopener" title="{{t "nav.update_title"}} {{.LatestRelease}}">{{t "nav.update_available"}}</a>
+      <a class="update-pill" href="https://github.com/grubdrops/GrubDrops/releases/latest" target="_blank" rel="noopener" title="{{t "nav.update_title"}} {{.LatestRelease}}">{{t "nav.update_available"}}</a>
       {{end}}
 ```
 

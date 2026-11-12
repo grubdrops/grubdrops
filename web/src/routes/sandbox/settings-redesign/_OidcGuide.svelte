@@ -75,7 +75,7 @@ GRUB_OIDC_ALLOWED_EMAILS=you@example.com`;
 		<p class="warn"><Ico name="alert" size={14} /> Without an email or group allowlist, anyone your provider signs in is admin.</p>
 
 		<footer>
-			<a class="btn ghost" href="https://github.com/grubdrops/grubdrops#single-sign-on-oidc" target="_blank" rel="noreferrer"
+			<a class="btn ghost" href="https://github.com/grubdrops/GrubDrops#single-sign-on-oidc" target="_blank" rel="noreferrer"
 				>Full guide</a
 			>
 			<button type="button" class="btn primary" onclick={() => (open = false)}>Done</button>

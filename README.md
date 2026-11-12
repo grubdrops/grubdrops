@@ -7,8 +7,8 @@
 <h3 align="center">Self-hosted Twitch and Kick drops miner.</h3>
 
 <p align="center">
-  <a href="https://github.com/grubdrops/grubdrops/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/grubdrops/grubdrops?label=release&color=2c2c2c&logo=github"></a>
-  <a href="https://github.com/grubdrops/grubdrops/pkgs/container/grubdrops"><img alt="ghcr.io image" src="https://img.shields.io/badge/ghcr.io-grubdrops-2496ED?logo=github"></a>
+  <a href="https://github.com/grubdrops/GrubDrops/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/grubdrops/GrubDrops?label=release&color=2c2c2c&logo=github"></a>
+  <a href="https://github.com/grubdrops/GrubDrops/pkgs/container/grubdrops"><img alt="ghcr.io image" src="https://img.shields.io/badge/ghcr.io-grubdrops-2496ED?logo=github"></a>
   <img alt="Twitch" src="https://img.shields.io/badge/Twitch-drops-9146FF?logo=twitch&logoColor=white">
   <img alt="Kick" src="https://img.shields.io/badge/Kick-drops-53FC18?logo=kick&logoColor=black">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green">

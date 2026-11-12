@@ -6,7 +6,7 @@
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
-	const GUIDE_URL = 'https://github.com/grubdrops/grubdrops#single-sign-on-oidc';
+	const GUIDE_URL = 'https://github.com/grubdrops/GrubDrops#single-sign-on-oidc';
 	const RESTART = 'docker compose up -d';
 
 	let dlg = $state<HTMLDialogElement | null>(null);

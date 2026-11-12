@@ -75,7 +75,7 @@ func parseSemver(s string) (maj, min, patch int, ok bool)
 - **Injection (one place):** a middleware in the api server computes `available, latest := checker.Status(version)` and stores them in the request context; `render()` reads them from context and sets the two fields on every `templateData` it builds. (Single source — no per-handler edits.) When the checker is disabled/nil, both default to false/"".
 - **`_nav.html`:**
   - Pulse dot (line 19): add `{{if .UpdateAvailable}} update{{end}}` to its class so CSS recolors the green dot orange; swap its `title` to the update message when available.
-  - After the GitHub `</a>` (line 22): when `.UpdateAvailable`, render a small pill linking to `https://github.com/grubdrops/grubdrops/releases/latest` (target _blank, rel noopener), text from i18n, `title` = "<latest> available". Hidden otherwise.
+  - After the GitHub `</a>` (line 22): when `.UpdateAvailable`, render a small pill linking to `https://github.com/grubdrops/GrubDrops/releases/latest` (target _blank, rel noopener), text from i18n, `title` = "<latest> available". Hidden otherwise.
 - **CSS** (`app.css`): `.pulse.update { background: var(--amber); box-shadow: 0 0 10px var(--amber); }` (amber already used elsewhere) + a `.update-pill` style (small, amber, under/next to the icon).
 
 ### Component 5 — i18n

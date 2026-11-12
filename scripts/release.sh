@@ -18,7 +18,7 @@ if [[ -z "$TAG" ]]; then
   exit 2
 fi
 
-REGISTRY="ghcr.io/ttik3r"
+REGISTRY="ghcr.io/grubdrops"
 GRUB_IMAGE="$REGISTRY/grubdrops"
 BROWSER_IMAGE="$REGISTRY/grubdrops-browser"
 
