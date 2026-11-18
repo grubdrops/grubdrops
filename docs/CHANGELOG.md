@@ -4,6 +4,10 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Twitch drops claimed outside GrubDrops now count as claimed (#91).** Claimed in the browser or by another miner, a drop showed as Not started and was mined for 6 minutes before it was skipped, because Twitch drops a fully claimed campaign from the inventory's progress list. A campaign now counts as claimed when the inventory no longer lists it as in progress and every reward it grants was awarded after the campaign started. Partly claimed campaigns keep the per-drop inventory state.
+
 ## [2.3.3] — 2026-11-18
 
 ### Fixed

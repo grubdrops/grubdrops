@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // ErrIntegrityBlocked is returned by a Backend (Twitch today) when the
@@ -325,6 +326,20 @@ type PointsBalancer interface {
 // whatever their game. Twitch only.
 type ReadyDropLister interface {
 	ReadyDrops(ctx context.Context, s Session) ([]ReadyDrop, error)
+}
+
+// OwnedRewardLister is optional: the rewards the account already holds and
+// the campaigns the inventory still lists as in progress. Twitch only. A
+// campaign missing from InProgress whose every reward was awarded after it
+// started was claimed outside GrubDrops (see plan.ClaimedElsewhere).
+type OwnedRewardLister interface {
+	OwnedRewards(ctx context.Context, s Session) (OwnedRewards, error)
+}
+
+// OwnedRewards is the inventory's owned-reward view.
+type OwnedRewards struct {
+	AwardedAt  map[string]time.Time // reward id -> last awarded
+	InProgress map[string]bool      // campaign ids in the in-progress list
 }
 
 // ReadyDrop is one fully watched, unclaimed inventory drop and the campaign

@@ -31,7 +31,19 @@ type discovery struct {
 	// cycle is the audit's N+1. TTL-bounded so a rare mid-flight change
 	// still gets picked up.
 	detailsCache map[string]cachedDetails
+	// owned holds the latest inventory's owned-reward snapshot per account,
+	// so a scan's OwnedRewards call reuses the InventoryProgress fetch.
+	owned map[string]ownedSnap
 }
+
+// ownedSnap is one account's owned-reward view and when it was read.
+type ownedSnap struct {
+	rewards platform.OwnedRewards
+	at      time.Time
+}
+
+// ownedTTL bounds how old a snapshot OwnedRewards still returns.
+const ownedTTL = 2 * time.Minute
 
 type cachedDetails struct {
 	benefits []platform.DropBenefit
@@ -192,7 +204,8 @@ type inventoryData struct {
 			// inventory.py — NOT the drop id. Used to skip drops whose
 			// reward we already hold.
 			GameEventDrops []struct {
-				ID string `json:"id"`
+				ID            string `json:"id"`
+				LastAwardedAt string `json:"lastAwardedAt"`
 			} `json:"gameEventDrops"`
 		} `json:"inventory"`
 	} `json:"currentUser"`
@@ -486,6 +499,7 @@ func (d *discovery) inventory(ctx context.Context, sess platform.Session) ([]pla
 	if err := d.c.gql(ctx, sess.AccessToken, OpInventory, nil, &inv); err != nil {
 		return nil, fmt.Errorf("inventory: %w", err)
 	}
+	d.captureOwned(sess.AccountID, inv)
 	out := []platform.Progress{}
 	for _, camp := range inv.CurrentUser.Inventory.DropCampaignsInProgress {
 		for _, td := range camp.TimeBasedDrops {
@@ -498,12 +512,60 @@ func (d *discovery) inventory(ctx context.Context, sess platform.Session) ([]pla
 		}
 	}
 	// NOTE: we deliberately do NOT emit gameEventDrops (owned-reward)
-	// markers. Twitch reuses the same reward item across campaigns/seasons,
-	// so "account owns this item" does not mean "this campaign's drop is
-	// claimed" — emitting it made the watcher skip + falsely mark every new
-	// campaign granting an already-owned item (#24 follow-up). Per-drop
-	// IsClaimed from dropCampaignsInProgress above is the only claim truth.
+	// markers as progress. Twitch reuses the same reward item across
+	// campaigns/seasons, so "account owns this item" does not mean "this
+	// campaign's drop is claimed" — emitting it made the watcher skip + falsely
+	// mark every new campaign granting an already-owned item (#24 follow-up).
+	// Per-drop IsClaimed from dropCampaignsInProgress above is the claim
+	// truth; the owned snapshot only feeds plan.ClaimedElsewhere, which
+	// applies a stricter whole-campaign rule.
 	return out, nil
+}
+
+// captureOwned stores the owned-reward snapshot of an inventory read.
+func (d *discovery) captureOwned(accountID string, inv inventoryData) {
+	o := platform.OwnedRewards{
+		AwardedAt:  map[string]time.Time{},
+		InProgress: map[string]bool{},
+	}
+	for _, c := range inv.CurrentUser.Inventory.DropCampaignsInProgress {
+		o.InProgress[c.ID] = true
+	}
+	for _, g := range inv.CurrentUser.Inventory.GameEventDrops {
+		if g.ID == "" {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339, g.LastAwardedAt)
+		if err != nil {
+			continue // missing or unparseable: not owned
+		}
+		if t.After(o.AwardedAt[g.ID]) {
+			o.AwardedAt[g.ID] = t
+		}
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.owned == nil {
+		d.owned = map[string]ownedSnap{}
+	}
+	d.owned[accountID] = ownedSnap{rewards: o, at: time.Now()}
+}
+
+// ownedRewards returns the account's snapshot when fresh, else re-reads the
+// inventory (which refreshes it).
+func (d *discovery) ownedRewards(ctx context.Context, sess platform.Session) (platform.OwnedRewards, error) {
+	d.mu.Lock()
+	s, ok := d.owned[sess.AccountID]
+	d.mu.Unlock()
+	if ok && time.Since(s.at) < ownedTTL {
+		return s.rewards, nil
+	}
+	if _, err := d.inventory(ctx, sess); err != nil {
+		return platform.OwnedRewards{}, err
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.owned[sess.AccountID].rewards, nil
 }
 
 // readyDrops returns inventory drops that are fully watched and unclaimed

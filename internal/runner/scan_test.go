@@ -545,3 +545,52 @@ func TestRunner_PreemptFailedTargetCoolsDown(t *testing.T) {
 		t.Fatal("preempted again to a campaign start could not watch")
 	}
 }
+
+// ownedBackend is a Fake that also lists owned rewards (Twitch).
+type ownedBackend struct {
+	*platformtest.Fake
+	owned platform.OwnedRewards
+	err   error
+}
+
+func (o *ownedBackend) OwnedRewards(context.Context, platform.Session) (platform.OwnedRewards, error) {
+	return o.owned, o.err
+}
+
+func TestRunner_ClaimedElsewhereNotQueued(t *testing.T) {
+	start := time.Now().Add(-72 * time.Hour)
+	f := platformtest.NewFake()
+	c := camp("c1", "Rust", "b1", "b2")
+	c.StartsAt = start
+	for i := range c.Benefits {
+		c.Benefits[i].RewardID = fmt.Sprintf("r%d", i+1)
+	}
+	f.Campaigns = []platform.Campaign{c}
+	owned := platform.OwnedRewards{
+		AwardedAt:  map[string]time.Time{"r1": start.Add(time.Hour), "r2": start.Add(time.Hour)},
+		InProgress: map[string]bool{},
+	}
+
+	for _, tc := range []struct {
+		name      string
+		b         *ownedBackend
+		wantQueue int
+	}{
+		{"owned", &ownedBackend{Fake: f, owned: owned}, 0},
+		{"owned read fails", &ownedBackend{Fake: f, err: errors.New("boom")}, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := New(Config{AccountID: "acc", Platform: "twitch", Backend: tc.b, Games: rustGames})
+			res, err := r.scan(context.Background(), nil, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(res.Queue) != tc.wantQueue {
+				t.Fatalf("queue=%d want %d", len(res.Queue), tc.wantQueue)
+			}
+			if tc.wantQueue == 0 && len(res.Claimed) != 2 {
+				t.Fatalf("claimed=%d", len(res.Claimed))
+			}
+		})
+	}
+}

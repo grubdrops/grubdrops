@@ -773,6 +773,7 @@ func (r *Runner) scan(ctx context.Context, progress []platform.Progress, havePro
 	}
 
 	if inventoryOK {
+		progress = r.withClaimedElsewhere(ctx, camps, progress)
 		r.selfHeal(progress)
 	}
 	r.reapRewards(ctx, camps)
@@ -856,6 +857,38 @@ func upcomingStart(games []plan.Game, camps []platform.Campaign, now time.Time) 
 		}
 	}
 	return first
+}
+
+// withClaimedElsewhere appends a claimed row for every drop of a campaign the
+// account finished outside GrubDrops (plan.ClaimedElsewhere), so the planner
+// counts it claimed instead of mining it. Backends without owned rewards, and
+// a failed read, leave progress as is.
+func (r *Runner) withClaimedElsewhere(ctx context.Context, camps []platform.Campaign, progress []platform.Progress) []platform.Progress {
+	l, ok := r.cfg.Backend.(platform.OwnedRewardLister)
+	if !ok || len(camps) == 0 {
+		return progress
+	}
+	owned, err := l.OwnedRewards(ctx, r.cfg.Session)
+	if err != nil {
+		slog.Warn("runner owned rewards failed", "kind", "error", "account", r.cfg.AccountID, "err", err)
+		return progress
+	}
+	have := make(map[string]bool, len(progress))
+	for _, p := range progress {
+		have[p.BenefitID] = true
+	}
+	n := 0
+	for _, id := range plan.ClaimedElsewhere(camps, owned) {
+		if have[id] {
+			continue
+		}
+		progress = append(progress, platform.Progress{BenefitID: id, Claimed: true})
+		n++
+	}
+	if n > 0 {
+		slog.Info("runner drops claimed outside grubdrops", "kind", "discovery", "account", r.cfg.AccountID, "count", n)
+	}
+	return progress
 }
 
 // selfHeal clears skips for benefits that are tracked and unclaimed in a

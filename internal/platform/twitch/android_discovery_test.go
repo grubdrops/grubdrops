@@ -84,3 +84,40 @@ func TestAndroidSession_ListActiveFeedsPlanQueue(t *testing.T) {
 		})
 	}
 }
+
+// gameEventDrops (id + lastAwardedAt) and the in-progress campaign ids feed
+// the owned-reward snapshot; a bad or missing timestamp counts as not owned.
+func TestOwnedRewards_FromInventory(t *testing.T) {
+	const inventory = `{"data":{"currentUser":{"inventory":{"dropCampaignsInProgress":[{
+		"id":"camp-live","status":"ACTIVE","timeBasedDrops":[]}],
+		"gameEventDrops":[
+			{"id":"r1","lastAwardedAt":"2026-11-05T10:00:00Z"},
+			{"id":"r1","lastAwardedAt":"2026-10-01T10:00:00Z"},
+			{"id":"r2","lastAwardedAt":"not a time"},
+			{"id":"r3"}]}}}}`
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req gqlRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		require.Equal(t, OpInventory.Name, req.OperationName)
+		calls++
+		_, _ = w.Write([]byte(inventory))
+	}))
+	defer srv.Close()
+
+	b := newForTest(srv.URL)
+	sess := platform.Session{AccessToken: "tok", ClientID: ClientAndroid, AccountID: "acc"}
+	got, err := b.OwnedRewards(context.Background(), sess)
+	require.NoError(t, err)
+	require.Equal(t, map[string]bool{"camp-live": true}, got.InProgress)
+	require.Len(t, got.AwardedAt, 1)
+	require.Equal(t, "2026-11-05T10:00:00Z", got.AwardedAt["r1"].UTC().Format("2006-01-02T15:04:05Z"))
+
+	// A fresh snapshot is reused; InventoryProgress refreshes it.
+	_, err = b.OwnedRewards(context.Background(), sess)
+	require.NoError(t, err)
+	require.Equal(t, 1, calls)
+	_, err = b.InventoryProgress(context.Background(), sess)
+	require.NoError(t, err)
+	require.Equal(t, 2, calls)
+}

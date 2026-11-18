@@ -473,6 +473,12 @@ func (b *Backend) InventoryProgress(ctx context.Context, s platform.Session) ([]
 	return b.disc.inventory(ctx, s)
 }
 
+// OwnedRewards satisfies platform.OwnedRewardLister.
+func (b *Backend) OwnedRewards(ctx context.Context, s platform.Session) (platform.OwnedRewards, error) {
+	b.c.bind(s)
+	return b.disc.ownedRewards(ctx, s)
+}
+
 // LookupChannel satisfies platform.ChannelLooker.
 func (b *Backend) LookupChannel(ctx context.Context, s platform.Session, login string) (platform.Stream, bool, error) {
 	b.c.bind(s)
