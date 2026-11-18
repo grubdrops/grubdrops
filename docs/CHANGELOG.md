@@ -4,6 +4,8 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+## [2.3.3] — 2026-11-18
+
 ### Fixed
 
 - **Twitch claims no longer fail while the inventory catches up.** After a claim, GrubDrops reads the inventory to confirm Twitch granted the drop. The inventory can lag a granted claim by most of a minute, but the check gave up after about 6 seconds. Granted claims were then logged as Problems ("twitch answered ELIGIBLE_FOR_ALL but the inventory still shows the drop unclaimed"), and drops of a campaign Twitch reports unlinked went to Needs link. The check now reads the inventory up to 7 times over about 60 seconds.
