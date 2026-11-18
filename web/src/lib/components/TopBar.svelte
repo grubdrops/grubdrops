@@ -4,16 +4,15 @@
 	import type { UpdateInfo } from '$lib/api/types';
 	import { t } from '$lib/i18n/index.svelte';
 	import VersionPopover from './VersionPopover.svelte';
-	import NewPill from './NewPill.svelte';
 	import NotificationBell from './NotificationBell.svelte';
 
 	let { version, update }: { version: string; update: UpdateInfo | null } = $props();
 
-	const items: { href: string; key: string; since?: string }[] = [
+	const items: { href: string; key: string }[] = [
 		{ href: '/', key: 'nav.home' },
 		{ href: '/discover', key: 'nav.discover' },
 		{ href: '/games', key: 'nav.games' },
-		{ href: '/points', key: 'nav.points', since: '2.3' },
+		{ href: '/points', key: 'nav.points' },
 		{ href: '/inventory', key: 'nav.inventory' },
 		{ href: '/settings', key: 'nav.settings' }
 	];
@@ -48,7 +47,7 @@
 		<nav class="tabs" bind:this={tabs}>
 			{#each items as it (it.href)}
 				<a href={it.href} class:on={on(it.href)} aria-current={on(it.href) ? 'page' : undefined}
-					>{t(it.key)}{#if it.since}<NewPill since={it.since} sup />{/if}</a
+					>{t(it.key)}</a
 				>
 			{/each}
 		</nav>

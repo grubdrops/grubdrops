@@ -1,5 +1,4 @@
 <script lang="ts">
-	import NewPill from '$lib/components/NewPill.svelte';
 	import type { Account, Runner } from '$lib/api/types';
 	import { fieldKey, mineBlock, nextDrop } from '$lib/account-panel';
 	import { t, tn } from '$lib/i18n/index.svelte';
@@ -76,7 +75,7 @@
 	</div>
 	<div class="opt">
 		<div class="lbl">
-			<b id="sk-{a.id}">{t('accounts.skip_sleep')}<NewPill since="2.3" /><SaveMark mark={act.marks[fieldKey(a.id, 'skip')]} /></b>
+			<b id="sk-{a.id}">{t('accounts.skip_sleep')}<SaveMark mark={act.marks[fieldKey(a.id, 'skip')]} /></b>
 			<small>{t('accounts.skip_sleep_sub')}</small>
 		</div>
 		<button

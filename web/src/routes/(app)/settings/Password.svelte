@@ -1,5 +1,4 @@
 <script lang="ts">
-	import NewPill from '$lib/components/NewPill.svelte';
 	import { api } from '$lib/app';
 	import { ApiError } from '$lib/api/client';
 	import type { Settings, SettingsPatch } from '$lib/api/types';
@@ -67,7 +66,7 @@
 			</div>
 			<div class="row">
 				<div class="lbl">
-					<b id="pwl-l">{t('settings.password_login')}<NewPill since="2.3" /></b>
+					<b id="pwl-l">{t('settings.password_login')}</b>
 					<small>{pw.hint}</small>
 					{#if errs.password_login_disabled}<small class="bad">{t('settings.save_failed')}</small>{/if}
 				</div>

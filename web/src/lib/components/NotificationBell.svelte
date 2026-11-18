@@ -21,7 +21,6 @@
 		type BellTab
 	} from '$lib/notifications';
 	import Icon from './Icon.svelte';
-	import NewPill from './NewPill.svelte';
 
 	const live = getLive();
 
@@ -232,7 +231,7 @@
 	</button>
 	<div class="pop" id="bellpop" role="dialog" aria-label={t('bell.title')} hidden={!open} bind:this={pop}>
 		<header>
-			<h3>{t('bell.title')}<NewPill since="2.3" /></h3>
+			<h3>{t('bell.title')}</h3>
 			<a class="gear" href="/settings#notifications" aria-label={t('bell.settings')} title={t('bell.settings')} onclick={() => close(false)}
 				><Icon name="gear" size={15} /></a
 			>

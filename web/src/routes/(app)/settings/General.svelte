@@ -7,7 +7,6 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { prefs } from '$lib/prefs.svelte';
 	import { advanced, setExpandAdv } from '$lib/advanced.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import { msToNextMinute } from '$lib/format';
 	import { timeExample, zoneOptions } from '$lib/settings';
 	import SectionHead from './SectionHead.svelte';
@@ -137,7 +136,7 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
-				<b id="adv-l">{t('settings.expand_advanced')}<NewPill since="2.3" /></b>
+				<b id="adv-l">{t('settings.expand_advanced')}</b>
 				<small>{t('settings.expand_advanced_sub')}</small>
 			</div>
 			<button

@@ -9,15 +9,16 @@ import (
 	"github.com/grubdrops/grubdrops/internal/platform"
 )
 
-// confirmReads and confirmGap bound the inventory check after a claim.
-// Twitch can answer ELIGIBLE_FOR_ALL or DROP_INSTANCE_ALREADY_CLAIMED and
-// still keep the drop unclaimed (GRUB-58), so the inventory decides. The
-// gap gives a lagging inventory time to catch up. Vars so tests can shrink
-// the gap.
-var (
-	confirmReads = 3
-	confirmGap   = 2 * time.Second
-)
+// confirmWaits bounds the inventory check after a claim: one read after
+// each wait. Twitch can answer ELIGIBLE_FOR_ALL or
+// DROP_INSTANCE_ALREADY_CLAIMED and still keep the drop unclaimed (GRUB-58),
+// so the inventory decides. The inventory can lag a granted claim by most of
+// a minute, so the waits back off to about 60s in all. A var so tests can
+// shrink it.
+var confirmWaits = []time.Duration{
+	0, 2 * time.Second, 3 * time.Second, 5 * time.Second,
+	10 * time.Second, 15 * time.Second, 25 * time.Second,
+}
 
 type claimer struct {
 	c *client
@@ -65,14 +66,14 @@ func (cl *claimer) claim(ctx context.Context, sess platform.Session, b platform.
 }
 
 // confirm reads the inventory until it shows drop dropID claimed or gone,
-// at most confirmReads times. Twitch drops a campaign from the inventory once
-// its last drop is claimed, so gone counts as granted. Still unclaimed after
-// every read means Twitch did not grant it. A failed read trusts the status:
-// the inventory sweep catches a claim that did not land.
+// once after each of confirmWaits. Twitch drops a campaign from the inventory
+// once its last drop is claimed, so gone counts as granted. Still unclaimed
+// after every read means Twitch did not grant it. A failed read trusts the
+// status: the inventory sweep catches a claim that did not land.
 func (cl *claimer) confirm(ctx context.Context, sess platform.Session, dropID, id, status string) error {
-	for i := range confirmReads {
-		if i > 0 {
-			t := time.NewTimer(confirmGap)
+	for _, wait := range confirmWaits {
+		if wait > 0 {
+			t := time.NewTimer(wait)
 			select {
 			case <-ctx.Done():
 				t.Stop()

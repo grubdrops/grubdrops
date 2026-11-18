@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -162,9 +163,9 @@ func invOneDrop(claimed bool) string {
 
 func noConfirmWait(t *testing.T) {
 	t.Helper()
-	prev := confirmGap
-	confirmGap = 0
-	t.Cleanup(func() { confirmGap = prev })
+	prev := confirmWaits
+	confirmWaits = make([]time.Duration, len(prev))
+	t.Cleanup(func() { confirmWaits = prev })
 }
 
 // GRUB-58: Twitch can answer ELIGIBLE_FOR_ALL (or ALREADY_CLAIMED) and still
@@ -180,7 +181,7 @@ func TestClaim_SuccessStatusButInventoryUnclaimedIsRefused(t *testing.T) {
 				platform.DropBenefit{ID: "d1", CampaignID: "camp1", InstanceID: "u#camp1#d1"}, 0)
 			require.ErrorIs(t, err, platform.ErrClaimRefused)
 			assert.Equal(t, 1, calls[OpClaimDrop.Name], "one claim attempt")
-			assert.Equal(t, confirmReads, calls[OpInventory.Name], "every confirm read used")
+			assert.Equal(t, len(confirmWaits), calls[OpInventory.Name], "every confirm read used")
 		})
 	}
 }

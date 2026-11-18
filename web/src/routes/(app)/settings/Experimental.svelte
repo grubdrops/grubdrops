@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import { SECTION_LOOK } from '$lib/settings-look';
 	import type { Settings, SettingsPatch } from '$lib/api/types';
 	import { t } from '$lib/i18n/index.svelte';
@@ -25,7 +24,7 @@
 	<div class="panel">
 		<div class="row" class:na={share.disabled}>
 			<div class="lbl">
-				<b id="share-l">{t('settings.exp_share_catalog')}<NewPill since="2.3" /></b>
+				<b id="share-l">{t('settings.exp_share_catalog')}</b>
 				<small>{t(share.hint)}</small>
 				{#if errs.exp_share_catalog}<small class="bad">{t('settings.save_failed')}</small>{/if}
 			</div>
@@ -44,7 +43,7 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
-				<b id="daily-l">{t('settings.kick_daily_reward')}<NewPill since="2.3" /></b>
+				<b id="daily-l">{t('settings.kick_daily_reward')}</b>
 				<small>{t('settings.kick_daily_reward_sub')}</small>
 				<p class="warn" role="note"><Icon name="alert" />{t('settings.kick_daily_reward_warn')}</p>
 				{#if errs.kick_daily_reward}<small class="bad">{t('settings.save_failed')}</small>{/if}

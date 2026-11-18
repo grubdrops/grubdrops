@@ -6,7 +6,6 @@
 	import BoxArt from '$lib/components/BoxArt.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import LinkRecheck from '$lib/components/LinkRecheck.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
@@ -122,7 +121,7 @@
 		<div class="sec-h">
 			<h2 id="needs-link-h">
 				<span class="ic"><Icon name="alert" size={14} /></span>{t('needslink.title')}
-				{#if open > 0}<span class="n">{open}</span>{/if}<NewPill since="2.3" />
+				{#if open > 0}<span class="n">{open}</span>{/if}
 			</h2>
 		</div>
 		<p class="why">{t('needslink.why')}</p>

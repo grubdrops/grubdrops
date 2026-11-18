@@ -1,5 +1,4 @@
 <script lang="ts">
-	import NewPill from '$lib/components/NewPill.svelte';
 	import { SECTION_LOOK } from '$lib/settings-look';
 	import { api } from '$lib/app';
 	import { ApiError } from '$lib/api/client';
@@ -195,7 +194,7 @@
 		{ key: 'auth', title: 'settings.n_auth', sub: 'settings.n_auth_sub', tone: 'warn' },
 		{ key: 'errors', title: 'settings.n_errors', sub: 'settings.n_errors_sub', tone: 'bad' },
 		{ key: 'daily_summary', title: 'settings.n_daily', sub: 'settings.n_daily_sub', tone: 'info' },
-		{ key: 'reward_codes', title: 'settings.n_codes', sub: 'settings.n_codes_sub', tone: 'violet', since: '2.3' },
+		{ key: 'reward_codes', title: 'settings.n_codes', sub: 'settings.n_codes_sub', tone: 'violet' },
 		{ key: 'progress', title: 'settings.n_progress', sub: 'settings.n_progress_sub', tone: 'info' },
 		{ key: 'canary', title: 'settings.n_canary', sub: 'settings.n_canary_sub', tone: 'bad' }
 	] as const;
@@ -418,7 +417,7 @@
 			<div class="row ev">
 				<span class="dot {k.tone}" aria-hidden="true"></span>
 				<div class="lbl">
-					<b id="n-{k.key}">{t(k.title)}{#if 'since' in k}<NewPill since={k.since} />{/if}</b><small>{t(k.sub)}</small>
+					<b id="n-{k.key}">{t(k.title)}</b><small>{t(k.sub)}</small>
 					{#if errs[`notify.${k.key}`]}<small class="bad">{t('settings.save_failed')}</small>{/if}
 				</div>
 				<button
@@ -468,7 +467,7 @@
 				</div>
 			</div>
 			<div class="card-body">
-				<div class="title"><b>{t('settings.mention_title')}<NewPill since="2.3" /></b></div>
+				<div class="title"><b>{t('settings.mention_title')}</b></div>
 				{#each MENTIONS as m (m.key)}
 					<div class="field">
 						<label for={m.key}>{t(m.label)}</label>

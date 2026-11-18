@@ -5,7 +5,6 @@
 	import type { DiscoverCampaign, DiscoverResp, Platform } from '$lib/api/types';
 	import BoxArt from '$lib/components/BoxArt.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import PageHead from '$lib/components/PageHead.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { refreshLabel } from '$lib/cooldown';
@@ -181,7 +180,6 @@
 						>{t('discover.tab_upcoming')}<span class="n">{split.upcoming.length}</span></button
 					>
 				</div>
-				<NewPill since="2.3" />
 			</div>
 			<input
 				class="search"

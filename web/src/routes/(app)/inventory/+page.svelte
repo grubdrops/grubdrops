@@ -11,7 +11,6 @@
 	import PageHead from '$lib/components/PageHead.svelte';
 	import RewardCodes from '$lib/components/RewardCodes.svelte';
 	import NeedsLinkDrops from '$lib/components/NeedsLinkDrops.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
 	import { claimStamp, etaShort, formatInt, relTime } from '$lib/format';
 	import { t, tn } from '$lib/i18n/index.svelte';
@@ -264,7 +263,7 @@
 				<h2>
 					<svg viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.6" aria-hidden="true"
 						><circle cx="8" cy="8" r="6" stroke="var(--surface-3)" /><path d="M8 2a6 6 0 0 1 6 6" stroke-linecap="round" /></svg
-					>{t('inventory.in_progress')} <span class="n">{progress.length}</span><NewPill since="2.3" />
+					>{t('inventory.in_progress')} <span class="n">{progress.length}</span>
 				</h2>
 			</div>
 			<div class="pgroups">

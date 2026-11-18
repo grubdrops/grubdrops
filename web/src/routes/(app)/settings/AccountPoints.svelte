@@ -1,5 +1,4 @@
 <script lang="ts">
-	import NewPill from '$lib/components/NewPill.svelte';
 	import type { Account } from '$lib/api/types';
 	import { fieldKey, pointsTotal } from '$lib/account-panel';
 	import { pointsSupported } from '$lib/accounts';
@@ -39,7 +38,7 @@
 			{#if fresh}<small class="fresh {freshTone(f)}">{fresh}</small>{/if}
 		</div>
 		<div class="mode">
-			<b>{t('accounts.points_mode')}<NewPill since="2.3" /><SaveMark mark={act.marks[fieldKey(a.id, 'points')]} /></b>
+			<b>{t('accounts.points_mode')}<SaveMark mark={act.marks[fieldKey(a.id, 'points')]} /></b>
 			<PointsMode {a} onpick={(m) => act.setPointsMode(a, m)} />
 			<small>{t('accounts.points_sub')}</small>
 		</div>

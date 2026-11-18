@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import Hint, { type HintExample } from '$lib/components/Hint.svelte';
-	import NewPill from '$lib/components/NewPill.svelte';
 	import { SECTION_LOOK } from '$lib/settings-look';
 	import { api } from '$lib/app';
 	import { ApiError } from '$lib/api/client';
@@ -173,7 +172,7 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
-				<b id="raid-l">{t('settings.follow_raids')}<NewPill since="2.3" /></b>
+				<b id="raid-l">{t('settings.follow_raids')}</b>
 				<small>{t('settings.follow_raids_sub')}</small>
 				{#if errs.follow_raids}<small class="bad">{t('settings.save_failed')}</small>{/if}
 			</div>
@@ -207,7 +206,7 @@
 		</div>
 	</div>
 
-	<h3 class="sub-h"><span class="tile sm" aria-hidden="true"><Icon name="moon" size={13} /></span>{t('settings.sleep')}<NewPill since="2.3" /></h3>
+	<h3 class="sub-h"><span class="tile sm" aria-hidden="true"><Icon name="moon" size={13} /></span>{t('settings.sleep')}</h3>
 	<div class="panel">
 		<div class="row">
 			<div class="lbl">
