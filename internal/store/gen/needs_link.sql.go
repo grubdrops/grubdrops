@@ -9,6 +9,26 @@ import (
 	"context"
 )
 
+const deleteClaimedTwitchNeedsLinkDrop = `-- name: DeleteClaimedTwitchNeedsLinkDrop :execrows
+DELETE FROM needs_link_drops
+WHERE account_id = ? AND benefit_id = ? AND platform = 'twitch' AND ends_at > ?
+`
+
+type DeleteClaimedTwitchNeedsLinkDropParams struct {
+	AccountID string `json:"account_id"`
+	BenefitID string `json:"benefit_id"`
+	EndsAt    int64  `json:"ends_at"`
+}
+
+// A Twitch drop of a running campaign that the inventory no longer lists unclaimed was claimed.
+func (q *Queries) DeleteClaimedTwitchNeedsLinkDrop(ctx context.Context, arg DeleteClaimedTwitchNeedsLinkDropParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteClaimedTwitchNeedsLinkDrop, arg.AccountID, arg.BenefitID, arg.EndsAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const deleteNeedsLinkDrop = `-- name: DeleteNeedsLinkDrop :exec
 DELETE FROM needs_link_drops WHERE account_id = ? AND benefit_id = ?
 `

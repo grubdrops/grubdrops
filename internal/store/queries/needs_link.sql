@@ -23,6 +23,11 @@ UPDATE needs_link_drops SET listed = 1, seen_at = ? WHERE account_id = ? AND ben
 -- name: MarkNeedsLinkDropUnlisted :exec
 UPDATE needs_link_drops SET listed = 0 WHERE account_id = ? AND benefit_id = ?;
 
+-- name: DeleteClaimedTwitchNeedsLinkDrop :execrows
+-- A Twitch drop of a running campaign that the inventory no longer lists unclaimed was claimed.
+DELETE FROM needs_link_drops
+WHERE account_id = ? AND benefit_id = ? AND platform = 'twitch' AND ends_at > ?;
+
 -- name: DeleteNeedsLinkDrop :exec
 DELETE FROM needs_link_drops WHERE account_id = ? AND benefit_id = ?;
 

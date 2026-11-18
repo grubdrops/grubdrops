@@ -83,6 +83,35 @@ func TestNeedsLinkDrops_SyncKeepsRowsPastCampaignEnd(t *testing.T) {
 	assert.Equal(t, "r1", got[0].BenefitID)
 }
 
+// A Twitch drop of a running campaign that the inventory stops listing
+// unclaimed was claimed: its row goes. A Kick row, an ended campaign's row
+// and a row with no end are only marked unlisted.
+func TestNeedsLinkDrops_UnlistedRunningTwitchDropClears(t *testing.T) {
+	ctx := context.Background()
+	s, _ := needsLinkFixture(t)
+	t0 := time.Unix(1_800_000_000, 0)
+	ends := t0.Add(48 * time.Hour)
+	tw := func(id string, end time.Time) NeedsLinkDrop {
+		d := iemDrop(id, end)
+		d.Platform = "twitch"
+		return d
+	}
+	require.NoError(t, s.Sync(ctx, "k1", NeedsLinkSync{Refused: []NeedsLinkDrop{
+		tw("live", ends), tw("ended", t0.Add(-time.Hour)), tw("noend", time.Time{}), iemDrop("kick", ends),
+	}}, t0))
+
+	later := t0.Add(time.Hour)
+	require.NoError(t, s.Sync(ctx, "k1", NeedsLinkSync{Inventory: true, Listed: map[string]bool{}}, later))
+	got, err := s.Unclaimed(ctx)
+	require.NoError(t, err)
+	ids := map[string]bool{}
+	for _, d := range got {
+		ids[d.BenefitID] = true
+		assert.False(t, d.Listed, d.BenefitID)
+	}
+	assert.Equal(t, map[string]bool{"ended": true, "noend": true, "kick": true}, ids)
+}
+
 func TestNeedsLinkDrops_ClaimClears(t *testing.T) {
 	ctx := context.Background()
 	s, log := needsLinkFixture(t)

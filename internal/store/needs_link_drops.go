@@ -94,7 +94,16 @@ func (s *NeedsLinkDrops) Sync(ctx context.Context, accountID string, u NeedsLink
 			case u.Listed[id]:
 				err = q.MarkNeedsLinkDropListed(ctx, gen.MarkNeedsLinkDropListedParams{SeenAt: now.Unix(), AccountID: accountID, BenefitID: id})
 			default:
-				err = q.MarkNeedsLinkDropUnlisted(ctx, gen.MarkNeedsLinkDropUnlistedParams{AccountID: accountID, BenefitID: id})
+				// Twitch lists a watched, unclaimed drop for as long as its
+				// campaign runs, so an unlisted drop of a running campaign
+				// was claimed, maybe after the claim check gave up.
+				var n int64
+				n, err = q.DeleteClaimedTwitchNeedsLinkDrop(ctx, gen.DeleteClaimedTwitchNeedsLinkDropParams{
+					AccountID: accountID, BenefitID: id, EndsAt: now.Unix(),
+				})
+				if err == nil && n == 0 {
+					err = q.MarkNeedsLinkDropUnlisted(ctx, gen.MarkNeedsLinkDropUnlistedParams{AccountID: accountID, BenefitID: id})
+				}
 			}
 			if err != nil {
 				return err

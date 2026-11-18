@@ -54,6 +54,8 @@ type Querier interface {
 	// tiers that were wrongly marked collected.
 	DeleteClaimFor(ctx context.Context, arg DeleteClaimForParams) error
 	DeleteClaimLog(ctx context.Context, arg DeleteClaimLogParams) (int64, error)
+	// A Twitch drop of a running campaign that the inventory no longer lists unclaimed was claimed.
+	DeleteClaimedTwitchNeedsLinkDrop(ctx context.Context, arg DeleteClaimedTwitchNeedsLinkDropParams) (int64, error)
 	DeleteDropStatesForAccount(ctx context.Context, accountID string) error
 	DeleteFeedNotificationsBefore(ctx context.Context, createdAt int64) (int64, error)
 	// Keeps the newest rows by id, as many as given, and deletes the rest.
