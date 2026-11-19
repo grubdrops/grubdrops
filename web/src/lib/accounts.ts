@@ -165,6 +165,11 @@ export function pointsSupported(a: Pick<Account, 'platform'>): boolean {
 	return a.platform === 'twitch';
 }
 
+/** True when the account's platform has readable channel points balances: Twitch and Kick. */
+export function balancesSupported(a: Pick<Account, 'platform'>): boolean {
+	return a.platform === 'twitch' || a.platform === 'kick';
+}
+
 /** True when the account claims channel points and runs its Force watch. Unknown modes are off. */
 export function pointsOn(a: Pick<Account, 'points_mode'>): boolean {
 	return a.points_mode === 'drops_points' || a.points_mode === 'points_only';

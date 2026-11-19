@@ -284,6 +284,7 @@
   "points.fresh_error": "Okunamadı · {time} alınan değer",
   "points.fresh_error_none": "Bakiyeler okunamadı",
   "points.fresh_pending": "Bakiyeler okunuyor…",
+  "points.kick_chat_note": "Kick kanal puanlarını izlemek için değil, sohbet için verir. GrubDrops bakiyeyi gösterir ama artıramaz.",
   "points.unsupported": "{platform} bakiyeleri ve bonus toplama yakında",
   "points.chips": "{channel} kanalındaki hesaplar",
   "points.watching_now": "Şu an izliyor",

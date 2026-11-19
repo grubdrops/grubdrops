@@ -164,7 +164,7 @@ type forceOverviewJSON struct {
 	Live  []forceLiveLineJSON `json:"live"`
 	More  int                 `json:"more"`
 	Total int                 `json:"total"`
-	// Points sums every cached Twitch balance on every channel; nil when
+	// Points sums every cached Twitch and Kick balance on every channel; nil when
 	// none is known. PointsRead is its read state, see pointsSum, and
 	// PointsAt the newest successful read.
 	Points     *int64  `json:"points"`

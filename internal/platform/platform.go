@@ -267,6 +267,14 @@ func PointsSupported(plat string) bool {
 	return plat == "twitch"
 }
 
+// BalancesSupported reports whether accounts on platform plat can read
+// channel-points balances: Twitch, and Kick. Kick has no bonus to claim and,
+// as far as tested, credits points for chat activity, not watch time, so a
+// Kick balance is shown but not raised.
+func BalancesSupported(plat string) bool {
+	return plat == "twitch" || plat == "kick"
+}
+
 // EffectivePointsMode is the mode an account on platform plat runs with,
 // given its stored mode m. A platform without channel points runs
 // drops_points whatever is stored: Force watch whenever the account has
@@ -348,7 +356,7 @@ var ErrNoPointsBalance = errors.New("channel points: no balance on this channel"
 
 // PointsBalancer is optional: read the account's channel-points balance on
 // a channel without claiming anything. A channel with no balance returns
-// ErrNoPointsBalance. Twitch only.
+// ErrNoPointsBalance. Twitch and Kick.
 type PointsBalancer interface {
 	ChannelPointsBalance(ctx context.Context, s Session, channel string) (int, error)
 }
