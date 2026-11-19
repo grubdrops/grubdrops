@@ -54,6 +54,11 @@ export function togglePick(picked: readonly string[], id: string): string[] {
 export function watchingIds(c: ForceChannel, runners: readonly Runner[]): string[] {
 	if (runners.length === 0) return c.watching;
 	return runners
-		.filter((r) => r.state === 'force_watching' && r.platform === c.platform && r.channel.toLowerCase() === c.channel)
+		.filter(
+			(r) =>
+				(r.state === 'force_watching' || r.state === 'watching') &&
+				r.platform === c.platform &&
+				r.channel.toLowerCase() === c.channel
+		)
 		.map((r) => r.account_id);
 }

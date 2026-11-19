@@ -178,7 +178,8 @@ func TestOverview_ForceWatch(t *testing.T) {
 	b, _ := json.Marshal(m["force_watch"])
 	assert.JSONEq(t, `{"live":[],"more":0,"total":5,"points":null,"points_read":"none","points_at":null}`, string(b))
 
-	// Four live, the third watched: watched first, then panel order, two max.
+	// Four live, the third Points watched and the second drop watched: both
+	// count as watched, watched first, then panel order, two max.
 	for _, k := range []string{"twitch/one", "kick/two", "twitch/three", "kick/four"} {
 		live[k] = boolPtr(true)
 	}
@@ -190,8 +191,8 @@ func TestOverview_ForceWatch(t *testing.T) {
 	m = e.overview()
 	b, _ = json.Marshal(m["force_watch"])
 	assert.JSONEq(t, `{"live":[
-		{"platform":"twitch","channel":"three","watchers":["Alice"],"balance":null,"read":"none"},
-		{"platform":"twitch","channel":"one","watchers":[],"balance":null,"read":"none"}
+		{"platform":"kick","channel":"two","watchers":["Bob"],"balance":null,"read":"none"},
+		{"platform":"twitch","channel":"three","watchers":["Alice"],"balance":null,"read":"none"}
 	],"more":2,"total":5,"points":null,"points_read":"none","points_at":null}`, string(b))
 }
 
@@ -276,4 +277,17 @@ func TestPutForceWatch_NormalizesPlatform(t *testing.T) {
 	}})
 	require.Equal(t, 200, resp.StatusCode, string(b))
 	assert.Equal(t, []store.ForceChannel{{Platform: "twitch", Channel: "keshaeuw", Accounts: []string{"a1"}}}, e.forceList())
+}
+
+// A drop watch on a Points watch channel counts as watching it, like a
+// Points watch; other states and other channels do not.
+func TestForceWatchers_CountsDropWatches(t *testing.T) {
+	got := forceWatchers([]runner.Snapshot{
+		{AccountID: "a1", Platform: "kick", Channel: "somestreamer", State: runner.StateForceWatching},
+		{AccountID: "a2", Platform: "kick", Channel: "somestreamer", State: runner.StateWatching},
+		{AccountID: "a3", Platform: "kick", Channel: "somestreamer", State: runner.StateClaiming},
+		{AccountID: "a4", Platform: "twitch", Channel: "somestreamer", State: runner.StateWatching},
+		{AccountID: "a5", Platform: "kick", Channel: "", State: runner.StateWatching},
+	})
+	assert.Equal(t, map[string][]string{"kick/somestreamer": {"a1", "a2"}, "twitch/somestreamer": {"a4"}}, got)
 }
