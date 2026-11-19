@@ -57,6 +57,19 @@ func (r *Runner) streakServeLocked(now time.Time) bool {
 	if now.Sub(r.startedAt) < streakWatchFor {
 		return true
 	}
+	r.markStreakLocked(r.streakKey, now)
+	slog.Info("runner watch streak served; back to the list order", "kind", "state",
+		"account", r.cfg.AccountID, "channel", r.channel)
+	r.streakKey = ""
+	return false
+}
+
+// markStreakLocked records broadcast key as served at now and forgets old
+// broadcasts. r.mu held.
+func (r *Runner) markStreakLocked(key string, now time.Time) {
+	if key == "" {
+		return
+	}
 	if r.streakDone == nil {
 		r.streakDone = map[string]time.Time{}
 	}
@@ -65,11 +78,7 @@ func (r *Runner) streakServeLocked(now time.Time) bool {
 			delete(r.streakDone, k)
 		}
 	}
-	r.streakDone[r.streakKey] = now
-	slog.Info("runner watch streak served; back to the list order", "kind", "state",
-		"account", r.cfg.AccountID, "channel", r.channel)
-	r.streakKey = ""
-	return false
+	r.streakDone[key] = now
 }
 
 // streakDueLocked reports whether the running streak watch has lasted long

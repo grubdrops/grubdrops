@@ -17,6 +17,8 @@ import (
 // when points are on, and moves on or stops when its channel ends. It never
 // touches the primary watch, its progress or claims, and stopWatch ends it.
 // Drop watches get none: Twitch credits drop progress on one channel only.
+// With watch streaks on, a second watch that lasts streakWatchFor serves its
+// broadcast's streak, so the primary does not switch to it for one.
 
 var (
 	// extraCheckEvery is how often the second watch rechecks which channel
@@ -143,7 +145,9 @@ func (r *Runner) extraLoop(ctx context.Context, t *extraTask) {
 	every := max(r.cfg.TickInterval, extraBeatFloor)
 	beat := time.NewTicker(every)
 	defer beat.Stop()
-	var checkedAt, claimedAt time.Time
+	var checkedAt, claimedAt, startedAt time.Time
+	var stream platform.Stream
+	served := false
 	for {
 		now := time.Now()
 		if h == nil || now.Sub(checkedAt) >= extraCheckEvery {
@@ -168,6 +172,7 @@ func (r *Runner) extraLoop(ctx context.Context, t *extraTask) {
 					break
 				}
 				h, login, claimedAt = &hh, next, time.Time{}
+				stream, startedAt, served = s, time.Now(), false
 				r.mu.Lock()
 				r.extraChannel = next
 				r.mu.Unlock()
@@ -185,9 +190,19 @@ func (r *Runner) extraLoop(ctx context.Context, t *extraTask) {
 					"account", r.cfg.AccountID, "channel", login, "err", err)
 				release()
 				checkedAt = time.Time{}
-			} else if pc, ok := r.pointsClaimer(); ok && time.Since(claimedAt) >= pointsEvery {
-				claimedAt = time.Now()
-				r.claimPoints(ctx, pc, login, pointsTimeout)
+			} else {
+				// Watched long enough, the second channel's broadcast has its
+				// streak too: the primary will not switch to it for one.
+				if !served && r.streakOn() && time.Since(startedAt) >= streakWatchFor {
+					served = true
+					r.mu.Lock()
+					r.markStreakLocked(streakKey(login, stream), time.Now())
+					r.mu.Unlock()
+				}
+				if pc, ok := r.pointsClaimer(); ok && time.Since(claimedAt) >= pointsEvery {
+					claimedAt = time.Now()
+					r.claimPoints(ctx, pc, login, pointsTimeout)
+				}
 			}
 		}
 		select {
