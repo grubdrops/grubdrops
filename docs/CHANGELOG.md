@@ -12,6 +12,9 @@ All notable changes to GrubDrops.
 ### Changed
 - **A drop watch prefers your Points watch channels.** When a Points watch channel is among the channels a campaign counts on, the account watches it instead of the busiest one, in Points watch order, so one watch earns the drop and that channel's points, moments and streak. Other channels keep the viewer-count order.
 
+### Fixed
+- **A game added under its Kick name finds its Twitch name when Kick adds an abbreviation.** Kick calls it "Grand Theft Auto VI (GTA)", Twitch "Grand Theft Auto VI", so the game matched no Twitch campaign or reward group. The Twitch name lookup now also tries the name without a trailing " (...)".
+
 ## [2.3.6] — 2026-11-19
 
 ### Fixed

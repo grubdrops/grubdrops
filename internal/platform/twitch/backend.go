@@ -628,6 +628,17 @@ func (b *Backend) LookupGameID(ctx context.Context, s platform.Session, name str
 	if game.Game != nil && game.Game.ID != "" {
 		return game.Game.ID, game.Game.Name, true, nil
 	}
+	// Kick tags some names with an abbreviation, "Grand Theft Auto VI
+	// (GTA)", that Twitch leaves out: try the name without it.
+	if base, ok := trimParenSuffix(name); ok {
+		game.Game = nil
+		if err := b.c.gqlQuery(ctx, s.AccessToken, "GameID", byName, map[string]any{"name": base}, &game); err != nil {
+			return "", "", false, fmt.Errorf("game id %s: %w", base, err)
+		}
+		if game.Game != nil && game.Game.ID != "" {
+			return game.Game.ID, game.Game.Name, true, nil
+		}
+	}
 	const search = `query GameSearch($query: String!) { searchCategories(query: $query, first: 5) { edges { node { id name } } } }`
 	var found struct {
 		SearchCategories *struct {
@@ -656,12 +667,20 @@ type searchHit struct {
 }
 
 // searchHitFor picks the hit named exactly name, ignoring case, else the hit
-// whose name plus " <number>" is name. Anything looser could be a different
-// game, so it is no match.
+// named name without a trailing " (...)", else the hit whose name plus
+// " <number>" is name. Anything looser could be a different game, so it is
+// no match.
 func searchHitFor(name string, hits []searchHit) (searchHit, bool) {
 	for _, h := range hits {
 		if h.ID != "" && strings.EqualFold(h.Name, name) {
 			return h, true
+		}
+	}
+	if base, ok := trimParenSuffix(name); ok {
+		for _, h := range hits {
+			if h.ID != "" && strings.EqualFold(h.Name, base) {
+				return h, true
+			}
 		}
 	}
 	i := strings.LastIndexByte(name, ' ')
@@ -742,4 +761,19 @@ func (b *Backend) AllowedChannelCount(campaignID string) int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return len(b.allowedLoginsByCampaign[campaignID])
+}
+
+// trimParenSuffix drops a trailing " (...)" from name, as in Kick's "Grand
+// Theft Auto VI (GTA)". ok is false when name has none or nothing is left.
+func trimParenSuffix(name string) (string, bool) {
+	name = strings.TrimSpace(name)
+	if !strings.HasSuffix(name, ")") {
+		return "", false
+	}
+	i := strings.LastIndex(name, " (")
+	if i <= 0 {
+		return "", false
+	}
+	base := strings.TrimSpace(name[:i])
+	return base, base != ""
 }
