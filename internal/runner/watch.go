@@ -60,6 +60,7 @@ func (r *Runner) start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("list channels: %w", err)
 	}
+	streams = r.withForceStreams(ctx, camp, streams)
 
 	r.mu.Lock()
 	now := time.Now()
@@ -633,4 +634,50 @@ func preferForce(streams []platform.Stream, force []string) []platform.Stream {
 	out := slices.Clone(streams)
 	sort.SliceStable(out, func(i, j int) bool { return at(out[i]) < at(out[j]) })
 	return out
+}
+
+// withForceStreams adds the live Points watch channels that stream an open
+// campaign's game to its eligible streams. An open campaign (no channel
+// list) counts on any participating channel of its game, but the backend
+// lists only the busiest ones, so a smaller favourite is never offered. A
+// channel that does not take part shows no progress and is rotated out by
+// the freeze check, like any other. A restricted campaign is left as is:
+// only its own channels count.
+func (r *Runner) withForceStreams(ctx context.Context, camp platform.Campaign, streams []platform.Stream) []platform.Stream {
+	if camp.AllowedChannelCount > 0 || len(camp.AllowedChannels) > 0 || r.cfg.ForceLookup == nil {
+		return streams
+	}
+	force := r.forceChannels()
+	if len(force) == 0 {
+		return streams
+	}
+	have := make(map[string]bool, len(streams))
+	for _, s := range streams {
+		have[strings.ToLower(s.Channel)] = true
+	}
+	for _, login := range force {
+		k := strings.ToLower(login)
+		if k == "" || have[k] {
+			continue
+		}
+		s, live, err := r.cfg.ForceLookup(ctx, login)
+		if err != nil || !live || !sameGame(camp, s) {
+			continue
+		}
+		if s.Channel == "" {
+			s.Channel = login
+		}
+		have[k] = true
+		streams = append(streams, s)
+	}
+	return streams
+}
+
+// sameGame reports whether s streams camp's game: by game ID when both carry
+// one, else by name, ignoring case and spaces.
+func sameGame(camp platform.Campaign, s platform.Stream) bool {
+	if camp.GameID != "" && s.GameID != "" {
+		return camp.GameID == s.GameID
+	}
+	return camp.Game != "" && strings.EqualFold(strings.TrimSpace(camp.Game), strings.TrimSpace(s.Game))
 }
