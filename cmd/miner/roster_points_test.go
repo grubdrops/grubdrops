@@ -21,16 +21,17 @@ func (balancerBackend) ChannelPointsBalance(context.Context, platform.Session, s
 	return 20, nil
 }
 
-// A Kick account, whose points mode is always effectively on, keeps the
-// balances of its Points watch channels fresh like a Twitch one.
+// A Kick account with points on keeps the balances of its Points watch
+// channels fresh like a Twitch one.
 func TestRoster_PointsTargetsIncludeKick(t *testing.T) {
 	e := newRosterEnv(t)
 	e.withForce()
-	e.account(t, "k1", 1, true) // Kick, stored points mode off
+	e.account(t, "k1", 1, true) // Kick
 	e.account(t, "k2", 1, true) // Kick, no balance reader loaded
 	e.setForce(t, []store.ForceChannel{
 		{Platform: "kick", Channel: "somestreamer", Accounts: []string{"k1", "k2"}},
 	})
+	e.setPoints(t, platform.PointsDropsPoints, "k1", "k2")
 	e.ro.loaded.set("k1", loadedSession{backend: balancerBackend{e.fake}})
 	e.ro.loaded.set("k2", loadedSession{backend: e.fake})
 

@@ -74,7 +74,7 @@ func TestGetPoints_Shape(t *testing.T) {
 				{"account_id":"c3","status":"ok","balance":1200,"fetched_at":"2026-10-30T11:50:00Z","checked_at":"2026-10-30T11:50:00Z","stale":false}
 			]},
 			{"platform":"kick","channel":"xqc","live":null,"balances":[
-				{"account_id":"b2","status":"pending","balance":null,"fetched_at":null,"checked_at":null,"stale":false}
+				{"account_id":"b2","status":"off","balance":null,"fetched_at":null,"checked_at":null,"stale":false}
 			]},
 			{"platform":"twitch","channel":"nopoints","live":null,"balances":[
 				{"account_id":"c3","status":"unavailable","balance":null,"fetched_at":null,"checked_at":"2026-10-30T11:55:00Z","stale":false}

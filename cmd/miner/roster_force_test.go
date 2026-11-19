@@ -170,9 +170,9 @@ func TestRoster_PointsOffSkipsForceWatch(t *testing.T) {
 	}, 5*time.Second, 20*time.Millisecond)
 }
 
-// Kick has no channel points, so its stored points mode is ignored: an
-// account left at the default off still force watches its channels.
-func TestRoster_KickPointsOffStillForceWatches(t *testing.T) {
+// A Kick account follows its points mode like a Twitch one: off has no
+// Force watch, Drops + points force watches its channels.
+func TestRoster_KickPointsModeApplies(t *testing.T) {
 	e := newRosterEnv(t)
 	e.withForce()
 	a := e.account(t, "a1", 1, true)
@@ -181,6 +181,13 @@ func TestRoster_KickPointsOffStillForceWatches(t *testing.T) {
 	e.setForce(t, []store.ForceChannel{{Platform: "kick", Channel: "xqc", Accounts: []string{"a1"}}})
 
 	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
+	assert.Empty(t, cfg.ForceChannels(), "points off: no Force watch")
+	assert.Equal(t, platform.PointsOff, cfg.PointsMode())
+
+	e.setPoints(t, platform.PointsDropsPoints, "a1")
+	a, err := e.q.GetAccount(e.ctx, "a1")
+	require.NoError(t, err)
+	cfg = e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
 	assert.Equal(t, []string{"xqc"}, cfg.ForceChannels())
 	assert.Equal(t, platform.PointsDropsPoints, cfg.PointsMode())
 
@@ -191,9 +198,8 @@ func TestRoster_KickPointsOffStillForceWatches(t *testing.T) {
 	}, 5*time.Second, 20*time.Millisecond)
 }
 
-// A Kick account is never points only, even with that mode stored: a live
-// drop wins over its force channel, and a games edit rebuilds it.
-func TestRoster_KickNeverPointsOnly(t *testing.T) {
+// A Kick account in points only watches its force channel, not a live drop.
+func TestRoster_KickPointsOnly(t *testing.T) {
 	e := newRosterEnv(t)
 	e.withForce()
 	e.account(t, "a1", 1, true)
@@ -203,32 +209,15 @@ func TestRoster_KickNeverPointsOnly(t *testing.T) {
 	a, err := e.q.GetAccount(e.ctx, "a1")
 	require.NoError(t, err)
 	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
-	assert.Equal(t, platform.PointsDropsPoints, cfg.PointsMode())
+	assert.Equal(t, platform.PointsOnly, cfg.PointsMode())
 
 	e.chooseRust(t)
 	e.rustDrop(10, false)
-	builds := 0
-	var mu sync.Mutex
-	e.ro.backendFor = func(gen.Account) (platform.Backend, error) {
-		mu.Lock()
-		defer mu.Unlock()
-		builds++
-		return e.fake, nil
-	}
 	e.boot(t)
 	require.Eventually(t, func() bool {
 		s, ok := snapshotOf(t, e, "a1")
-		return ok && s.State == runner.StateWatching && s.Channel == "ch"
-	}, 5*time.Second, 20*time.Millisecond, "mines the drop, not the force channel")
-
-	e.ro.gamesChanged()
-	require.Eventually(t, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return builds == 2
-	}, 5*time.Second, 20*time.Millisecond, "a games edit rebuilds it")
-	_, stale := e.ro.staleGames.Load("a1")
-	assert.False(t, stale)
+		return ok && s.State == runner.StateForceWatching && s.Channel == "xqc"
+	}, 5*time.Second, 20*time.Millisecond, "watches the force channel, not the drop")
 }
 
 // Skip sleep and points mode reach a watching runner live: no rebuild, and

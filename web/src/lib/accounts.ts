@@ -160,9 +160,9 @@ export const POINTS_CHOICES: { mode: PointsMode; label: string }[] = [
 	{ mode: 'points_only', label: 'accounts.points_only' }
 ];
 
-/** True when the account's platform has channel points, so it gets the points mode picker and balances. Twitch only. */
+/** True when the account's platform has channel points, so it gets the points mode picker and balances. Twitch and Kick. */
 export function pointsSupported(a: Pick<Account, 'platform'>): boolean {
-	return a.platform === 'twitch';
+	return a.platform === 'twitch' || a.platform === 'kick';
 }
 
 /** True when the account's platform has readable channel points balances: Twitch and Kick. */
@@ -176,8 +176,8 @@ export function pointsOn(a: Pick<Account, 'points_mode'>): boolean {
 }
 
 /**
- * True when the account runs its Force watch: a Twitch account with points
- * on, or any account on a platform without channel points (Kick), whatever
+ * True when the account runs its Force watch: a Twitch or Kick account with
+ * points on, or any account on a platform without channel points, whatever
  * mode is stored.
  */
 export function forceWatchOn(a: Pick<Account, 'platform' | 'points_mode'>): boolean {

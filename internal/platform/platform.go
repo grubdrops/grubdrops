@@ -247,9 +247,10 @@ func (m PointsMode) On() bool {
 }
 
 // PointsSupported reports whether accounts on platform plat have channel
-// points. Twitch only.
+// points, and so a points mode: Twitch, and Kick, whose points accrue while
+// watching with no bonus to claim.
 func PointsSupported(plat string) bool {
-	return plat == "twitch"
+	return plat == "twitch" || plat == "kick"
 }
 
 // BalancesSupported reports whether accounts on platform plat can read

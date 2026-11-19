@@ -342,6 +342,8 @@ func TestOverview_ForceWatchPoints(t *testing.T) {
 		d.ForceLive = stubLive(map[string]*bool{"twitch/one": boolPtr(true), "kick/kchan": boolPtr(true)})
 	})
 	ctx := context.Background()
+	_, err := e.db.ExecContext(ctx, `UPDATE accounts SET points_mode = 'drops_points' WHERE id = 'b2'`)
+	require.NoError(t, err)
 	e.setForce([]store.ForceChannel{
 		{Platform: "twitch", Channel: "one", Accounts: []string{"a1", "c3"}},
 		{Platform: "kick", Channel: "kchan", Accounts: []string{"b2"}},

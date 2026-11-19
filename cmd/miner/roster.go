@@ -220,8 +220,7 @@ func flagsOf(a gen.Account) liveFlags {
 }
 
 // pointsModeOf is the points mode account a runs with: its stored mode on
-// Twitch, drops_points on a platform without channel points, so a Kick
-// account Force watches its channels whatever is stored.
+// Twitch and Kick, drops_points on a platform without channel points.
 func pointsModeOf(a gen.Account) platform.PointsMode {
 	return platform.EffectivePointsMode(a.Platform, platform.PointsMode(a.PointsMode))
 }
