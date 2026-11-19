@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"math/rand/v2"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -198,9 +199,15 @@ func New(cfg Config) *Runner {
 	games := cfg.Games
 	cfg.Session.AccountID = cfg.AccountID
 	// Always from cfg.Games: a stale Session.Games must not widen or narrow the scan.
+	// A game's Twitch name, when it differs ("Grand Theft Auto VI" for
+	// Kick's "Grand Theft Auto VI (GTA)"), goes in too: Twitch directory
+	// and reward group discovery look games up by these names.
 	names := make([]string, 0, len(games))
 	for _, g := range games {
 		names = append(names, g.Name)
+		if g.TwitchName != "" && !strings.EqualFold(g.TwitchName, g.Name) {
+			names = append(names, g.TwitchName)
+		}
 	}
 	cfg.Session.Games = names
 	if cfg.Session.GameFilter == nil {
