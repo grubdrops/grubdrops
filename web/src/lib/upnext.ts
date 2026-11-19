@@ -1,5 +1,5 @@
 import { ApiError } from '$lib/api/client';
-import type { Platform, Runner, Target } from '$lib/api/types';
+import type { Game, Platform, Runner, Target } from '$lib/api/types';
 
 export type Queue = {
 	accountId: string;
@@ -333,4 +333,23 @@ export function withoutDrop(runners: Runner[], accountId: string, benefitId: str
 			? { ...r, up_next: r.up_next.filter((x) => x.benefit_id !== benefitId) }
 			: r
 	);
+}
+
+/**
+ * Box art by game name, for Up next rows. A Twitch target names its game the
+ * way Twitch does ("Grand Theft Auto VI" for "Grand Theft Auto VI (GTA)"),
+ * so a game is found under its Twitch name too. Names match ignoring case.
+ */
+export function artLookup(
+	games: readonly Pick<Game, 'name' | 'twitch_name' | 'box_art_url'>[]
+): (game: string) => string | null {
+	const m = new Map<string, string>();
+	for (const g of games) {
+		if (!g.box_art_url) continue;
+		for (const n of [g.name, g.twitch_name]) {
+			const k = n?.trim().toLowerCase();
+			if (k && !m.has(k)) m.set(k, g.box_art_url);
+		}
+	}
+	return (game) => m.get(game.trim().toLowerCase()) ?? null;
 }

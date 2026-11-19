@@ -24,7 +24,8 @@ import {
 	writeGameOrder,
 	GAME_ORDER_KEY,
 	type GameGroup,
-	type Queue
+	type Queue,
+	artLookup
 } from './upnext';
 
 const fx = () => structuredClone(mining) as Runner[];
@@ -548,5 +549,23 @@ describe('withoutDrop', () => {
 	it('leaves a runner without the drop as the same object', () => {
 		const a = gRunner('a', [gItem('Rust', 'r1')]);
 		expect(withoutDrop([a], 'a', 'zz')[0]).toBe(a);
+	});
+});
+
+describe('artLookup', () => {
+	const games = [
+		{ name: 'Grand Theft Auto VI (GTA)', twitch_name: 'Grand Theft Auto VI', box_art_url: 'gta.png' },
+		{ name: 'WARDOGS', twitch_name: 'WARDOGS', box_art_url: 'wd.png' },
+		{ name: 'No Art', twitch_name: '', box_art_url: '' }
+	];
+	const art = artLookup(games);
+	it('finds a game by its own name or its Twitch name, any case', () => {
+		expect(art('Grand Theft Auto VI (GTA)')).toBe('gta.png');
+		expect(art('Grand Theft Auto VI')).toBe('gta.png');
+		expect(art('wardogs')).toBe('wd.png');
+	});
+	it('gives null for an unknown game or one without art', () => {
+		expect(art('Rust')).toBeNull();
+		expect(art('No Art')).toBeNull();
 	});
 });
