@@ -166,3 +166,35 @@ func TestSecond_SettingAppliesLive(t *testing.T) {
 		t.Fatalf("after off: extra=%q state=%s", extraOf(r), r.State())
 	}
 }
+
+// With watch streaks on, a second watch long enough serves its broadcast's
+// streak: once the primary's streak is served it stays in list order
+// instead of switching to the second channel for its streak.
+func TestSecond_ServesStreak(t *testing.T) {
+	shrinkExtra(t, time.Hour, time.Millisecond)
+	shrinkStreak(t, 30*time.Millisecond)
+	f := platformtest.NewFake()
+	setLive(f, "a", true)
+	setLive(f, "b", true)
+	r := newRunner(f, func(c *Config) {
+		secondCfg(f, onAtomic(true), "a", "b")(c)
+		c.WatchStreak = func() bool { return true }
+	})
+	t.Cleanup(func() { r.stopWatch(context.Background()) })
+	steps(t, r, 1) // pick: a, owed its streak; b second
+	forceOn(t, r, "a")
+	if !waitFor(func() bool {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		_, done := r.streakDone["b/bc-b"]
+		return done
+	}, time.Second) {
+		t.Fatal("second watch did not serve b's streak")
+	}
+	time.Sleep(40 * time.Millisecond)
+	steps(t, r, 1) // a's streak served: recheck keeps a, b is not owed one
+	forceOn(t, r, "a")
+	if hasCall(f, "Start:b") && countCall(f, "Start:b") > 1 {
+		t.Fatalf("primary switched to b: %v", f.Calls)
+	}
+}

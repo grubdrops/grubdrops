@@ -148,7 +148,7 @@ func (r *Runner) beginForce(ctx context.Context, login string, s platform.Stream
 	r.mu.Unlock()
 	if streak {
 		slog.Info("runner watching a new broadcast for its watch streak", "kind", "state",
-			"account", r.cfg.AccountID, "channel", login, "for", streakWatchFor)
+			"account", r.cfg.AccountID, "channel", login, "for", streakWatchFor.String())
 	}
 	if cs, ok := r.cfg.Backend.(platform.ChannelSubscriber); ok && s.ChannelID != "" {
 		cs.SubscribeChannel(r.cfg.AccountID, s.ChannelID)
