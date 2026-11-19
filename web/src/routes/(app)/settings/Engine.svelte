@@ -187,36 +187,6 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
-				<b id="moment-l">{t('settings.claim_moments')}</b>
-				<small>{t('settings.claim_moments_sub')}</small>
-				{#if errs.claim_moments}<small class="bad">{t('settings.save_failed')}</small>{/if}
-			</div>
-			<button
-				type="button"
-				class="sw"
-				role="switch"
-				aria-checked={s.claim_moments}
-				aria-labelledby="moment-l"
-				onclick={() => save('claim_moments', { claim_moments: !s.claim_moments })}
-			></button>
-		</div>
-		<div class="row">
-			<div class="lbl">
-				<b id="goal-l">{t('settings.community_goals')}</b>
-				<small>{t('settings.community_goals_sub')}</small>
-				{#if errs.community_goals}<small class="bad">{t('settings.save_failed')}</small>{/if}
-			</div>
-			<button
-				type="button"
-				class="sw"
-				role="switch"
-				aria-checked={s.community_goals}
-				aria-labelledby="goal-l"
-				onclick={() => save('community_goals', { community_goals: !s.community_goals })}
-			></button>
-		</div>
-		<div class="row">
-			<div class="lbl">
 				<b id="streak-l">{t('settings.watch_streak')}</b>
 				<small>{t('settings.watch_streak_sub')}</small>
 				{#if errs.watch_streak}<small class="bad">{t('settings.save_failed')}</small>{/if}

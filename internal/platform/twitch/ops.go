@@ -121,27 +121,4 @@ var (
 		Name: "JoinRaid",
 		Hash: "c6a332a86d1087fbbb1a8623aa01bd1313d2386e7c63be60fdb2d1901f01a4ae",
 	}
-
-	// OpUserPointsContribution reads what the viewer gave to each of a
-	// channel's community goals during the current stream. Hash from
-	// Twitch-Channel-Points-Miner-v2.
-	OpUserPointsContribution = Operation{
-		Name: "UserPointsContribution",
-		Hash: "23ff2c2d60708379131178742327ead913b93b1bd6f665517a6d9085b73f661f",
-	}
-
-	// OpContributeCommunityPointsCommunityGoal gives channel points to one
-	// community goal. Hash from Twitch-Channel-Points-Miner-v2.
-	OpContributeCommunityPointsCommunityGoal = Operation{
-		Name: "ContributeCommunityPointsCommunityGoal",
-		Hash: "5774f0ea5d89587d73021a2e03c3c44777d903840c608754a1be519f51e37bb6",
-	}
-
-	// OpCommunityMomentCallout_Claim claims a moment announced on
-	// community-moments-channel-v1.<channel_id> by moment id. Hash from
-	// Twitch-Channel-Points-Miner-v2.
-	OpCommunityMomentCallout_Claim = Operation{
-		Name: "CommunityMomentCallout_Claim",
-		Hash: "e2d67415aead910f7f9ceb45a77b750a1e1d9622c936d832328a0689e054db62",
-	}
 )

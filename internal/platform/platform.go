@@ -91,11 +91,6 @@ type PubSubHooks struct {
 	// channel. Only channels added through RaidJoiner.SubscribeRaids
 	// emit it. Twitch may repeat it for the same raidID.
 	OnRaid func(channelID, raidID string)
-	// OnMoment fires when community-moments-channel-v1.<channelID>
-	// announces a claimable moment on the channel. Only channels added
-	// through MomentClaimer.SubscribeMoments emit it. Twitch may repeat
-	// it for the same momentID.
-	OnMoment func(channelID, momentID string)
 }
 
 // PubSubAware is an optional backend capability. Backends that expose
@@ -122,16 +117,6 @@ type RaidJoiner interface {
 	SubscribeRaids(accountID, channelID string)
 	UnsubscribeRaids(accountID, channelID string)
 	JoinRaid(ctx context.Context, s Session, raidID string) error
-}
-
-// MomentClaimer is an optional backend capability (Twitch): claim the
-// moments a watched channel hands out. SubscribeMoments makes the account's
-// real-time socket report moments from channelID through
-// PubSubHooks.OnMoment until UnsubscribeMoments. ClaimMoment claims one.
-type MomentClaimer interface {
-	SubscribeMoments(accountID, channelID string)
-	UnsubscribeMoments(accountID, channelID string)
-	ClaimMoment(ctx context.Context, s Session, momentID string) error
 }
 
 // CurrentSession is the post-claim verification result. Empty
@@ -302,22 +287,6 @@ type PointsClaim struct {
 // returns Claimed false and a nil error. Twitch only.
 type PointsClaimer interface {
 	ClaimChannelPoints(ctx context.Context, s Session, channel string) (PointsClaim, error)
-}
-
-// GoalContribution is the result of one ContributeCommunityGoals call.
-type GoalContribution struct {
-	// Goals is how many community goals got points.
-	Goals int
-	// Points is the total points given to them.
-	Points int
-}
-
-// GoalContributor is optional: give the account's channel points on a
-// watched channel to that channel's running community goals, up to each
-// goal's per-stream limit and what the goal still needs. A channel with no
-// running goal returns a zero GoalContribution and a nil error. Twitch only.
-type GoalContributor interface {
-	ContributeCommunityGoals(ctx context.Context, s Session, channel string) (GoalContribution, error)
 }
 
 // DailyReward is one daily reward a DailyRewardClaimer claimed. Reward and

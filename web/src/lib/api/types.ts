@@ -460,10 +460,6 @@ export interface Settings {
 	preempt: boolean;
 	/** Twitch: join a raid from the watched channel. Off by default. */
 	follow_raids: boolean;
-	/** Twitch: claim moments on the watched channel. Off by default. */
-	claim_moments: boolean;
-	/** Twitch: give points to the watched channel's community goals (points mode on). Off by default. */
-	community_goals: boolean;
 	/** Twitch: watch each new Points watch broadcast for its watch streak first. Off by default. */
 	watch_streak: boolean;
 	/** Twitch: a Points watch also watches the next live Points watch channel. Off by default. */
@@ -518,8 +514,6 @@ export interface SettingsPatch {
 	scan_interval_min?: number;
 	preempt?: boolean;
 	follow_raids?: boolean;
-	claim_moments?: boolean;
-	community_goals?: boolean;
 	watch_streak?: boolean;
 	second_stream?: boolean;
 	kick_daily_reward?: boolean;

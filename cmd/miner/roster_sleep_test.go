@@ -171,44 +171,6 @@ func TestRoster_SharedTwitchCatalog(t *testing.T) {
 	assert.Nil(t, camps, "no source")
 }
 
-// The runner's ClaimMoments reads the saved setting, off by default, live
-// after settingsChanged.
-func TestRoster_ClaimMoments(t *testing.T) {
-	e := newRosterEnv(t)
-	e.ro.settings = store.NewSettings(e.q)
-	a := e.account(t, "a1", 1, true)
-	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
-	require.NotNil(t, cfg.ClaimMoments)
-	assert.False(t, cfg.ClaimMoments(), "off by default")
-
-	require.NoError(t, e.ro.settings.SetClaimMoments(e.ctx, true))
-	e.ro.settingsChanged()
-	assert.True(t, cfg.ClaimMoments())
-
-	require.NoError(t, e.ro.settings.SetClaimMoments(e.ctx, false))
-	e.ro.settingsChanged()
-	assert.False(t, cfg.ClaimMoments())
-}
-
-// The runner's CommunityGoals reads the saved setting, off by default, live
-// after settingsChanged.
-func TestRoster_CommunityGoals(t *testing.T) {
-	e := newRosterEnv(t)
-	e.ro.settings = store.NewSettings(e.q)
-	a := e.account(t, "a1", 1, true)
-	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
-	require.NotNil(t, cfg.CommunityGoals)
-	assert.False(t, cfg.CommunityGoals(), "off by default")
-
-	require.NoError(t, e.ro.settings.SetCommunityGoals(e.ctx, true))
-	e.ro.settingsChanged()
-	assert.True(t, cfg.CommunityGoals())
-
-	require.NoError(t, e.ro.settings.SetCommunityGoals(e.ctx, false))
-	e.ro.settingsChanged()
-	assert.False(t, cfg.CommunityGoals())
-}
-
 // The runner's WatchStreak reads the saved setting, off by default, live
 // after settingsChanged.
 func TestRoster_WatchStreak(t *testing.T) {

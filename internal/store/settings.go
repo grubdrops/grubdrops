@@ -325,8 +325,6 @@ const (
 	keyScanIntervalMin    = "settings:scan_interval_min"
 	keyPreempt            = "settings:preempt"
 	keyFollowRaids        = "settings:follow_raids"
-	keyClaimMoments       = "settings:claim_moments"
-	keyCommunityGoals     = "settings:community_goals"
 	keyWatchStreak        = "settings:watch_streak"
 	keySecondStream       = "settings:second_stream"
 	keyKickDailyReward    = "settings:kick_daily_reward"
@@ -376,27 +374,6 @@ func (s *Settings) FollowRaids(ctx context.Context) (bool, error) {
 
 func (s *Settings) SetFollowRaids(ctx context.Context, on bool) error {
 	return s.setBool(ctx, keyFollowRaids, on)
-}
-
-// ClaimMoments reports whether a Twitch account claims the moments the
-// channel it is watching hands out. Default off.
-func (s *Settings) ClaimMoments(ctx context.Context) (bool, error) {
-	return s.boolKey(ctx, keyClaimMoments, false)
-}
-
-func (s *Settings) SetClaimMoments(ctx context.Context, on bool) error {
-	return s.setBool(ctx, keyClaimMoments, on)
-}
-
-// CommunityGoals reports whether a Twitch account whose points mode is on
-// gives its points on the watched channel to that channel's running
-// community goals. Default off.
-func (s *Settings) CommunityGoals(ctx context.Context) (bool, error) {
-	return s.boolKey(ctx, keyCommunityGoals, false)
-}
-
-func (s *Settings) SetCommunityGoals(ctx context.Context, on bool) error {
-	return s.setBool(ctx, keyCommunityGoals, on)
 }
 
 // WatchStreak reports whether a Twitch Points watch first watches each new

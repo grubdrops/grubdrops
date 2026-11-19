@@ -58,10 +58,7 @@ var (
 
 // channelPointsChannel is the channel part of a ChannelPointsContext reply.
 type channelPointsChannel = struct {
-	ID                      string `json:"id"`
-	CommunityPointsSettings *struct {
-		Goals []communityGoal `json:"goals"`
-	} `json:"communityPointsSettings"`
+	ID   string `json:"id"`
 	Self *struct {
 		CommunityPoints *struct {
 			Balance        *int `json:"balance"`

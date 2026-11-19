@@ -116,15 +116,6 @@ type Config struct {
 	// the backend is a platform.RaidJoiner. Read live; nil = off.
 	// SettingsChanged applies a change to the running watch.
 	FollowRaids func() bool
-	// ClaimMoments turns moment claiming on for every watch (moment.go)
-	// when the backend is a platform.MomentClaimer. Read live; nil = off.
-	// SettingsChanged applies a change to the running watch.
-	ClaimMoments func() bool
-	// CommunityGoals turns community goal contributions on (points.go)
-	// when the backend is a platform.GoalContributor. They ride the points
-	// claim task, so they need the account's points mode on. Read at each
-	// claim; nil = off.
-	CommunityGoals func() bool
 	// WatchStreak makes a Twitch Points watch first serve each new
 	// broadcast of a force channel its watch streak (streak.go). Read at
 	// each force pick and recheck; nil = off.

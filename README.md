@@ -29,7 +29,7 @@ Docker container with a web UI and keeps everything in one SQLite file.
 - **Priority you control.** Order your games on Games. Each account has its own Up next queue you can reorder, plus a Mine next button.
 - **Auto-claim.** Drops are claimed when done, and a daily inventory sweep picks up any finished drop left unclaimed. If a drop needs a linked publisher account, link it and press Check now.
 - **Channel points.** Twitch accounts claim the bonus chest while they watch. The Points page sets each account to Drops only, Drops + points or Points only, lists Points watch channels and shows balances.
-- **Raids, moments, community goals, watch streaks and reward codes.** Twitch accounts can follow raids from the channel they watch, claim its moments, give points to its community goals and keep watch streaks on Points watch channels. Reward codes Twitch hands out show on Inventory and in notifications.
+- **Raids, watch streaks and reward codes.** Twitch accounts can follow raids from the channel they watch and keep watch streaks on Points watch channels. Reward codes Twitch hands out show on Inventory and in notifications.
 - **Sleep window.** Pause every account each night between two times in your timezone.
 - **Kick daily reward (experimental, off by default).** Claims Kick's daily reward once an account has watched 60 minutes that day. Kick may ban accounts that automate this, so turn it on at your own risk.
 - **Alerts and sign-in.** Discord and Telegram notifications, optional OIDC single sign-on (or SSO only), and a first-run wizard.

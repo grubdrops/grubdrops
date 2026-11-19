@@ -153,8 +153,6 @@ type Runner struct {
 	logStepErr, logPicked, logStart, logProgress onceLog
 	// logPoints dedupes channel points claim failures (points.go).
 	logPoints onceLog
-	// logGoals dedupes community goal contribution failures (points.go).
-	logGoals onceLog
 	// points is the running channel points claim side task; nil = none.
 	points *pointsTask
 	// raids is the running raid side task of the watch (raid.go); nil =
@@ -162,11 +160,6 @@ type Runner struct {
 	// joins once.
 	raids    *raidWatch
 	raidSeen map[string]time.Time
-	// moments is the running moments side task of the watch (moment.go);
-	// nil = none. momentSeen holds moment IDs already scheduled, so a
-	// repeated push claims once.
-	moments    *momentWatch
-	momentSeen map[string]time.Time
 	// streakKey is the broadcast the running force watch is serving its
 	// watch streak to (streak.go); "" = not a streak watch. streakDone
 	// holds the broadcasts already served.
@@ -310,7 +303,6 @@ func (r *Runner) applyLive(ctx context.Context) bool {
 	}
 	r.syncPoints(ctx)
 	r.syncRaids(ctx)
-	r.syncMoments(ctx)
 	r.syncExtra(ctx)
 	switch st {
 	case StateForceWatching:

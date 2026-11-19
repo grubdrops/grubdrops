@@ -551,55 +551,6 @@ func TestSettings_ShareCatalogAvailable(t *testing.T) {
 	assert.Equal(t, true, got["exp_share_catalog"])
 }
 
-// Claim moments reads off by default, saves, and a change tells every
-// runner to apply it live; an unchanged value does not.
-func TestSettings_ClaimMoments(t *testing.T) {
-	e := newSettingsEnv(t)
-	_, b := e.do("GET", "/settings", nil)
-	var got settingsBody
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.False(t, got.ClaimMoments, "off by default")
-
-	code, b := e.do("PUT", "/settings", map[string]any{"claim_moments": true})
-	require.Equal(t, 200, code)
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.True(t, got.ClaimMoments)
-	assert.Equal(t, 1, e.live, "a change applies to the running watches")
-	assert.Equal(t, 0, e.rescans, "no rescan")
-
-	code, _ = e.do("PUT", "/settings", map[string]any{"claim_moments": true})
-	require.Equal(t, 200, code)
-	assert.Equal(t, 1, e.live, "unchanged value")
-
-	code, b = e.do("PUT", "/settings", map[string]any{"claim_moments": false})
-	require.Equal(t, 200, code)
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.False(t, got.ClaimMoments)
-	assert.Equal(t, 2, e.live)
-}
-
-// Community goals reads off by default and saves. Runners read it at each
-// points claim, so a change needs no live apply.
-func TestSettings_CommunityGoals(t *testing.T) {
-	e := newSettingsEnv(t)
-	_, b := e.do("GET", "/settings", nil)
-	var got settingsBody
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.False(t, got.CommunityGoals, "off by default")
-
-	code, b := e.do("PUT", "/settings", map[string]any{"community_goals": true})
-	require.Equal(t, 200, code)
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.True(t, got.CommunityGoals)
-	assert.Equal(t, 0, e.live, "read at each claim, no live apply")
-	assert.Equal(t, 0, e.rescans, "no rescan")
-
-	code, b = e.do("PUT", "/settings", map[string]any{"community_goals": false})
-	require.Equal(t, 200, code)
-	require.NoError(t, json.Unmarshal(b, &got))
-	assert.False(t, got.CommunityGoals)
-}
-
 // Watch streak reads off by default and saves. Runners read it at each
 // force pick, so a change needs no live apply.
 func TestSettings_WatchStreak(t *testing.T) {

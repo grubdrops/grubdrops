@@ -105,11 +105,6 @@ type settingsBody struct {
 	Preempt         bool `json:"preempt"`
 	// FollowRaids joins raids from the watched Twitch channel. Read live.
 	FollowRaids bool `json:"follow_raids"`
-	// ClaimMoments claims moments on the watched Twitch channel. Read live.
-	ClaimMoments bool `json:"claim_moments"`
-	// CommunityGoals gives channel points to the watched Twitch channel's
-	// community goals. Read at each points claim.
-	CommunityGoals bool `json:"community_goals"`
 	// WatchStreak serves each new Points watch broadcast its Twitch watch
 	// streak first. Read at each force pick and recheck.
 	WatchStreak bool `json:"watch_streak"`
@@ -227,12 +222,6 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 		return b, err
 	}
 	if b.FollowRaids, err = st.FollowRaids(ctx); err != nil {
-		return b, err
-	}
-	if b.ClaimMoments, err = st.ClaimMoments(ctx); err != nil {
-		return b, err
-	}
-	if b.CommunityGoals, err = st.CommunityGoals(ctx); err != nil {
 		return b, err
 	}
 	if b.WatchStreak, err = st.WatchStreak(ctx); err != nil {
@@ -364,8 +353,6 @@ type settingsPut struct {
 	ScanIntervalMin *int  `json:"scan_interval_min"`
 	Preempt         *bool `json:"preempt"`
 	FollowRaids     *bool `json:"follow_raids"`
-	ClaimMoments    *bool `json:"claim_moments"`
-	CommunityGoals  *bool `json:"community_goals"`
 	WatchStreak     *bool `json:"watch_streak"`
 	SecondStream    *bool `json:"second_stream"`
 	KickDailyReward *bool `json:"kick_daily_reward"`
@@ -532,11 +519,6 @@ func (s *server) putSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "internal")
 		return
 	}
-	oldMoments, err := st.ClaimMoments(ctx)
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "internal")
-		return
-	}
 	oldShare, err := st.ExpShareCatalog(ctx)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "internal")
@@ -571,11 +553,9 @@ func (s *server) putSettings(w http.ResponseWriter, r *http.Request) {
 	// Follow raids is read live too: each watch subscribes to or drops its
 	// channel's raids now and keeps its channel.
 	raidsMoved := req.FollowRaids != nil && *req.FollowRaids != oldRaids
-	// So is claim moments.
-	momentsMoved := req.ClaimMoments != nil && *req.ClaimMoments != oldMoments
-	// And the second channel.
+	// So is the second channel.
 	secondMoved := req.SecondStream != nil && *req.SecondStream != oldSecond
-	if (sleepMoved || raidsMoved || momentsMoved || secondMoved) && s.d.Pool != nil {
+	if (sleepMoved || raidsMoved || secondMoved) && s.d.Pool != nil {
 		s.d.Pool.SettingsChangedAll()
 	}
 	s.getSettings(w, r)
@@ -692,16 +672,6 @@ func (s *server) applyEngineSettings(ctx context.Context, req settingsPut) error
 	}
 	if req.FollowRaids != nil {
 		if err := st.SetFollowRaids(ctx, *req.FollowRaids); err != nil {
-			return err
-		}
-	}
-	if req.ClaimMoments != nil {
-		if err := st.SetClaimMoments(ctx, *req.ClaimMoments); err != nil {
-			return err
-		}
-	}
-	if req.CommunityGoals != nil {
-		if err := st.SetCommunityGoals(ctx, *req.CommunityGoals); err != nil {
 			return err
 		}
 	}

@@ -155,7 +155,6 @@ func (r *Runner) beginForce(ctx context.Context, login string, s platform.Stream
 	}
 	r.startPoints(ctx, s.Channel)
 	r.startRaids(ctx, s.ChannelID)
-	r.startMoments(ctx, s.ChannelID)
 	r.setState(ctx, StateForceWatching)
 	r.startExtra(ctx, login)
 	return nil
