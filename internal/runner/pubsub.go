@@ -58,6 +58,11 @@ func (t *trampoline) hooks() platform.PubSubHooks {
 				r.onRaid(channelID, raidID)
 			}
 		},
+		OnMoment: func(channelID, momentID string) {
+			if r := t.cur.Load(); r != nil {
+				r.onMoment(channelID, momentID)
+			}
+		},
 	}
 }
 
@@ -97,6 +102,7 @@ func (r *Runner) directHooks() platform.PubSubHooks {
 		OnStreamUp:     func(string) {},
 		OnRewardCode:   r.onRewardCode,
 		OnRaid:         r.onRaid,
+		OnMoment:       r.onMoment,
 	}
 }
 

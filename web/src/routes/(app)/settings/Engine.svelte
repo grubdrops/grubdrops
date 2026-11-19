@@ -187,6 +187,21 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
+				<b id="moment-l">{t('settings.claim_moments')}</b>
+				<small>{t('settings.claim_moments_sub')}</small>
+				{#if errs.claim_moments}<small class="bad">{t('settings.save_failed')}</small>{/if}
+			</div>
+			<button
+				type="button"
+				class="sw"
+				role="switch"
+				aria-checked={s.claim_moments}
+				aria-labelledby="moment-l"
+				onclick={() => save('claim_moments', { claim_moments: !s.claim_moments })}
+			></button>
+		</div>
+		<div class="row">
+			<div class="lbl">
 				<b><label for="scan">{t('settings.scan_interval')}</label></b>
 				<small>{t('settings.scan_interval_sub')}</small>
 				{#if errs.scan_interval_min}<small class="bad">{t('settings.save_failed')}</small>{/if}

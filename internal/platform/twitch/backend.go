@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -358,6 +359,7 @@ func (b *Backend) SetAccountPubSubHooks(accountID string, h platform.PubSubHooks
 		OnStreamUp:     h.OnStreamUp,
 		OnRewardCode:   h.OnRewardCode,
 		OnRaid:         h.OnRaid,
+		OnMoment:       h.OnMoment,
 	}
 	b.pubsubMu.Unlock()
 }
@@ -467,6 +469,79 @@ func (b *Backend) JoinRaid(ctx context.Context, s platform.Session, raidID strin
 }
 
 var _ platform.RaidJoiner = (*Backend)(nil)
+
+// SubscribeMoments adds the community moments topic for a watched
+// broadcaster so claimable moments reach OnMoment. Idempotent. Satisfies
+// platform.MomentClaimer.
+func (b *Backend) SubscribeMoments(_ string, channelID string) {
+	b.pubsubMu.Lock()
+	client := b.pubsub
+	b.pubsubMu.Unlock()
+	if client == nil || channelID == "" {
+		return
+	}
+	client.AddTopic(TopicCommunityMoments(channelID))
+}
+
+// UnsubscribeMoments drops the community moments topic.
+func (b *Backend) UnsubscribeMoments(_ string, channelID string) {
+	b.pubsubMu.Lock()
+	client := b.pubsub
+	b.pubsubMu.Unlock()
+	if client == nil || channelID == "" {
+		return
+	}
+	client.RemoveTopic(TopicCommunityMoments(channelID))
+}
+
+// ClaimMoment claims the moment momentID with one
+// CommunityMomentCallout_Claim mutation.
+func (b *Backend) ClaimMoment(ctx context.Context, s platform.Session, momentID string) error {
+	if momentID == "" || s.AccessToken == "" {
+		return errors.New("claim moment: moment id and access token are required")
+	}
+	b.c.bind(s)
+	var out struct {
+		Claim *struct {
+			// Error is a bare code, "INVALID_MOMENT_ID" for one, live
+			// checked; an object with a code is read too.
+			Error json.RawMessage `json:"error"`
+		} `json:"claimCommunityMoment"`
+	}
+	if err := b.c.gql(ctx, s.AccessToken, OpCommunityMomentCallout_Claim, map[string]any{
+		"input": map[string]string{"momentID": momentID},
+	}, &out); err != nil {
+		return fmt.Errorf("claim moment: %w", err)
+	}
+	if out.Claim == nil {
+		return errors.New("claim moment: no claim result")
+	}
+	if code := gqlErrorCode(out.Claim.Error); code != "" {
+		return fmt.Errorf("claim moment: refused: %s", code)
+	}
+	return nil
+}
+
+// gqlErrorCode reads a mutation payload's error field, which Twitch sends as
+// null, a bare code string or an object with a code. "" means none.
+func gqlErrorCode(raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+	var code string
+	if json.Unmarshal(raw, &code) == nil {
+		return code
+	}
+	var obj struct {
+		Code string `json:"code"`
+	}
+	if json.Unmarshal(raw, &obj) == nil && obj.Code != "" {
+		return obj.Code
+	}
+	return string(raw)
+}
+
+var _ platform.MomentClaimer = (*Backend)(nil)
 
 func (b *Backend) ListEligibleChannels(ctx context.Context, s platform.Session, c platform.Campaign) ([]platform.Stream, error) {
 	b.c.bind(s)

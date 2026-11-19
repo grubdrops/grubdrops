@@ -116,6 +116,10 @@ type Config struct {
 	// the backend is a platform.RaidJoiner. Read live; nil = off.
 	// SettingsChanged applies a change to the running watch.
 	FollowRaids func() bool
+	// ClaimMoments turns moment claiming on for every watch (moment.go)
+	// when the backend is a platform.MomentClaimer. Read live; nil = off.
+	// SettingsChanged applies a change to the running watch.
+	ClaimMoments func() bool
 	// KickDailyReward turns the daily reward claim (daily_reward.go) on when
 	// the backend is a platform.DailyRewardClaimer. Read at each check; nil =
 	// off.

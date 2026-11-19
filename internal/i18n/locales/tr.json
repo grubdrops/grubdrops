@@ -355,6 +355,8 @@
   "settings.preempt_off_sub": "Önce mevcut drop'u bitirir.",
   "settings.follow_raids": "Baskınlara katıl",
   "settings.follow_raids_sub": "Yalnızca Twitch. Kısa rastgele bir beklemeden sonra baskınlara katılır. Aynı kanalı izlemeye devam eder.",
+  "settings.claim_moments": "Anları topla",
+  "settings.claim_moments_sub": "Yalnızca Twitch. İzlenen kanalın dağıttığı anları kısa rastgele bir beklemeden sonra toplar.",
   "settings.experimental": "Deneysel",
   "settings.exp_share_catalog": "Android kampanyalarını TV hesaplarıyla paylaş",
   "settings.exp_share_catalog_sub": "TV girişleri, Android girişinin gördüğü kampanyaları da kazar.",

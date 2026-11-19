@@ -91,6 +91,11 @@ type PubSubHooks struct {
 	// channel. Only channels added through RaidJoiner.SubscribeRaids
 	// emit it. Twitch may repeat it for the same raidID.
 	OnRaid func(channelID, raidID string)
+	// OnMoment fires when community-moments-channel-v1.<channelID>
+	// announces a claimable moment on the channel. Only channels added
+	// through MomentClaimer.SubscribeMoments emit it. Twitch may repeat
+	// it for the same momentID.
+	OnMoment func(channelID, momentID string)
 }
 
 // PubSubAware is an optional backend capability. Backends that expose
@@ -117,6 +122,16 @@ type RaidJoiner interface {
 	SubscribeRaids(accountID, channelID string)
 	UnsubscribeRaids(accountID, channelID string)
 	JoinRaid(ctx context.Context, s Session, raidID string) error
+}
+
+// MomentClaimer is an optional backend capability (Twitch): claim the
+// moments a watched channel hands out. SubscribeMoments makes the account's
+// real-time socket report moments from channelID through
+// PubSubHooks.OnMoment until UnsubscribeMoments. ClaimMoment claims one.
+type MomentClaimer interface {
+	SubscribeMoments(accountID, channelID string)
+	UnsubscribeMoments(accountID, channelID string)
+	ClaimMoment(ctx context.Context, s Session, momentID string) error
 }
 
 // CurrentSession is the post-claim verification result. Empty

@@ -4,6 +4,9 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+- **Claim moments.** A new Engine switch, Claim moments (Twitch only, off by default), claims the moments the watched channel hands out, after a short random delay, on drop and Points watches alike. Like Follow raids it applies to running watches at once and keeps the channel. Each moment is claimed once, and not at all if the watch ends first. `GET/PUT /api/settings` gain `claim_moments`.
+
 ## [2.3.5] — 2026-11-18
 
 ### Added

@@ -121,4 +121,12 @@ var (
 		Name: "JoinRaid",
 		Hash: "c6a332a86d1087fbbb1a8623aa01bd1313d2386e7c63be60fdb2d1901f01a4ae",
 	}
+
+	// OpCommunityMomentCallout_Claim claims a moment announced on
+	// community-moments-channel-v1.<channel_id> by moment id. Hash from
+	// Twitch-Channel-Points-Miner-v2.
+	OpCommunityMomentCallout_Claim = Operation{
+		Name: "CommunityMomentCallout_Claim",
+		Hash: "e2d67415aead910f7f9ceb45a77b750a1e1d9622c936d832328a0689e054db62",
+	}
 )

@@ -453,6 +453,8 @@ export interface Settings {
 	preempt: boolean;
 	/** Twitch: join a raid from the watched channel. Off by default. */
 	follow_raids: boolean;
+	/** Twitch: claim moments on the watched channel. Off by default. */
+	claim_moments: boolean;
 	/** Experimental: Kick accounts claim their daily reward. Off by default. */
 	kick_daily_reward: boolean;
 	/** Experimental: TV-login Twitch accounts also mine the Android catalog. Off by default. */
@@ -503,6 +505,7 @@ export interface SettingsPatch {
 	scan_interval_min?: number;
 	preempt?: boolean;
 	follow_raids?: boolean;
+	claim_moments?: boolean;
 	kick_daily_reward?: boolean;
 	exp_share_catalog?: boolean;
 	proxy_enabled?: boolean;

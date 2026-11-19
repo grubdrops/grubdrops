@@ -219,3 +219,22 @@ func TestSettings_ExpShareCatalog(t *testing.T) {
 	on, _ = s.ExpShareCatalog(ctx)
 	assert.False(t, on)
 }
+
+// Claim moments is off until turned on.
+func TestSettings_ClaimMoments(t *testing.T) {
+	db, err := Open(context.Background(), filepath.Join(t.TempDir(), "t.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	s := NewSettings(gen.New(db))
+	ctx := context.Background()
+
+	on, err := s.ClaimMoments(ctx)
+	require.NoError(t, err)
+	assert.False(t, on, "off by default")
+	require.NoError(t, s.SetClaimMoments(ctx, true))
+	on, _ = s.ClaimMoments(ctx)
+	assert.True(t, on)
+	require.NoError(t, s.SetClaimMoments(ctx, false))
+	on, _ = s.ClaimMoments(ctx)
+	assert.False(t, on)
+}
