@@ -390,3 +390,17 @@ func TestAccounts_Restart(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 	assert.Len(t, c.changedList(), before+1)
 }
+
+// A new Kick account starts on Drops + points, as Kick accounts ran before
+// they had a points mode; a new Twitch account keeps the off default.
+func TestAccounts_CreateKickPointsMode(t *testing.T) {
+	e, _ := accountsEnv(t)
+	tw := e.createAccount("twitch", "")
+	k := e.createAccount("kick", "")
+	a, err := e.s.d.Q.GetAccount(context.Background(), tw)
+	require.NoError(t, err)
+	assert.Equal(t, "off", a.PointsMode)
+	a, err = e.s.d.Q.GetAccount(context.Background(), k)
+	require.NoError(t, err)
+	assert.Equal(t, "drops_points", a.PointsMode)
+}

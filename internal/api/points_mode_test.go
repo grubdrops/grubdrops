@@ -63,20 +63,18 @@ func TestAccounts_PointsMode(t *testing.T) {
 	assert.Len(t, c.settingsList(), live+4, "refused requests nudge nothing")
 }
 
-// Kick has no channel points: setting a points mode on a Kick account is
-// refused and the stored mode is left alone.
-func TestAccounts_PointsModeKickRefused(t *testing.T) {
+// A Kick account has a points mode too: each one saves and applies live.
+func TestAccounts_PointsModeKick(t *testing.T) {
 	e, c := accountsEnv(t)
 	id := e.createAccount("kick", "Kicker")
 	_, tok := e.session()
 	live := len(c.settingsList())
-	for _, m := range []string{"off", "drops_points", "points_only"} {
-		resp, b := e.do("PUT", "/api/accounts/"+id+"/points-mode", tok, map[string]string{"points_mode": m})
-		assert.Equal(t, 400, resp.StatusCode, m)
-		assert.Equal(t, "points_unsupported_platform", jsonField(t, b, "error"), m)
+	for i, m := range []string{"off", "points_only", "drops_points"} {
+		resp, _ := e.do("PUT", "/api/accounts/"+id+"/points-mode", tok, map[string]string{"points_mode": m})
+		assert.Equal(t, 204, resp.StatusCode, m)
+		a, err := e.s.d.Q.GetAccount(context.Background(), id)
+		require.NoError(t, err)
+		assert.Equal(t, m, a.PointsMode)
+		assert.Len(t, c.settingsList(), live+i+1, "applied live")
 	}
-	a, err := e.s.d.Q.GetAccount(context.Background(), id)
-	require.NoError(t, err)
-	assert.Equal(t, "off", a.PointsMode, "stored mode untouched")
-	assert.Len(t, c.settingsList(), live, "refused requests nudge nothing")
 }

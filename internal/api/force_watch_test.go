@@ -251,21 +251,25 @@ func TestOverview_NoGamesButForceWatch(t *testing.T) {
 	assert.Equal(t, "no_games", state(), "only a paused account assigned")
 }
 
-// A Kick account has no points mode: with its stored mode off it still
-// force watches, so a channel assigned to it keeps no games from stopping.
-func TestOverview_NoGamesKickForceWatchIgnoresPointsMode(t *testing.T) {
+// A Kick account force watches by its points mode, like a Twitch one: off
+// leaves no games a stop, Drops + points does not.
+func TestOverview_NoGamesKickForceWatchFollowsPointsMode(t *testing.T) {
 	e := newResEnv(t, nil)
-	require.NoError(t, e.s.d.Chosen.Set(context.Background(), nil))
+	ctx := context.Background()
+	require.NoError(t, e.s.d.Chosen.Set(ctx, nil))
 	state := func() string { return e.overview()["status"].(map[string]any)["state"].(string) }
-	b2, err := e.s.d.Q.GetAccount(context.Background(), "b2")
+	b2, err := e.s.d.Q.GetAccount(ctx, "b2")
 	require.NoError(t, err)
 	require.Equal(t, "off", b2.PointsMode)
 
 	e.setForce([]store.ForceChannel{{Platform: "kick", Channel: "two", Accounts: []string{"b2"}}})
-	assert.NotEqual(t, "no_games", state(), "a Kick account always may force watch")
+	assert.Equal(t, "no_games", state(), "points off: no Force watch")
+
+	require.NoError(t, e.s.d.Q.SetAccountPointsMode(ctx, gen.SetAccountPointsModeParams{ID: "b2", PointsMode: "drops_points"}))
+	assert.NotEqual(t, "no_games", state(), "points on: it may force watch")
 
 	// Paused, it cannot.
-	require.NoError(t, e.s.d.Q.SetAccountEnabled(context.Background(), gen.SetAccountEnabledParams{ID: "b2", Enabled: 0}))
+	require.NoError(t, e.s.d.Q.SetAccountEnabled(ctx, gen.SetAccountEnabledParams{ID: "b2", Enabled: 0}))
 	assert.Equal(t, "no_games", state(), "only a paused Kick account assigned")
 }
 

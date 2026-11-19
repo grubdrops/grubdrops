@@ -399,15 +399,15 @@ describe('channel points', () => {
 		expect(balancesSupported({ platform: 'kick' })).toBe(true);
 	});
 
-	it('the points picker is Twitch only', () => {
+	it('the points picker is for Twitch and Kick', () => {
 		expect(pointsSupported({ platform: 'twitch' })).toBe(true);
-		expect(pointsSupported({ platform: 'kick' })).toBe(false);
+		expect(pointsSupported({ platform: 'kick' })).toBe(true);
 	});
 
-	it('a Kick account Force watches whatever points mode is stored', () => {
-		for (const mode of ['off', 'drops_points', 'points_only'] as const) {
-			expect(forceWatchOn({ platform: 'kick', points_mode: mode })).toBe(true);
-		}
+	it('a Kick account Force watches by its points mode, like Twitch', () => {
+		expect(forceWatchOn({ platform: 'kick', points_mode: 'off' })).toBe(false);
+		expect(forceWatchOn({ platform: 'kick', points_mode: 'drops_points' })).toBe(true);
+		expect(forceWatchOn({ platform: 'kick', points_mode: 'points_only' })).toBe(true);
 		expect(forceWatchOn({ platform: 'twitch', points_mode: 'off' })).toBe(false);
 		expect(forceWatchOn({ platform: 'twitch', points_mode: 'drops_points' })).toBe(true);
 		expect(forceWatchOn({ platform: 'twitch', points_mode: 'points_only' })).toBe(true);

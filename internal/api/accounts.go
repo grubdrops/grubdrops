@@ -158,6 +158,17 @@ func (s *server) createAccount(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "internal")
 		return
 	}
+	if body.Platform == "kick" {
+		// A Kick account starts on Drops + points, as Kick accounts always ran
+		// before they had a points mode: its Points watch channels fill idle
+		// time.
+		if err := s.d.Q.SetAccountPointsMode(r.Context(), gen.SetAccountPointsModeParams{
+			PointsMode: string(platform.PointsDropsPoints), UpdatedAt: now, ID: id,
+		}); err != nil {
+			writeErr(w, http.StatusInternalServerError, "internal")
+			return
+		}
+	}
 	s.accountChanged(id)
 	writeJSON(w, http.StatusCreated, map[string]string{"id": id})
 }
@@ -324,8 +335,8 @@ func (s *server) setAccountSkipSleep(w http.ResponseWriter, r *http.Request) {
 // start or stop on the current watch, a force watch ends when points turn
 // off, points only ends a drop watch, leaving it lets a drop win at once,
 // and an idle account may pick a force channel once points turn on. Twitch
-// only: an account on another platform gets 400 points_unsupported_platform
-// and always Force watches (see platform.EffectivePointsMode).
+// and Kick: an account on another platform gets 400
+// points_unsupported_platform (see platform.EffectivePointsMode).
 func (s *server) setAccountPointsMode(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body struct {

@@ -129,8 +129,9 @@ describe('fwNote', () => {
 		expect(fwNote(acct(), mining)).toBe('points.fw_waits');
 		expect(fwNote(acct(), runner({ state: 'force_watching' }))).toBe('points.fw_on');
 	});
-	it('Kick accounts have no points mode and always Force watch', () => {
-		expect(fwNote(acct({ platform: 'kick', points_mode: 'off' }), undefined)).toBe('points.fw_on');
+	it('Kick accounts follow their points mode too', () => {
+		expect(fwNote(acct({ platform: 'kick', points_mode: 'off' }), undefined)).toBe('points.fw_points_off');
+		expect(fwNote(acct({ platform: 'kick', points_mode: 'points_only' }), undefined)).toBe('points.fw_always');
 	});
 });
 
