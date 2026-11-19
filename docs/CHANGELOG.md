@@ -4,8 +4,6 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
-## [2.4.0] — 2026-11-19
-
 ### Added
 
 - **Watch streaks (#92).** A new Engine switch, Watch streaks (Twitch only, off by default). When a Points watch channel starts a new stream, an idle account watches it for 7 minutes first, ahead of the list order, to keep its watch streak, then goes back to the order. A streak watch keeps its channel until it is served, unless the stream ends. A drop still comes first. `GET/PUT /api/settings` gain `watch_streak`.
