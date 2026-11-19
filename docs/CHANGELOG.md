@@ -17,6 +17,7 @@ All notable changes to GrubDrops.
 
 ### Fixed
 - **A game added under its Kick name finds its Twitch name when Kick adds an abbreviation.** Kick calls it "Grand Theft Auto VI (GTA)", Twitch "Grand Theft Auto VI", so the game matched no Twitch campaign or reward group. The Twitch name lookup now also tries the name without a trailing " (...)".
+- **Up next shows the box art of a game added from Kick on its Twitch rows too.** Inventory's Up next looked the art up by the game's own name, so a Twitch row naming the game the Twitch way ("Grand Theft Auto VI" for "Grand Theft Auto VI (GTA)") showed none. It now matches the Twitch name too, ignoring case.
 - **Twitch discovery also searches a game under its Twitch name.** A game whose Twitch name differs from its own name is now looked up under both in the Twitch directory and in reward groups, so the GTAVI Daily Chest is found for a game added from Kick.
 
 ## [2.3.5] — 2026-11-18

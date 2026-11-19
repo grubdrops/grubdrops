@@ -16,6 +16,7 @@
 		readGameOrder,
 		settleGameOrder,
 		writeGameOrder,
+		artLookup,
 		type GameOrder
 	} from '$lib/upnext';
 	import BoxArt from './BoxArt.svelte';
@@ -47,7 +48,7 @@
 	const shown = $derived(drag ? moveItem(groups, drag.from, drag.to) : groups);
 	const custom = $derived(anyCustom(live.runners));
 	const total = $derived(groups.reduce((n, g) => n + g.drops, 0));
-	const art = $derived(new Map((live.games?.games ?? []).map((g) => [g.name, g.box_art_url])));
+	const art = $derived(artLookup(live.games?.games ?? []));
 	const perm = $derived(t('inventory.upnext_temporary', { games: '\u0000' }).split('\u0000'));
 
 	async function commit(from: number, to: number): Promise<void> {
@@ -123,7 +124,7 @@
 					</span>
 					<div class="row">
 						<span class="qn">{i + 1}</span>
-						<span class="art"><BoxArt src={art.get(g.game) ?? null} name={g.game} size="sm" /></span>
+						<span class="art"><BoxArt src={art(g.game)} name={g.game} size="sm" /></span>
 						<span class="what">
 							<span class="gn">{g.game} <span class="cnt">· {tn('games.drops_open', g.drops)}</span></span>
 							<span class="meta">
