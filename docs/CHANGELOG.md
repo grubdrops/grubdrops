@@ -12,6 +12,8 @@ All notable changes to GrubDrops.
 
 - Reward groups use two new Twitch queries, `ChannelDropsCampaigns` and `DropChannelCampaignsProgress`. When Twitch will not answer the progress query (integrity check), GrubDrops counts the watched minutes itself and gates each day on the claim log. The campaign API gains `day` and `days` on a drop, and the planner a `cooldown` block reason.
 
+## [2.3.4] — 2026-11-18
+
 ### Fixed
 
 - **Twitch drops claimed outside GrubDrops now count as claimed (#91).** Claimed in the browser or by another miner, a drop showed as Not started and was mined for 6 minutes before it was skipped, because Twitch drops a fully claimed campaign from the inventory's progress list. A campaign now counts as claimed when the inventory no longer lists it as in progress and every reward it grants was awarded after the campaign started. Partly claimed campaigns keep the per-drop inventory state.
