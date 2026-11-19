@@ -80,10 +80,15 @@ describe('togglePick', () => {
 describe('watchingIds', () => {
 	const r = (id: string, state: Runner['state'], channel: string, platform: 'twitch' | 'kick' = 'twitch') =>
 		({ account_id: id, state, channel, platform }) as Runner;
-	it('follows force watching runners on that channel', () => {
+	it('follows runners watching that channel, for points or for a drop', () => {
 		const c = { ...ch('keshaeuw', 'twitch', ['a1', 'a2']), watching: ['a2'] };
-		const runners = [r('a1', 'force_watching', 'keshaeuw'), r('a2', 'watching', 'keshaeuw'), r('a3', 'force_watching', 'keshaeuw', 'kick')];
-		expect(watchingIds(c, runners)).toEqual(['a1']);
+		const runners = [
+			r('a1', 'force_watching', 'keshaeuw'),
+			r('a2', 'watching', 'keshaeuw'),
+			r('a3', 'force_watching', 'keshaeuw', 'kick'),
+			r('a4', 'claiming', 'keshaeuw')
+		];
+		expect(watchingIds(c, runners)).toEqual(['a1', 'a2']);
 	});
 	it('falls back to the server list before runners load', () => {
 		const c = { ...ch('keshaeuw'), watching: ['a2'] };

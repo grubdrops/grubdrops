@@ -46,12 +46,13 @@ func (s *server) forceLive(platform, login string) *bool {
 	return s.d.ForceLive(platform, login)
 }
 
-// forceWatchers maps "platform/channel" to the IDs of accounts force
-// watching it now, in snapshot order.
+// forceWatchers maps "platform/channel" to the IDs of accounts watching it
+// now, in snapshot order: a Points watch, or a drop watch that landed on the
+// channel (it earns the channel's points too).
 func forceWatchers(snaps []runner.Snapshot) map[string][]string {
 	out := map[string][]string{}
 	for _, sn := range snaps {
-		if sn.State != runner.StateForceWatching || sn.Channel == "" {
+		if (sn.State != runner.StateForceWatching && sn.State != runner.StateWatching) || sn.Channel == "" {
 			continue
 		}
 		k := sn.Platform + "/" + sn.Channel
