@@ -23,7 +23,7 @@
 		type PendingMark
 	} from '$lib/campaign';
 	import { refreshLabel } from '$lib/cooldown';
-	import { clock, shortDate } from '$lib/format';
+	import { clock, shortDate, untilShort } from '$lib/format';
 	import { linkHref } from '$lib/games';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { getLive } from '$lib/live-context';
@@ -125,8 +125,19 @@
 		return t('campaign.no_end');
 	}
 
+	// Ticks the cooldown countdowns while the drawer is open.
+	let now = $state(Date.now());
+	$effect(() => {
+		const id = setInterval(() => (now = Date.now()), 30_000);
+		return () => clearInterval(id);
+	});
+
 	function cellText(c: DropCell, req: number): string {
 		if (c.state === 'claimed' && c.claimed_at) return t('campaign.claimed_on', { date: shortDate(c.claimed_at, prefs.zone) });
+		if (c.state === 'blocked' && c.reason === 'cooldown' && c.opens_at) {
+			const left = untilShort(c.opens_at, now);
+			return left ? t('campaign.opens_in', { left }) : t('campaign.opening');
+		}
 		return t(cellKey(c), { m: c.minutes, req });
 	}
 

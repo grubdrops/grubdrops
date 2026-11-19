@@ -254,11 +254,13 @@
 			? t('home.state_mining')
 			: g.state === 'waiting'
 				? t('home.state_waiting')
-				: g.state === 'paused'
-					? t('home.state_paused')
-					: g.state === 'done'
-						? t('home.state_done')
-						: t('home.state_none');
+				: g.state === 'next_day'
+					? t('home.state_next_day')
+					: g.state === 'paused'
+						? t('home.state_paused')
+						: g.state === 'done'
+							? t('home.state_done')
+							: t('home.state_none');
 	}
 
 	onDestroy(() => {
@@ -878,7 +880,8 @@
 		color: var(--green);
 		background: var(--green-soft);
 	}
-	.state.waiting {
+	.state.waiting,
+	.state.next_day {
 		color: var(--chip-wait);
 		background: var(--accent-soft);
 	}

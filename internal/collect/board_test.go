@@ -299,6 +299,35 @@ func TestBoard_QueuedOnlyWithWorkLeft(t *testing.T) {
 	}
 }
 
+// Cooldowns names each account with a repeat day waiting on its window,
+// once, in ID order, with the earliest open time.
+func TestBoard_Cooldowns(t *testing.T) {
+	b := NewBoard()
+	t1 := time.Date(2026, 11, 19, 16, 0, 0, 0, time.UTC)
+	ow := camp("o1", "twitch", "Overwatch", oct31, 2)
+	early, late := t1.Add(2*time.Hour), t1.Add(5*time.Hour)
+	s2 := scan("a2", "twitch", t1, ow)
+	s2.Result = plan.Result{Blocked: []plan.Blocked{
+		{Target: plan.Target{Campaign: ow, Benefit: ow.Benefits[0]}, Reason: plan.ReasonCooldown, Until: late},
+		{Target: plan.Target{Campaign: ow, Benefit: ow.Benefits[1]}, Reason: plan.ReasonCooldown, Until: early},
+	}}
+	b.Observe(s2)
+	s1 := scan("a1", "twitch", t1, ow)
+	s1.Result = plan.Result{Blocked: []plan.Blocked{
+		{Target: plan.Target{Campaign: ow, Benefit: ow.Benefits[0]}, Reason: plan.ReasonCooldown},
+		{Target: plan.Target{Campaign: ow, Benefit: ow.Benefits[1]}, Reason: plan.ReasonPrecondition},
+	}}
+	b.Observe(s1)
+	got := b.Games([]plan.Game{rust, overwatch})
+	if len(got[0].Cooldowns) != 0 {
+		t.Fatalf("rust %+v", got[0].Cooldowns)
+	}
+	want := []Cooldown{{AccountID: "a1"}, {AccountID: "a2", Until: early}}
+	if fmt.Sprint(got[1].Cooldowns) != fmt.Sprint(want) || got[1].Queued {
+		t.Fatalf("overwatch %+v", got[1])
+	}
+}
+
 // QueuedBy names each account with a drop of the game left to mine, once
 // and in ID order, whether queued or waiting on a link.
 func TestBoard_QueuedBy(t *testing.T) {

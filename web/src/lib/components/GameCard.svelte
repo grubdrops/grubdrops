@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { etaShort, formatInt } from '$lib/format';
+	import { etaShort, formatInt, untilShort } from '$lib/format';
 	import { cardCampaign, foldRows, waitBadge, waitLine, type AccountRow, type GameCard } from '$lib/home';
 	import { t, tn } from '$lib/i18n/index.svelte';
 	import { foldQueue } from '$lib/upnext';
@@ -45,13 +45,15 @@
 			? t('home.state_mining')
 			: game.state === 'waiting'
 				? waitBadge(wait)
-				: game.state === 'paused'
-					? wait?.kind === 'paused'
-						? waitBadge(wait)
-						: t('home.state_paused')
-					: game.state === 'done'
-						? t('home.state_done')
-						: t('home.state_none')
+				: game.state === 'next_day'
+					? t('home.state_next_day')
+					: game.state === 'paused'
+						? wait?.kind === 'paused'
+							? waitBadge(wait)
+							: t('home.state_paused')
+						: game.state === 'done'
+							? t('home.state_done')
+							: t('home.state_none')
 	);
 	const line = $derived(waitLine(wait));
 	const foot = $derived(
@@ -152,6 +154,12 @@
 			</ul>
 		{:else if game.state === 'waiting' || (game.state === 'paused' && wait?.kind === 'paused')}
 			<p class="idle-l">{line}</p>
+		{:else if game.state === 'next_day'}
+			<p class="idle-l">
+				{game.opens_at && untilShort(game.opens_at, now)
+					? t('home.next_day_line', { left: untilShort(game.opens_at, now) })
+					: t('home.next_day_line_any')}
+			</p>
 		{:else if game.state === 'done'}
 			<p class="idle-l">{t('home.done_line')}</p>
 		{/if}
@@ -239,7 +247,8 @@
 		color: var(--green);
 		background: var(--green-soft);
 	}
-	.state.waiting {
+	.state.waiting,
+	.state.next_day {
 		color: var(--chip-wait);
 		background: var(--accent-soft);
 	}

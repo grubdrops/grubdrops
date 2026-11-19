@@ -49,12 +49,15 @@ type gameJSON struct {
 	Slug string `json:"slug"`
 	// TwitchName is Twitch's name for the game, "" until known. Twitch
 	// campaigns can name a renamed game this way.
-	TwitchName string             `json:"twitch_name"`
-	Priority   int                `json:"priority"`
-	BoxArtURL  string             `json:"box_art_url"`
-	State      string             `json:"state"`
-	Campaigns  []gameCampaignJSON `json:"campaigns"`
-	NeedsLink  []needsLinkJSON    `json:"needs_link"`
+	TwitchName string `json:"twitch_name"`
+	Priority   int    `json:"priority"`
+	BoxArtURL  string `json:"box_art_url"`
+	State      string `json:"state"`
+	// OpensAt is when the next repeat day opens on an enabled account,
+	// set only in state next_day; null when the platform gave no time.
+	OpensAt   *string            `json:"opens_at"`
+	Campaigns []gameCampaignJSON `json:"campaigns"`
+	NeedsLink []needsLinkJSON    `json:"needs_link"`
 	// PausedHolders lists the paused accounts with a drop of the game left
 	// to mine, in account order.
 	PausedHolders []pausedHolderJSON `json:"paused_holders"`
@@ -195,11 +198,19 @@ func (s *server) gamesView(r *http.Request) (gamesJSON, error) {
 		// enabled (or unknown) account's queue makes the game wait. A game
 		// only paused accounts hold reads paused: nothing mines it until one
 		// resumes.
+		var opens *time.Time
+		if i < len(statuses) {
+			opens = cooldownActive(statuses[i].Cooldowns, paused)
+		}
 		switch {
 		case mining[i]:
 			g.State = "mining"
 		case i < len(statuses) && queuedByActive(statuses[i].QueuedBy, paused):
 			g.State = "waiting"
+		case opens != nil:
+			// Every drop left waits on a repeat day's window.
+			g.State = "next_day"
+			g.OpensAt = rfc3339(*opens)
 		case len(g.PausedHolders) > 0:
 			g.State = "paused"
 		case len(g.Campaigns) > 0:
@@ -221,6 +232,26 @@ func queuedByActive(ids []string, paused map[string]bool) bool {
 		}
 	}
 	return false
+}
+
+// cooldownActive returns the earliest open time of a repeat day on an
+// account not in paused (zero when none gave a time), or nil when no such
+// account waits on one.
+func cooldownActive(cs []collect.Cooldown, paused map[string]bool) *time.Time {
+	var out *time.Time
+	for _, c := range cs {
+		if paused[c.AccountID] {
+			continue
+		}
+		switch {
+		case out == nil:
+			u := c.Until
+			out = &u
+		case !c.Until.IsZero() && (out.IsZero() || c.Until.Before(*out)):
+			*out = c.Until
+		}
+	}
+	return out
 }
 
 // heldStates are the stored drop states with minutes left to mine or a

@@ -4,6 +4,10 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Daily reward days no longer read as finished.** After a day was granted, the game card said "All drops claimed or skipped." while the next days waited on Twitch's window, and the drop panel said "Done for today". The game now shows "Next day" with a countdown ("Next day opens in 2h 10m."), and each waiting day counts down to its own account's window ("Opens in 2h 10m"). The games API gains the `next_day` state and `opens_at`; campaign drop cells gain `opens_at`.
+
 ## [2.3.5] — 2026-11-18
 
 ### Added

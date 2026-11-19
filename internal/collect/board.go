@@ -29,12 +29,22 @@ type LinkNeed struct {
 
 // GameStatus is one chosen game with the campaigns every account can see.
 type GameStatus struct {
-	Game       plan.Game
-	Campaigns  []CampaignSummary // active, non-reward, at least one drop; deduped by platform+ID; EndsAt ascending
-	NeedsLink  []LinkNeed        // one per account, AccountID ascending
-	Queued     bool              // some account has a drop of this game left to mine
-	QueuedBy   []string          // the accounts Queued counts, ID ascending
-	LastScanAt time.Time         // latest successful scan of any account; zero = none yet
+	Game      plan.Game
+	Campaigns []CampaignSummary // active, non-reward, at least one drop; deduped by platform+ID; EndsAt ascending
+	NeedsLink []LinkNeed        // one per account, AccountID ascending
+	Queued    bool              // some account has a drop of this game left to mine
+	QueuedBy  []string          // the accounts Queued counts, ID ascending
+	// Cooldowns lists the accounts with a repeat day of this game waiting
+	// on the platform's daily window, ID ascending, each with the earliest
+	// time a day opens (zero when the platform gave none).
+	Cooldowns  []Cooldown
+	LastScanAt time.Time // latest successful scan of any account; zero = none yet
+}
+
+// Cooldown is one account's next repeat day of a game, closed until Until.
+type Cooldown struct {
+	AccountID string
+	Until     time.Time
 }
 
 // SafeLinkURL returns raw when it is an absolute http or https URL with a
@@ -72,6 +82,19 @@ func markQueued(out []GameStatus, i int, id string) {
 	if q := out[i].QueuedBy; len(q) == 0 || q[len(q)-1] != id {
 		out[i].QueuedBy = append(q, id)
 	}
+}
+
+// markCooldown records that account id has a repeat day of game i opening
+// at until. Accounts arrive in ID order; a repeat keeps the earliest time.
+func markCooldown(out []GameStatus, i int, id string, until time.Time) {
+	cs := out[i].Cooldowns
+	if n := len(cs); n > 0 && cs[n-1].AccountID == id {
+		if !until.IsZero() && (cs[n-1].Until.IsZero() || until.Before(cs[n-1].Until)) {
+			cs[n-1].Until = until
+		}
+		return
+	}
+	out[i].Cooldowns = append(cs, Cooldown{AccountID: id, Until: until})
 }
 
 // Board keeps the latest successful scan per account and merges them per game.
@@ -158,6 +181,12 @@ func (b *Board) Games(games []plan.Game) []GameStatus {
 			}
 		}
 		for _, bl := range s.Result.Blocked {
+			if bl.Reason == plan.ReasonCooldown {
+				if i, ok := plan.Match(games, bl.Campaign.Game); ok {
+					markCooldown(out, i, id, bl.Until)
+				}
+				continue
+			}
 			if bl.Reason != plan.ReasonNotLinked || linked {
 				continue
 			}
@@ -223,6 +252,9 @@ type CampaignCell struct {
 	AccountID, Platform string
 	State, Reason       string
 	Minutes             int
+	// OpensAt is when a cooldown day opens; zero for other cells or when
+	// the platform gave no time.
+	OpensAt time.Time
 }
 
 // CampaignDrop is one benefit of a campaign with every account that has a
@@ -302,6 +334,12 @@ func (b *Board) Campaign(platformName, id string) (CampaignDetail, bool) {
 		for _, ben := range c.Benefits {
 			addDrop(ben)
 		}
+		opens := map[string]time.Time{}
+		for _, bl := range s.Result.Blocked {
+			if bl.Reason == plan.ReasonCooldown && bl.Campaign.ID == id {
+				opens[bl.Benefit.ID] = bl.Until
+			}
+		}
 		seen := map[string]bool{}
 		for _, r := range Derive(s, time.Time{}) {
 			if r.CampaignID != id || seen[r.BenefitID] {
@@ -311,6 +349,7 @@ func (b *Board) Campaign(platformName, id string) (CampaignDetail, bool) {
 			i := addDrop(platform.DropBenefit{ID: r.BenefitID, Name: r.BenefitName, ImageURL: r.ImageURL, RequiredMinutes: r.RequiredMinutes})
 			out.Drops[i].Cells = append(out.Drops[i].Cells, CampaignCell{
 				AccountID: s.AccountID, Platform: s.Platform, State: r.State, Reason: r.Reason, Minutes: r.Minutes,
+				OpensAt: opens[r.BenefitID],
 			})
 		}
 	}

@@ -135,8 +135,9 @@ export interface Runner {
 	sleep_until?: string | null;
 }
 
-/** paused: only paused accounts have drops of the game left; nothing mines it until one resumes. */
-export type GameState = 'mining' | 'waiting' | 'paused' | 'done' | 'no_campaign';
+/** paused: only paused accounts have drops of the game left; nothing mines it until one resumes.
+ * next_day: every drop left is a repeat day waiting on the platform's daily window. */
+export type GameState = 'mining' | 'waiting' | 'next_day' | 'paused' | 'done' | 'no_campaign';
 
 export interface Campaign {
 	id: string;
@@ -171,6 +172,8 @@ export interface Game {
 	priority: number;
 	box_art_url: string;
 	state: GameState;
+	/** When the next repeat day opens, in state next_day; null when unknown. */
+	opens_at?: string | null;
 	campaigns: Campaign[];
 	needs_link: NeedsLink[];
 	/** Paused accounts with a drop of the game left, in account order. */
@@ -270,6 +273,8 @@ export interface DropCell {
 	reason: string;
 	minutes: number;
 	claimed_at: string | null;
+	/** When a cooldown day opens; null when not cooling down or unknown. */
+	opens_at?: string | null;
 	/** The drop is in the account's runner plan, so it can be marked collected. */
 	queued?: boolean;
 }

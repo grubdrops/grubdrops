@@ -152,6 +152,56 @@ func TestGames_ListDoneVersusWaiting(t *testing.T) {
 	assert.Equal(t, "waiting", got.Games[1].State)
 }
 
+// A game whose only drops left are repeat days waiting on the daily window
+// reads next_day with the earliest open time, not done.
+func TestGames_ListNextDay(t *testing.T) {
+	g := newGamesEnv(t)
+	ids := g.seed("Rust")
+	require.NoError(t, g.chosen.Set(context.Background(), ids))
+	c := platform.Campaign{
+		ID: "c1", Platform: "twitch", Game: "Rust", Name: "Rust Daily", Status: "active",
+		EndsAt: time.Now().Add(96 * time.Hour), Benefits: []platform.DropBenefit{
+			{ID: "g:day01", RequiredMinutes: 60}, {ID: "g:day02", RequiredMinutes: 60}, {ID: "g:day03", RequiredMinutes: 60},
+		},
+	}
+	opens := time.Now().Add(7 * time.Hour).UTC().Truncate(time.Second)
+	g.board.Observe(runner.Scan{AccountID: "a1", Platform: "twitch", At: time.Now(),
+		Campaigns: []platform.Campaign{c},
+		Result: plan.Result{
+			Claimed: []plan.Target{{Campaign: c, Benefit: c.Benefits[0]}},
+			Blocked: []plan.Blocked{
+				{Target: plan.Target{Campaign: c, Benefit: c.Benefits[1]}, Reason: plan.ReasonCooldown, Until: opens},
+				{Target: plan.Target{Campaign: c, Benefit: c.Benefits[2]}, Reason: plan.ReasonPrecondition},
+			},
+		},
+	})
+
+	resp, b := g.do("GET", "/api/games", "", nil)
+	require.Equal(t, 200, resp.StatusCode)
+	var got gamesJSON
+	require.NoError(t, json.Unmarshal(b, &got))
+	require.Len(t, got.Games, 1)
+	assert.Equal(t, "next_day", got.Games[0].State)
+	require.NotNil(t, got.Games[0].OpensAt)
+	assert.Equal(t, opens.Format(time.RFC3339), *got.Games[0].OpensAt)
+
+	g.s.routesCampaigns(g.s.protected)
+	resp, b = g.do("GET", "/api/campaigns/twitch/c1", "", nil)
+	require.Equal(t, 200, resp.StatusCode)
+	var d campaignDetailJSON
+	require.NoError(t, json.Unmarshal(b, &d))
+	for _, dr := range d.Drops {
+		for _, a := range dr.Accounts {
+			if dr.ID == "g:day02" {
+				require.NotNil(t, a.OpensAt, "the cooldown day carries its open time")
+				assert.Equal(t, opens.Format(time.RFC3339), *a.OpensAt)
+			} else {
+				assert.Nil(t, a.OpensAt, dr.ID)
+			}
+		}
+	}
+}
+
 // A Kick-only game has no Twitch art: its card takes the Kick category image
 // through the proxy. A known Twitch id still wins.
 func TestGames_ListKickCategoryArt(t *testing.T) {

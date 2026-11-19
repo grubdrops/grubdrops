@@ -11,6 +11,7 @@ import {
 	noteParts,
 	relTime,
 	shortDate,
+	untilShort,
 	startBucket,
 	uptime
 } from './format';
@@ -126,4 +127,16 @@ test('msToNextMinute waits for the next whole minute', () => {
 	expect(msToNextMinute(min)).toBe(60_000);
 	expect(msToNextMinute(min + 1)).toBe(59_999);
 	expect(msToNextMinute(min + 45_500)).toBe(14_500);
+});
+
+const NOW = Date.parse('2026-11-19T16:00:00Z');
+
+test('untilShort counts down in hours and minutes, rounding up', () => {
+	expect(untilShort('2026-11-19T18:10:00Z', NOW)).toBe('2h 10m');
+	expect(untilShort('2026-11-19T16:00:20Z', NOW)).toBe('1m');
+});
+
+test('untilShort is empty once the time has passed', () => {
+	expect(untilShort('2026-11-19T16:00:00Z', NOW)).toBe('');
+	expect(untilShort('2026-11-19T15:00:00Z', NOW)).toBe('');
 });

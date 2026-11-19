@@ -84,6 +84,14 @@ export function shortDate(iso: string, zone: string): string {
 		.replace(SPACES, ' ');
 }
 
+/** Time left until iso, e.g. "2h 10m"; '' once it has passed. Rounds up so
+ * it never reads 0m before the moment. */
+export function untilShort(iso: string, now: number): string {
+	const ms = Date.parse(iso) - now;
+	if (!Number.isFinite(ms) || ms <= 0) return '';
+	return etaShort(Math.ceil(ms / 60000));
+}
+
 export function claimStamp(iso: string, now: number, zone: string, fmt: '24h' | '12h'): string {
 	const b = dayBucket(iso, now, zone);
 	if (b === 'today') return t('time.today_at', { time: clock(iso, zone, fmt) });

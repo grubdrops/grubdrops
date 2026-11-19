@@ -18,6 +18,9 @@ type campaignCellJSON struct {
 	Reason      string  `json:"reason"`
 	Minutes     int     `json:"minutes"`
 	ClaimedAt   *string `json:"claimed_at"`
+	// OpensAt: when a cooldown day opens, null when not cooling down or
+	// the platform gave no time.
+	OpensAt *string `json:"opens_at"`
 	// Queued: the drop is in the account's runner plan (current, Up next
 	// or Blocked), so POST /api/claims accepts it.
 	Queued bool `json:"queued"`
@@ -113,7 +116,7 @@ func (s *server) getCampaign(w http.ResponseWriter, r *http.Request) {
 		for _, c := range d.Cells {
 			dj.Accounts = append(dj.Accounts, campaignCellJSON{
 				AccountID: c.AccountID, Platform: c.Platform, State: c.State, Reason: c.Reason, Minutes: c.Minutes,
-				Queued: planned[c.AccountID][d.ID],
+				OpensAt: rfc3339(c.OpensAt), Queued: planned[c.AccountID][d.ID],
 			})
 		}
 		idx[d.ID] = len(out.Drops)
@@ -148,7 +151,7 @@ func (s *server) getCampaign(w http.ResponseWriter, r *http.Request) {
 			d.Accounts = append(d.Accounts, campaignCellJSON{AccountID: e.AccountID, Platform: e.Platform})
 		}
 		c := &d.Accounts[cell]
-		c.State, c.Reason, c.Queued = collect.StateClaimed, "", false
+		c.State, c.Reason, c.Queued, c.OpensAt = collect.StateClaimed, "", false, nil
 		if c.Minutes < d.RequiredMinutes {
 			c.Minutes = d.RequiredMinutes
 		}
