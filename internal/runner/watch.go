@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/grubdrops/grubdrops/internal/plan"
@@ -118,6 +119,9 @@ func (r *Runner) start(ctx context.Context) error {
 	sort.SliceStable(streams, func(i, j int) bool {
 		return streams[i].ViewerCount > streams[j].ViewerCount
 	})
+	// Points watch channels the campaign counts on go first, in list
+	// order, so one watch earns the drop and that channel's points.
+	streams = preferForce(streams, r.forceChannels())
 
 	s := streams[0]
 	// A repeat day is not an advertised drop, so the probe cannot tell channels apart.
@@ -604,4 +608,29 @@ func (r *Runner) shouldNotifyProgress(curMin, reqMin int) bool {
 		return true
 	}
 	return false
+}
+
+// preferForce moves the streams whose channel is on the force list to the
+// front, in force list order; the others keep their order behind them.
+// Channel names match case-insensitively.
+func preferForce(streams []platform.Stream, force []string) []platform.Stream {
+	if len(force) == 0 || len(streams) < 2 {
+		return streams
+	}
+	rank := make(map[string]int, len(force))
+	for i, login := range force {
+		k := strings.ToLower(login)
+		if _, dup := rank[k]; !dup && k != "" {
+			rank[k] = i
+		}
+	}
+	at := func(s platform.Stream) int {
+		if i, ok := rank[strings.ToLower(s.Channel)]; ok {
+			return i
+		}
+		return len(force)
+	}
+	out := slices.Clone(streams)
+	sort.SliceStable(out, func(i, j int) bool { return at(out[i]) < at(out[j]) })
+	return out
 }

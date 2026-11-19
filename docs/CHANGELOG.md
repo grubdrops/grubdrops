@@ -9,6 +9,9 @@ All notable changes to GrubDrops.
 - **Community goals.** A new Engine switch, Community goals (Twitch only, off by default), gives an account's channel points to the watched channel's running community goals. It follows each channel points bonus check, so it needs the account's points mode on. Each goal gets the least of what it still needs, the account's per-stream limit left and the balance left. `GET/PUT /api/settings` gain `community_goals`.
 - **Watch streaks.** A new Engine switch, Watch streaks (Twitch only, off by default). When a Points watch channel starts a new stream, an idle account watches it for 7 minutes first, ahead of the list order, to keep its watch streak, then goes back to the order. A streak watch keeps its channel until it is served, unless the stream ends. A drop still comes first. `GET/PUT /api/settings` gain `watch_streak`.
 
+### Changed
+- **A drop watch prefers your Points watch channels.** When a Points watch channel is among the channels a campaign counts on, the account watches it instead of the busiest one, in Points watch order, so one watch earns the drop and that channel's points, moments and streak. Other channels keep the viewer-count order.
+
 ## [2.3.6] — 2026-11-19
 
 ### Fixed
