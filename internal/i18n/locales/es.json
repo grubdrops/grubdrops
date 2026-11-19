@@ -358,6 +358,8 @@
   "settings.preempt_off_sub": "Termina primero el drop actual.",
   "settings.follow_raids": "Seguir raids",
   "settings.follow_raids_sub": "Solo Twitch. Se une a las raids tras una breve espera aleatoria. Sigue viendo el mismo canal.",
+  "settings.claim_moments": "Reclamar momentos",
+  "settings.claim_moments_sub": "Solo Twitch. Reclama los momentos que entrega el canal que se está viendo, tras una breve espera aleatoria.",
   "settings.experimental": "Experimental",
   "settings.exp_share_catalog": "Compartir campañas de Android con cuentas TV",
   "settings.exp_share_catalog_sub": "Las cuentas TV también minan las campañas que ve una cuenta Android.",

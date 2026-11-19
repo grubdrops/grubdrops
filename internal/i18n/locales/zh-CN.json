@@ -358,6 +358,8 @@
   "settings.preempt_off_sub": "先完成当前掉落。",
   "settings.follow_raids": "跟随突袭",
   "settings.follow_raids_sub": "仅限 Twitch。短暂随机延迟后加入突袭。继续观看原频道。",
+  "settings.claim_moments": "领取时刻",
+  "settings.claim_moments_sub": "仅限 Twitch。短暂随机延迟后领取正在观看的频道发放的时刻。",
   "settings.experimental": "实验性",
   "settings.exp_share_catalog": "与 TV 账号共享 Android 活动",
   "settings.exp_share_catalog_sub": "TV 登录也会挖取 Android 登录可见的活动。",

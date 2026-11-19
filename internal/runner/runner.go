@@ -159,6 +159,11 @@ type Runner struct {
 	// joins once.
 	raids    *raidWatch
 	raidSeen map[string]time.Time
+	// moments is the running moments side task of the watch (moment.go);
+	// nil = none. momentSeen holds moment IDs already scheduled, so a
+	// repeated push claims once.
+	moments    *momentWatch
+	momentSeen map[string]time.Time
 
 	// notifiedSwept dedupes sweep notifications by reward title, per run.
 	notifiedSwept map[string]struct{}
@@ -287,6 +292,7 @@ func (r *Runner) applyLive(ctx context.Context) bool {
 	}
 	r.syncPoints(ctx)
 	r.syncRaids(ctx)
+	r.syncMoments(ctx)
 	switch st {
 	case StateForceWatching:
 		if len(r.forceChannels()) == 0 {

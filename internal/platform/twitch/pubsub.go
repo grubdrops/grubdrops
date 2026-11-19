@@ -62,6 +62,10 @@ type PubSubHandlers struct {
 	// channel announced a raid. Twitch repeats the event while the
 	// raid counts down, so the receiver dedupes on raidID.
 	OnRaid func(channelID, raidID string)
+	// OnMoment fires for `active` on
+	// `community-moments-channel-v1.<channel_id>`: the channel handed out
+	// a moment viewers can claim. The receiver dedupes on momentID.
+	OnMoment func(channelID, momentID string)
 }
 
 // PubSubClient holds one WebSocket connection and the topics LISTENed
@@ -323,6 +327,8 @@ func (p *PubSubClient) dispatch(topic string, payload []byte) {
 		return
 	case startsWith(topic, "raid."):
 		p.dispatchRaid(topic, payload)
+	case startsWith(topic, momentsTopicPrefix):
+		p.dispatchMoment(topic, payload)
 	default:
 		slog.Debug("pubsub unhandled topic", "topic", topic)
 	}
@@ -518,6 +524,29 @@ func TopicUserDropEvents(userID int64) string {
 	return "user-drop-events." + strconv.FormatInt(userID, 10)
 }
 
+// dispatchMoment decodes a community-moments-channel-v1.<channel_id>
+// payload and reports a claimable moment on that channel. Only `active`
+// counts: it is the one that opens the claim.
+func (p *PubSubClient) dispatchMoment(topic string, payload []byte) {
+	channelID := topic[len(momentsTopicPrefix):]
+	var env struct {
+		Type string `json:"type"`
+		Data struct {
+			MomentID string `json:"moment_id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(payload, &env); err != nil {
+		slog.Debug("pubsub moment decode failed", "err", err)
+		return
+	}
+	if env.Type != "active" || env.Data.MomentID == "" || channelID == "" {
+		return
+	}
+	if p.handlers.OnMoment != nil {
+		p.handlers.OnMoment(channelID, env.Data.MomentID)
+	}
+}
+
 // TopicVideoPlaybackByID watches a channel's broadcast state — up,
 // down, viewcount, commercials. channelID is the broadcaster's
 // numeric Twitch ID.
@@ -529,6 +558,15 @@ func TopicVideoPlaybackByID(channelID string) string {
 // broadcaster's numeric Twitch ID.
 func TopicRaid(channelID string) string {
 	return "raid." + channelID
+}
+
+// momentsTopicPrefix is the community moments topic before the channel ID.
+const momentsTopicPrefix = "community-moments-channel-v1."
+
+// TopicCommunityMoments watches the moments a broadcaster hands out.
+// channelID is the broadcaster's numeric Twitch ID.
+func TopicCommunityMoments(channelID string) string {
+	return momentsTopicPrefix + channelID
 }
 
 // TopicOnsiteNotifications subscribes to the user's notification

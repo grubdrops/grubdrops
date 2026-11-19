@@ -455,18 +455,19 @@ func (ro *roster) runnerConfig(ctx context.Context, a gen.Account, b platform.Ba
 	return runner.Config{
 		AccountID: a.ID, AccountLabel: store.AccountName(a), Platform: a.Platform,
 		Backend: b, Session: sess,
-		Games:       games,
-		Notifier:    ro.notifier,
-		Claims:      &claimLog{ro: ro},
-		Skips:       ro.skips,
-		LinkNotices: ro.linkNotices,
-		Order:       order,
-		Priority:    ro.priorityMode,
-		Lang:        ro.uiLanguage,
-		ScanEvery:   ro.scanEvery,
-		Preempt:     ro.preempt,
-		FollowRaids: ro.followRaids,
-		SleepUntil:  ro.sleepUntilFor(a),
+		Games:        games,
+		Notifier:     ro.notifier,
+		Claims:       &claimLog{ro: ro},
+		Skips:        ro.skips,
+		LinkNotices:  ro.linkNotices,
+		Order:        order,
+		Priority:     ro.priorityMode,
+		Lang:         ro.uiLanguage,
+		ScanEvery:    ro.scanEvery,
+		Preempt:      ro.preempt,
+		FollowRaids:  ro.followRaids,
+		ClaimMoments: ro.claimMoments,
+		SleepUntil:   ro.sleepUntilFor(a),
 		// Kick only: the runner skips a backend without the claim.
 		KickDailyReward: ro.kickDailyReward,
 		OnScan: func(ctx context.Context, s runner.Scan) {
@@ -741,6 +742,8 @@ type runSettings struct {
 	preempt  bool
 	// raids is the follow raids setting.
 	raids bool
+	// moments is the claim moments setting.
+	moments bool
 	// share is the experimental share of the Android catalog with TV
 	// accounts.
 	share bool
@@ -791,12 +794,13 @@ func (ro *roster) readRunSettings() (c runSettings, ok bool) {
 		raids, e6 := ro.settings.FollowRaids(ctx)
 		share, e7 := ro.settings.ExpShareCatalog(ctx)
 		daily, e8 := ro.settings.KickDailyReward(ctx)
-		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8); err != nil {
+		moments, e9 := ro.settings.ClaimMoments(ctx)
+		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9); err != nil {
 			// Not cached: the next read tries again.
 			ro.log().Warn("read runner settings failed", "kind", "error", "err", err)
 			return c, false
 		}
-		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, share: share, daily: daily}
+		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, moments: moments, share: share, daily: daily}
 		start, ok1 := timeutil.ParseClock(sw.Start)
 		end, ok2 := timeutil.ParseClock(sw.End)
 		c.sleep = sw.Enabled && ok1 && ok2 && start != end
@@ -828,6 +832,9 @@ func (ro *roster) preempt() bool { return ro.runSettings().preempt }
 
 // followRaids is the follow raids setting. A failed read gives off.
 func (ro *roster) followRaids() bool { return ro.runSettings().raids }
+
+// claimMoments is the claim moments setting. A failed read gives off.
+func (ro *roster) claimMoments() bool { return ro.runSettings().moments }
 
 // kickDailyReward is the Kick daily reward claim setting. A failed read
 // gives off.
