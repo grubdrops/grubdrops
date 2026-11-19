@@ -4,6 +4,9 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Fixed
+- **A Twitch drop claimed from the inventory keeps its image.** Drops claimed by the ready-drop check or the inventory sweep, for example one finished while another drop was being mined, were logged without an image, so Inventory's Claimed list showed a blank tile although the campaign drawer had it. The inventory read now takes the image from the drop's benefit, as the dashboard does.
+
 ## [2.3.5] — 2026-11-18
 
 ### Added
