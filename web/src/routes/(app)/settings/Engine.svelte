@@ -217,6 +217,21 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
+				<b id="streak-l">{t('settings.watch_streak')}</b>
+				<small>{t('settings.watch_streak_sub')}</small>
+				{#if errs.watch_streak}<small class="bad">{t('settings.save_failed')}</small>{/if}
+			</div>
+			<button
+				type="button"
+				class="sw"
+				role="switch"
+				aria-checked={s.watch_streak}
+				aria-labelledby="streak-l"
+				onclick={() => save('watch_streak', { watch_streak: !s.watch_streak })}
+			></button>
+		</div>
+		<div class="row">
+			<div class="lbl">
 				<b><label for="scan">{t('settings.scan_interval')}</label></b>
 				<small>{t('settings.scan_interval_sub')}</small>
 				{#if errs.scan_interval_min}<small class="bad">{t('settings.save_failed')}</small>{/if}

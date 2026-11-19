@@ -462,6 +462,8 @@ export interface Settings {
 	claim_moments: boolean;
 	/** Twitch: give points to the watched channel's community goals (points mode on). Off by default. */
 	community_goals: boolean;
+	/** Twitch: watch each new Points watch broadcast for its watch streak first. Off by default. */
+	watch_streak: boolean;
 	/** Experimental: Kick accounts claim their daily reward. Off by default. */
 	kick_daily_reward: boolean;
 	/** Experimental: TV-login Twitch accounts also mine the Android catalog. Off by default. */
@@ -514,6 +516,7 @@ export interface SettingsPatch {
 	follow_raids?: boolean;
 	claim_moments?: boolean;
 	community_goals?: boolean;
+	watch_streak?: boolean;
 	kick_daily_reward?: boolean;
 	exp_share_catalog?: boolean;
 	proxy_enabled?: boolean;

@@ -362,6 +362,8 @@
   "settings.claim_moments_sub": "Twitch only. Claims the moments the watched channel hands out, after a short random delay.",
   "settings.community_goals": "Community goals",
   "settings.community_goals_sub": "Twitch only, for accounts with channel points on. Gives points to the watched channel's community goals, up to each goal's per-stream limit.",
+  "settings.watch_streak": "Watch streaks",
+  "settings.watch_streak_sub": "Twitch only. When a Points watch channel starts a new stream, watches it for a few minutes first to keep the watch streak, then goes back to the list order. Drops still come first.",
   "settings.experimental": "Experimental",
   "settings.exp_share_catalog": "Share Android campaigns with TV accounts",
   "settings.exp_share_catalog_sub": "TV logins also mine campaigns an Android login can see.",

@@ -31,10 +31,16 @@ func (r *Runner) forceChannels() []string {
 	return r.cfg.ForceChannels()
 }
 
-// liveForce returns the first live channel of logins, in order. A lookup
-// error counts as not live. A channel whose watch failed to start within
+// liveForce returns the first live channel of logins, in order, or with
+// watch streaks on the first live one still owed its streak watch
+// (streak.go). A lookup error counts as not live. A channel whose watch failed to start within
 // recheckInterval is passed over without a lookup.
 func (r *Runner) liveForce(ctx context.Context, logins []string) (string, platform.Stream, bool) {
+	if r.streakOn() {
+		if login, s, ok := r.streakCandidate(ctx, logins); ok {
+			return login, s, true
+		}
+	}
 	now := time.Now()
 	for _, login := range logins {
 		if login == "" {
@@ -132,7 +138,18 @@ func (r *Runner) beginForce(ctx context.Context, login string, s platform.Stream
 	r.tickN = 0
 	r.lastBeatAt = time.Time{}
 	r.forceCheckAt = now
+	r.streakKey = ""
+	streak := false
+	if r.streakOn() {
+		if k := streakKey(login, s); r.streakPendingLocked(k) {
+			r.streakKey, streak = k, true
+		}
+	}
 	r.mu.Unlock()
+	if streak {
+		slog.Info("runner watching a new broadcast for its watch streak", "kind", "state",
+			"account", r.cfg.AccountID, "channel", login, "for", streakWatchFor)
+	}
 	if cs, ok := r.cfg.Backend.(platform.ChannelSubscriber); ok && s.ChannelID != "" {
 		cs.SubscribeChannel(r.cfg.AccountID, s.ChannelID)
 	}
@@ -237,7 +254,7 @@ func (r *Runner) forceTick(ctx context.Context) error {
 	login := r.channel
 	// Stamped before the call so beacons start TickInterval apart.
 	r.lastBeatAt = time.Now()
-	due := time.Since(r.forceCheckAt) >= recheckInterval
+	due := time.Since(r.forceCheckAt) >= recheckInterval || r.streakDueLocked(time.Now())
 	r.mu.Unlock()
 
 	if err := r.beat(ctx, handle); err != nil {
@@ -258,6 +275,7 @@ func (r *Runner) forceTick(ctx context.Context) error {
 func (r *Runner) forceRecheck(ctx context.Context, login string) error {
 	r.mu.Lock()
 	r.forceCheckAt = time.Now()
+	streaking := r.streakServeLocked(r.forceCheckAt)
 	r.mu.Unlock()
 	if r.pointsOnly() {
 		r.dropPlan()
@@ -286,6 +304,16 @@ func (r *Runner) forceRecheck(ctx context.Context, login string) error {
 		r.stopWatch(ctx)
 		r.setState(ctx, StatePicking)
 		return nil
+	}
+	if streaking && r.streakOn() {
+		// A streak watch keeps its channel until served, unless it ended.
+		if cur, live, err := r.cfg.ForceLookup(ctx, login); err == nil && live {
+			r.mu.Lock()
+			r.viewers = cur.ViewerCount
+			r.mu.Unlock()
+			r.changed()
+			return nil
+		}
 	}
 	next, s, ok := r.liveForce(ctx, logins)
 	switch {

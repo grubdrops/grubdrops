@@ -6,6 +6,8 @@ All notable changes to GrubDrops.
 
 ### Added
 - **Claim moments.** A new Engine switch, Claim moments (Twitch only, off by default), claims the moments the watched channel hands out, after a short random delay, on drop and Points watches alike. Like Follow raids it applies to running watches at once and keeps the channel. Each moment is claimed once, and not at all if the watch ends first. `GET/PUT /api/settings` gain `claim_moments`.
+- **Community goals.** A new Engine switch, Community goals (Twitch only, off by default), gives an account's channel points to the watched channel's running community goals. It follows each channel points bonus check, so it needs the account's points mode on. Each goal gets the least of what it still needs, the account's per-stream limit left and the balance left. `GET/PUT /api/settings` gain `community_goals`.
+- **Watch streaks.** A new Engine switch, Watch streaks (Twitch only, off by default). When a Points watch channel starts a new stream, an idle account watches it for 7 minutes first, ahead of the list order, to keep its watch streak, then goes back to the order. A streak watch keeps its channel until it is served, unless the stream ends. A drop still comes first. `GET/PUT /api/settings` gain `watch_streak`.
 
 ## [2.3.6] — 2026-11-19
 

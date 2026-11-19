@@ -599,3 +599,25 @@ func TestSettings_CommunityGoals(t *testing.T) {
 	require.NoError(t, json.Unmarshal(b, &got))
 	assert.False(t, got.CommunityGoals)
 }
+
+// Watch streak reads off by default and saves. Runners read it at each
+// force pick, so a change needs no live apply.
+func TestSettings_WatchStreak(t *testing.T) {
+	e := newSettingsEnv(t)
+	_, b := e.do("GET", "/settings", nil)
+	var got settingsBody
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.WatchStreak, "off by default")
+
+	code, b := e.do("PUT", "/settings", map[string]any{"watch_streak": true})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.True(t, got.WatchStreak)
+	assert.Equal(t, 0, e.live, "read at each claim, no live apply")
+	assert.Equal(t, 0, e.rescans, "no rescan")
+
+	code, b = e.do("PUT", "/settings", map[string]any{"watch_streak": false})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.WatchStreak)
+}
