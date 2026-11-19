@@ -246,6 +246,14 @@ func (b *Backend) watchClientForName(name string) (*browser.Client, error) {
 	return cl, nil
 }
 
+// CanBrowse reports whether a watch can run in a Chrome sidecar: an always-on
+// sidecar client, or per-account sidecars the backend creates over the docker
+// socket. The browser watch dials each account's own sidecar, so the second
+// is enough on its own: the default compose sets no GRUB_BROWSER_URL.
+func (b *Backend) CanBrowse() bool {
+	return b.c != nil || b.sidecars.canCreate()
+}
+
 // EnableBrowserWatch switches StartWatch/Heartbeat/StopWatch onto the
 // chromedp sidecar (a real, playing IVS <video> per watch). No-op without a
 // sidecar client: the backend logs and leaves browser-watch off, in which case
@@ -253,7 +261,7 @@ func (b *Backend) watchClientForName(name string) (*browser.Client, error) {
 // at construction, before the watcher starts; the kick_watch_mode setting
 // decides whether this is called.
 func (b *Backend) EnableBrowserWatch() {
-	if b.c == nil {
+	if !b.CanBrowse() {
 		slog.Warn("kick: browser-watch requested but no sidecar client configured; falling back to the WebSocket watch path")
 		return
 	}
@@ -266,7 +274,7 @@ func (b *Backend) EnableBrowserWatch() {
 // Needs a sidecar client for the fallback; without one it degrades to pure WS
 // (same as not calling this at all). Call once at construction.
 func (b *Backend) EnableAutoWatch() {
-	if b.c == nil {
+	if !b.CanBrowse() {
 		slog.Warn("kick: auto watch requested but no sidecar client configured; running pure WebSocket with no Chrome fallback")
 		return
 	}
@@ -776,7 +784,7 @@ func (b *Backend) InventoryProgress(ctx context.Context, s platform.Session) ([]
 func (b *Backend) StartWatch(ctx context.Context, s platform.Session, stream platform.Stream) (platform.WatchHandle, error) {
 	// Browser-watch path: drive a real, playing IVS <video> in the sidecar
 	// — accrues Kick drop watch-time via real playback.
-	if b.browserWatch && b.c != nil {
+	if b.browserWatch && b.CanBrowse() {
 		return b.startBrowserWatch(ctx, s, stream)
 	}
 
@@ -784,7 +792,7 @@ func (b *Backend) StartWatch(ctx context.Context, s platform.Session, stream pla
 	// sidecar once this account's WS connection has died (flagged in wsFailed by
 	// Heartbeat). The watcher rotates off a dead watch and re-calls StartWatch,
 	// so the fallback takes effect on that next call.
-	if b.autoWatch && b.c != nil {
+	if b.autoWatch && b.CanBrowse() {
 		b.mu.Lock()
 		failed := b.wsFailed[s.AccountID]
 		b.mu.Unlock()

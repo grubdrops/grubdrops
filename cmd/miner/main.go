@@ -252,9 +252,9 @@ func run(ctx context.Context) error {
 	}
 	registry.Register(kickBackend)
 	logger.Info("kick backend enabled (utls HTTP transport)",
-		"sidecar", browserClient != nil,
+		"sidecar", kickBackend.CanBrowse(),
 		"watch_mode", kickWatchMode,
-		"browser_watch", kickWatchMode == store.KickWatchModeBrowser && browserClient != nil)
+		"browser_watch", kickWatchMode == store.KickWatchModeBrowser && kickBackend.CanBrowse())
 
 	// twitchBackend is the direct-HTTP backend used for the accrual canary
 	// probe (ProbeBeacon). It is always created even in browser-watch mode

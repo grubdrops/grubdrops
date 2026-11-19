@@ -92,6 +92,12 @@ func (r *sidecarRegistry) withCreate(image, netOverride string) *sidecarRegistry
 	return r
 }
 
+// canCreate reports whether the registry starts sidecars itself: a docker
+// controller and an image to create them from.
+func (r *sidecarRegistry) canCreate() bool {
+	return r != nil && r.ctl != nil && r.image != ""
+}
+
 // withProxy sets the proxy URL (may be "") passed to auto-created sidecars via
 // GRUB_SIDECAR_PROXY. Returns r for chaining at construction.
 func (r *sidecarRegistry) withProxy(proxyURL string) *sidecarRegistry {
