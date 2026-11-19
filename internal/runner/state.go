@@ -129,6 +129,10 @@ type Config struct {
 	// broadcast of a force channel its watch streak (streak.go). Read at
 	// each force pick and recheck; nil = off.
 	WatchStreak func() bool
+	// SecondStream makes a Twitch Points watch also watch the next live
+	// Points watch channel (extra.go). Read live; nil = off.
+	// SettingsChanged applies a change to the running watch.
+	SecondStream func() bool
 	// KickDailyReward turns the daily reward claim (daily_reward.go) on when
 	// the backend is a platform.DailyRewardClaimer. Read at each check; nil =
 	// off.
@@ -161,6 +165,7 @@ type Snapshot struct {
 	State                             State
 	Current                           *plan.Target
 	Channel                           string
+	ExtraChannel                      string // the second watch's channel (extra.go), "" = none
 	ViewerCount                       int
 	MinutesWatched                    int
 	StartedAt, LastPollAt, LastScanAt time.Time

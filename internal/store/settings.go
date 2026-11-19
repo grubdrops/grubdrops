@@ -328,6 +328,7 @@ const (
 	keyClaimMoments       = "settings:claim_moments"
 	keyCommunityGoals     = "settings:community_goals"
 	keyWatchStreak        = "settings:watch_streak"
+	keySecondStream       = "settings:second_stream"
 	keyKickDailyReward    = "settings:kick_daily_reward"
 	keyExpShareCatalog    = "settings:exp_share_catalog"
 )
@@ -407,6 +408,16 @@ func (s *Settings) WatchStreak(ctx context.Context) (bool, error) {
 
 func (s *Settings) SetWatchStreak(ctx context.Context, on bool) error {
 	return s.setBool(ctx, keyWatchStreak, on)
+}
+
+// SecondStream reports whether a Twitch Points watch also watches the next
+// live Points watch channel, for its channel points. Default off.
+func (s *Settings) SecondStream(ctx context.Context) (bool, error) {
+	return s.boolKey(ctx, keySecondStream, false)
+}
+
+func (s *Settings) SetSecondStream(ctx context.Context, on bool) error {
+	return s.setBool(ctx, keySecondStream, on)
 }
 
 // KickDailyReward reports whether a Kick account claims its daily reward once

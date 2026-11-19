@@ -57,6 +57,10 @@ func forceWatchers(snaps []runner.Snapshot) map[string][]string {
 		}
 		k := sn.Platform + "/" + sn.Channel
 		out[k] = append(out[k], sn.AccountID)
+		if sn.State == runner.StateForceWatching && sn.ExtraChannel != "" {
+			k := sn.Platform + "/" + sn.ExtraChannel
+			out[k] = append(out[k], sn.AccountID)
+		}
 	}
 	return out
 }

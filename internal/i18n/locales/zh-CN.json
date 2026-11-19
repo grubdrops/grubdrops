@@ -362,6 +362,8 @@
   "settings.community_goals_sub": "仅限 Twitch，且需开启频道积分。将积分投入正在观看频道的社区目标，不超过每个目标的单场上限。",
   "settings.watch_streak": "观看连续记录",
   "settings.watch_streak_sub": "仅限 Twitch。Points watch 频道开始新直播时，先观看几分钟以保持观看连续记录，然后回到列表顺序。掉落仍然优先。",
+  "settings.second_stream": "第二个频道",
+  "settings.second_stream_sub": "仅限 Twitch。由于 Twitch 可同时在两个频道发放频道积分，Points watch 也会观看下一个正在直播的 Points watch 频道。掉落仍只用一个频道。",
   "settings.experimental": "实验性",
   "settings.exp_share_catalog": "与 TV 账号共享 Android 活动",
   "settings.exp_share_catalog_sub": "TV 登录也会挖取 Android 登录可见的活动。",

@@ -172,6 +172,10 @@ type Runner struct {
 	// holds the broadcasts already served.
 	streakKey  string
 	streakDone map[string]time.Time
+	// extra is the running second watch of a Twitch force watch (extra.go);
+	// nil = none. extraChannel is the channel it watches now, "" = none.
+	extra        *extraTask
+	extraChannel string
 
 	// notifiedSwept dedupes sweep notifications by reward title, per run.
 	notifiedSwept map[string]struct{}
@@ -307,6 +311,7 @@ func (r *Runner) applyLive(ctx context.Context) bool {
 	r.syncPoints(ctx)
 	r.syncRaids(ctx)
 	r.syncMoments(ctx)
+	r.syncExtra(ctx)
 	switch st {
 	case StateForceWatching:
 		if len(r.forceChannels()) == 0 {
@@ -489,6 +494,7 @@ func (r *Runner) Snapshot() Snapshot {
 		Platform:       r.cfg.Platform,
 		State:          r.state,
 		Channel:        r.channel,
+		ExtraChannel:   r.extraChannel,
 		ViewerCount:    r.viewers,
 		MinutesWatched: r.minutes,
 		StartedAt:      r.startedAt,

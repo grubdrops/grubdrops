@@ -124,6 +124,8 @@ export interface Runner {
 	state: RunnerState;
 	current: Target | null;
 	channel: string;
+	/** Twitch Points watch: the second channel watched too, '' when none. */
+	extra_channel?: string;
 	viewer_count: number;
 	minutes: number;
 	started_at: string | null;
@@ -459,6 +461,8 @@ export interface Settings {
 	community_goals: boolean;
 	/** Twitch: watch each new Points watch broadcast for its watch streak first. Off by default. */
 	watch_streak: boolean;
+	/** Twitch: a Points watch also watches the next live Points watch channel. Off by default. */
+	second_stream: boolean;
 	/** Experimental: Kick accounts claim their daily reward. Off by default. */
 	kick_daily_reward: boolean;
 	/** Experimental: TV-login Twitch accounts also mine the Android catalog. Off by default. */
@@ -512,6 +516,7 @@ export interface SettingsPatch {
 	claim_moments?: boolean;
 	community_goals?: boolean;
 	watch_streak?: boolean;
+	second_stream?: boolean;
 	kick_daily_reward?: boolean;
 	exp_share_catalog?: boolean;
 	proxy_enabled?: boolean;

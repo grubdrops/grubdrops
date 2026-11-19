@@ -621,3 +621,30 @@ func TestSettings_WatchStreak(t *testing.T) {
 	require.NoError(t, json.Unmarshal(b, &got))
 	assert.False(t, got.WatchStreak)
 }
+
+// Second channel reads off by default, saves, and a change tells every
+// runner to apply it live; an unchanged value does not.
+func TestSettings_SecondStream(t *testing.T) {
+	e := newSettingsEnv(t)
+	_, b := e.do("GET", "/settings", nil)
+	var got settingsBody
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.SecondStream, "off by default")
+
+	code, b := e.do("PUT", "/settings", map[string]any{"second_stream": true})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.True(t, got.SecondStream)
+	assert.Equal(t, 1, e.live, "a change applies to the running watches")
+	assert.Equal(t, 0, e.rescans, "no rescan")
+
+	code, _ = e.do("PUT", "/settings", map[string]any{"second_stream": true})
+	require.Equal(t, 200, code)
+	assert.Equal(t, 1, e.live, "unchanged value")
+
+	code, b = e.do("PUT", "/settings", map[string]any{"second_stream": false})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.SecondStream)
+	assert.Equal(t, 2, e.live)
+}
