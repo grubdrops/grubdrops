@@ -120,7 +120,8 @@ func (r *Runner) start(ctx context.Context) error {
 	})
 
 	s := streams[0]
-	if checker, ok := r.cfg.Backend.(platform.AvailableDropsChecker); ok {
+	// A repeat day is not an advertised drop, so the probe cannot tell channels apart.
+	if checker, ok := r.cfg.Backend.(platform.AvailableDropsChecker); ok && target.Benefit.Repeat == nil {
 		probed := 0
 		for _, cand := range streams {
 			if cand.ChannelID == "" {
@@ -195,6 +196,7 @@ func (r *Runner) tick(ctx context.Context) error {
 	}
 	handle := *r.handle
 	target := *r.current
+	stream := r.stream
 	r.tickN++
 	tickN := r.tickN
 	// Stamped before the call so beacons start TickInterval apart, as the
@@ -233,6 +235,7 @@ func (r *Runner) tick(ctx context.Context) error {
 		slog.Error("runner inventory failed", "kind", "error", "account", r.cfg.AccountID, "err", err)
 		return fmt.Errorf("inventory: %w", err)
 	}
+	progress = r.repeatTick(target, stream, progress)
 	r.mu.Lock()
 	r.lastPollAt = time.Now()
 	lastScan := r.lastScanTry

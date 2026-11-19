@@ -68,6 +68,7 @@ describe('campaign helpers', () => {
 		expect(cellKey(cell('eligible'))).toBe('campaign.not_started');
 		expect(cellKey(cell('blocked', 'not_linked'))).toBe('campaign.blocked_link');
 		expect(cellKey(cell('blocked', 'precondition'))).toBe('campaign.blocked_precondition');
+		expect(cellKey(cell('blocked', 'cooldown'))).toBe('campaign.blocked_cooldown');
 		expect(cellKey(cell('blocked', 'weird'))).toBe('campaign.blocked');
 	});
 

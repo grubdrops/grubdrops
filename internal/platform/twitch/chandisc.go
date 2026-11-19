@@ -152,6 +152,7 @@ func (d *discovery) listByChannels(ctx context.Context, sess platform.Session, c
 			slog.Warn("tv discovery: directory failed", "game", game, "err", err)
 			continue // one bad game must not sink the rest
 		}
+		d.noteDirectory(slug, streams)
 		if len(streams) > maxChannelsPerGame {
 			streams = streams[:maxChannelsPerGame]
 		}

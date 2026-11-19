@@ -321,3 +321,29 @@ func TestBoard_QueuedBy(t *testing.T) {
 		t.Fatalf("overwatch %+v", got[1].QueuedBy)
 	}
 }
+
+func TestBoard_CampaignRepeatDayFlows(t *testing.T) {
+	c := platform.Campaign{ID: "chest", Platform: "twitch", Game: "GTA", Name: "Daily", Status: "active",
+		Benefits: []platform.DropBenefit{
+			{ID: "g:day01", CampaignID: "chest", RequiredMinutes: 60, Repeat: &platform.Repeat{GroupID: "g", Day: 1, Days: 6}},
+			{ID: "plain", CampaignID: "chest", RequiredMinutes: 90},
+		}}
+	b := NewBoard()
+	b.Observe(scan("a1", "twitch", oct30, c))
+	d, ok := b.Campaign("twitch", "chest")
+	if !ok || len(d.Drops) != 2 {
+		t.Fatalf("detail=%+v ok=%v", d, ok)
+	}
+	for _, dr := range d.Drops {
+		switch dr.ID {
+		case "g:day01":
+			if dr.Day != 1 || dr.Days != 6 {
+				t.Fatalf("repeat drop day=%d days=%d", dr.Day, dr.Days)
+			}
+		case "plain":
+			if dr.Day != 0 || dr.Days != 0 {
+				t.Fatalf("plain drop day=%d days=%d", dr.Day, dr.Days)
+			}
+		}
+	}
+}

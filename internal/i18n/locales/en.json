@@ -795,6 +795,8 @@
   "campaign.blocked_link": "Needs link",
   "campaign.blocked_precondition": "Needs earlier drop",
   "campaign.blocked_skipped": "Skipped",
+  "campaign.blocked_cooldown": "Done for today",
+  "campaign.repeat_day": "Day {n} of {total}",
   "campaign.no_accounts": "No account has this drop",
   "campaign.open": "Show campaign",
   "mark.collect": "Mark as collected",

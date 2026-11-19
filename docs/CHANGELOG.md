@@ -4,6 +4,14 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+
+- **Twitch daily watch rewards (#90).** Watch-based reward groups that hang off a game instead of the drops dashboard are now mined, starting with the GTAVI Daily Chest: 60 minutes a day on 6 days. Twitch grants each day by itself, so GrubDrops watches, logs the day and waits. The drop panel shows each day as "Day n of 6" and "Done for today" until the next window opens, and an idle account wakes when it does. Subscription groups and the all-12 "Ultimate Reward" are not mined.
+
+### Changed
+
+- Reward groups use two new Twitch queries, `ChannelDropsCampaigns` and `DropChannelCampaignsProgress`. When Twitch will not answer the progress query (integrity check), GrubDrops counts the watched minutes itself and gates each day on the claim log. The campaign API gains `day` and `days` on a drop, and the planner a `cooldown` block reason.
+
 ### Fixed
 
 - **Twitch drops claimed outside GrubDrops now count as claimed (#91).** Claimed in the browser or by another miner, a drop showed as Not started and was mined for 6 minutes before it was skipped, because Twitch drops a fully claimed campaign from the inventory's progress list. A campaign now counts as claimed when the inventory no longer lists it as in progress and every reward it grants was awarded after the campaign started. Partly claimed campaigns keep the per-drop inventory state.

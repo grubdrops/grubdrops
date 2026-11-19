@@ -50,7 +50,8 @@
 	const WAIT_KEYS = {
 		not_linked: 'campaign.blocked_link',
 		precondition: 'campaign.blocked_precondition',
-		skipped: 'campaign.blocked_skipped'
+		skipped: 'campaign.blocked_skipped',
+		cooldown: 'campaign.blocked_cooldown'
 	} as const;
 
 	/** Why a started drop waits: its block reason, else it is queued. */

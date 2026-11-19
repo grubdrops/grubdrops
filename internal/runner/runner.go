@@ -115,6 +115,11 @@ type Runner struct {
 	// claimFailSkipped holds benefits skipped for repeated claim failures,
 	// value = required minutes (Task 5).
 	claimFailSkipped map[string]int
+	// repeatMin counts the beacons watched per repeat-day benefit when the
+	// backend reports no progress for it; repeatFirst is when each count
+	// began (repeat.go).
+	repeatMin   map[string]int
+	repeatFirst map[string]time.Time
 	// dailyFailed holds daily reward IDs whose claim failed this run
 	// (daily_reward.go); they are not tried again.
 	dailyFailed map[string]bool
@@ -796,6 +801,8 @@ func (r *Runner) scan(ctx context.Context, progress []platform.Progress, havePro
 		}
 		claimed = m
 	}
+	claimed = r.logRepeatClaimed(ctx, camps, progress, claimed)
+	progress = r.withRepeatLocal(ctx, camps, progress, claimed)
 	claimed, notLinked := r.retryLinkRefused(ctx, camps, progress, claimed)
 
 	var order []string
@@ -822,6 +829,7 @@ func (r *Runner) scan(ctx context.Context, progress []platform.Progress, havePro
 		NotLinked: notLinked,
 		Order:     order,
 		Priority:  priority,
+		Now:       time.Now(),
 	})
 
 	now := time.Now()
@@ -829,7 +837,7 @@ func (r *Runner) scan(ctx context.Context, progress []platform.Progress, havePro
 	r.queue = res.Queue
 	r.blocked = res.Blocked
 	r.lastScanAt = now
-	r.nextStart = upcomingStart(r.cfg.Games, camps, now)
+	r.nextStart = minTime(upcomingStart(r.cfg.Games, camps, now), plan.NextCooldown(res))
 	r.mu.Unlock()
 	if r.cfg.OnScan != nil {
 		r.cfg.OnScan(ctx, Scan{

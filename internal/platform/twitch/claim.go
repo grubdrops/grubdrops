@@ -111,3 +111,28 @@ func (cl *claimer) inventoryClaimed(ctx context.Context, sess platform.Session, 
 	}
 	return false, false, nil
 }
+
+// claimRepeat settles one day of a repeatable watch group. Twitch grants the
+// reward by itself, so a day without an instance id has nothing to claim.
+// With one (the group reported CLAIMABLE), the claim mutation goes out and
+// a success status counts: there is no inventory row to confirm against.
+func (cl *claimer) claimRepeat(ctx context.Context, sess platform.Session, b platform.DropBenefit) error {
+	if b.InstanceID == "" {
+		return nil
+	}
+	var out claimResult
+	err := cl.c.gql(ctx, sess.AccessToken, OpClaimDrop,
+		map[string]any{"input": map[string]any{"dropInstanceID": b.InstanceID}}, &out)
+	if err != nil {
+		return fmt.Errorf("claim %s: %w", b.InstanceID, err)
+	}
+	if out.ClaimDropRewards == nil {
+		return fmt.Errorf("claim %s: twitch returned no claim result: %w", b.InstanceID, platform.ErrClaimRefused)
+	}
+	switch status := out.ClaimDropRewards.Status; status {
+	case "ELIGIBLE_FOR_ALL", "DROP_INSTANCE_ALREADY_CLAIMED":
+		return nil
+	default:
+		return fmt.Errorf("claim %s: status %q: %w", b.InstanceID, status, platform.ErrClaimRefused)
+	}
+}

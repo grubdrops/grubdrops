@@ -230,7 +230,10 @@ type CampaignCell struct {
 type CampaignDrop struct {
 	ID, Name, ImageURL string
 	RequiredMinutes    int
-	Cells              []CampaignCell
+	// Day and Days place a repeat-group drop (daily chest) as day n of m;
+	// 0 for a normal drop.
+	Day, Days int
+	Cells     []CampaignCell
 }
 
 // CampaignDetail is one campaign merged across every account scan that sees
@@ -262,9 +265,13 @@ func (b *Board) Campaign(platformName, id string) (CampaignDetail, bool) {
 			return i
 		}
 		drops[ben.ID] = len(out.Drops)
-		out.Drops = append(out.Drops, CampaignDrop{
+		d := CampaignDrop{
 			ID: ben.ID, Name: ben.Name, ImageURL: ben.ImageURL, RequiredMinutes: ben.RequiredMinutes,
-		})
+		}
+		if ben.Repeat != nil {
+			d.Day, d.Days = ben.Repeat.Day, ben.Repeat.Days
+		}
+		out.Drops = append(out.Drops, d)
 		return drops[ben.ID]
 	}
 	for _, acct := range accounts {

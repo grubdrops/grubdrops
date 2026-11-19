@@ -118,7 +118,22 @@ type DropBenefit struct {
 	// preconditions aren't all claimed yet, so the earlier drop in the
 	// chain gets mined first.
 	Preconditions []string
+	// Repeat marks one day of a repeatable watch group (Twitch reward
+	// groups, e.g. a daily chest). nil for a normal drop.
+	Repeat *Repeat
 }
+
+// Repeat marks one day of a repeatable watch group. Each day is its own
+// benefit, chained to the day before by Preconditions.
+type Repeat struct {
+	GroupID     string
+	Day, Days   int           // 1-based day, total days (1 if not repeatable)
+	Reset       time.Duration // resetIntervalSeconds
+	CategoryIDs []string      // categories a watched stream must be in
+}
+
+// KindRepeat is Campaign.Kind for a campaign of repeatable watch groups.
+const KindRepeat = "repeat"
 
 type Stream struct {
 	Channel      string
@@ -144,6 +159,9 @@ type Progress struct {
 	// id) — Twitch issues a fresh instance id when the user enters a
 	// campaign. Empty for backends that don't surface it.
 	InstanceID string
+	// NextEligibleAt gates a repeat day: it accrues nothing before this
+	// time. Zero means no gate.
+	NextEligibleAt time.Time
 }
 
 type WatchHandle struct {

@@ -28,6 +28,8 @@ type campaignDropJSON struct {
 	Name            string             `json:"name"`
 	ImageURL        string             `json:"image_url"`
 	RequiredMinutes int                `json:"required_minutes"`
+	Day             int                `json:"day,omitempty"`
+	Days            int                `json:"days,omitempty"`
 	Accounts        []campaignCellJSON `json:"accounts"`
 }
 
@@ -107,7 +109,7 @@ func (s *server) getCampaign(w http.ResponseWriter, r *http.Request) {
 	planned := plannedDrops(s.d.Pool)
 	idx := map[string]int{}
 	for _, d := range detail.Drops {
-		dj := campaignDropJSON{ID: d.ID, Name: d.Name, ImageURL: d.ImageURL, RequiredMinutes: d.RequiredMinutes, Accounts: []campaignCellJSON{}}
+		dj := campaignDropJSON{ID: d.ID, Name: d.Name, ImageURL: d.ImageURL, RequiredMinutes: d.RequiredMinutes, Day: d.Day, Days: d.Days, Accounts: []campaignCellJSON{}}
 		for _, c := range d.Cells {
 			dj.Accounts = append(dj.Accounts, campaignCellJSON{
 				AccountID: c.AccountID, Platform: c.Platform, State: c.State, Reason: c.Reason, Minutes: c.Minutes,

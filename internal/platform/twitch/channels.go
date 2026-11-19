@@ -125,8 +125,19 @@ type gameDirectoryData struct {
 // drops-enabled streams for the given game slug, fully populated with
 // ChannelID + BroadcastID + GameID needed by the SendEvents heartbeat.
 func (ch *channels) listForGameDirectory(ctx context.Context, sess platform.Session, gameSlug string) ([]platform.Stream, error) {
+	return ch.listDirectory(ctx, sess, gameSlug, true)
+}
+
+// listDirectory is listForGameDirectory with the drops-enabled filter
+// optional. A repeatable watch group (daily chest) needs no drops-enabled
+// stream, so dropsOnly=false lists every live stream of the game.
+func (ch *channels) listDirectory(ctx context.Context, sess platform.Session, gameSlug string, dropsOnly bool) ([]platform.Stream, error) {
 	if gameSlug == "" {
 		return nil, nil
+	}
+	filters := []string{"DROPS_ENABLED"}
+	if !dropsOnly {
+		filters = []string{}
 	}
 	vars := map[string]any{
 		"limit":              30,
@@ -141,7 +152,7 @@ func (ch *channels) listForGameDirectory(ctx context.Context, sess platform.Sess
 				"platform": "web",
 			},
 			"sort":          "VIEWER_COUNT",
-			"systemFilters": []string{"DROPS_ENABLED"},
+			"systemFilters": filters,
 			"tags":          []string{},
 			"requestID":     "JIRA-VXP-2397",
 		},
@@ -163,7 +174,7 @@ func (ch *channels) listForGameDirectory(ctx context.Context, sess platform.Sess
 		out = append(out, platform.Stream{
 			Channel:      e.Node.Broadcaster.Login,
 			ViewerCount:  e.Node.ViewersCount,
-			DropsEnabled: true,
+			DropsEnabled: dropsOnly,
 			ChannelID:    e.Node.Broadcaster.ID,
 			BroadcastID:  e.Node.ID,
 			GameID:       gameID,

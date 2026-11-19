@@ -210,5 +210,5 @@ func TestAndroidSession_DashboardPath(t *testing.T) {
 	assert.True(t, ops[OpDropCampaignDetails.Name])
 	assert.True(t, ops[OpInventory.Name])
 	assert.True(t, ops[OpClaimDrop.Name])
-	assert.False(t, ops[OpGameDirectory.Name], "no TV channel-first walk")
+	assert.False(t, ops[OpAvailableDrops.Name], "no TV channel-first walk")
 }

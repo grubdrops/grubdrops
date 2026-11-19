@@ -32,6 +32,7 @@
 	import ArmButton from './ArmButton.svelte';
 	import BoxArt from './BoxArt.svelte';
 	import Icon from './Icon.svelte';
+	import NewPill from './NewPill.svelte';
 	import PlatformMark from './PlatformMark.svelte';
 	import SidePanel from './SidePanel.svelte';
 
@@ -206,6 +207,11 @@
 							<span class="nm"
 								>{d.name}{#if hl === d.id}<span class="you">{t('campaign.this_reward')}</span>{/if}</span
 							>
+							{#if (d.days ?? 0) > 1}
+								<span class="req"
+									>{t('campaign.repeat_day', { n: d.day ?? 0, total: d.days ?? 0 })}{#if d.day === 1}<NewPill since="2.4" />{/if}</span
+								>
+							{/if}
 							<!-- Claim-log rebuilds carry no minutes. -->
 							{#if data.live || d.required_minutes > 0}
 								<span class="req" class:dim={d.required_minutes <= 0}

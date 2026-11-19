@@ -34,6 +34,16 @@ type discovery struct {
 	// owned holds the latest inventory's owned-reward snapshot per account,
 	// so a scan's OwnedRewards call reuses the InventoryProgress fetch.
 	owned map[string]ownedSnap
+
+	// Reward group state (rewardgroups.go). rgByGame caches each game's
+	// campaigns by directory slug, rgChannel maps a campaign to the channel
+	// it was read through, rgProg is the last progress read.
+	rgByGame       map[string]rgEntry
+	rgChannel      map[string]string
+	rgDir          map[string]rgDirEntry
+	rgProg         []platform.Progress
+	rgProgAt       time.Time
+	rgProgOffUntil time.Time
 }
 
 // ownedSnap is one account's owned-reward view and when it was read.

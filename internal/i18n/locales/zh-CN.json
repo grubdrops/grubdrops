@@ -795,6 +795,8 @@
   "campaign.blocked_link": "需要关联",
   "campaign.blocked_precondition": "需要先完成前一个掉宝",
   "campaign.blocked_skipped": "已跳过",
+  "campaign.blocked_cooldown": "今日已完成",
+  "campaign.repeat_day": "第 {n} 天，共 {total} 天",
   "campaign.no_accounts": "没有账号有此掉宝",
   "campaign.open": "查看活动",
   "mark.collect": "标记为已领取",

@@ -113,7 +113,7 @@ export interface Target {
 
 export interface Blocked {
 	target: Target;
-	reason: 'not_linked' | 'precondition' | 'skipped';
+	reason: 'not_linked' | 'precondition' | 'skipped' | 'cooldown';
 }
 
 export interface Runner {
@@ -279,6 +279,9 @@ export interface CampaignDrop {
 	name: string;
 	image_url: string;
 	required_minutes: number;
+	/** Day n of m of a daily reward group; absent on a normal drop. */
+	day?: number;
+	days?: number;
 	accounts: DropCell[];
 }
 

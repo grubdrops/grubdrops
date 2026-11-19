@@ -277,7 +277,7 @@ func TestListByChannels_DedupesGamesBySlug(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	assert.Equal(t, 1, dirCalls["rust"], "duplicate slug must issue exactly one DirectoryPage_Game request")
+	assert.Equal(t, 1, dirCalls["rust"], "duplicate slug must issue exactly one DirectoryPage_Game request, shared with reward groups")
 }
 
 // tvDiscoveryServer serves the canned TV channel-first fixtures and counts
@@ -392,13 +392,16 @@ func TestListActiveCampaigns_LegacySessionUsesDashboard(t *testing.T) {
 			return `{"data":{"currentUser":{"dropCampaigns":[]}}}`
 		},
 		"DirectoryPage_Game": func(map[string]any) string { called["dir"] = true; return dirRust },
+		// The channel-first walk's marker. The directory is also read for
+		// reward groups, so it no longer tells the paths apart.
+		"DropsHighlightService_AvailableDrops": func(map[string]any) string { called["avail"] = true; return `{"data":{}}` },
 	})
 	defer srv.Close()
 	b := newForTest(srv.URL)
 	_, err := b.ListActiveCampaigns(context.Background(), platform.Session{AccessToken: "a", Games: []string{"Rust"}})
 	require.NoError(t, err)
 	assert.True(t, called["dash"])
-	assert.False(t, called["dir"], "Android sessions must not change discovery path")
+	assert.False(t, called["avail"], "Android sessions must not change discovery path")
 }
 
 // TestListByChannels_StatusFromWindow: channel-first campaigns derive

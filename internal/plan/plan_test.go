@@ -387,3 +387,63 @@ func TestBuild_UpcomingNeverPicked(t *testing.T) {
 		t.Fatalf("blocked %v", res.Blocked)
 	}
 }
+
+func repeatDay(id string, day int, pre ...string) platform.DropBenefit {
+	return platform.DropBenefit{ID: id, RequiredMinutes: 60, Preconditions: pre,
+		Repeat: &platform.Repeat{GroupID: "g", Day: day, Days: 3, Reset: 24 * time.Hour}}
+}
+
+func TestBuild_RepeatCooldown(t *testing.T) {
+	c := camp("chest", "twitch", "Rust", repeatDay("d1", 1), repeatDay("d2", 2, "d1"), repeatDay("d3", 3, "d2"))
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	open := now.Add(3 * time.Hour)
+	in := Input{
+		Games: rust, Campaigns: []platform.Campaign{c}, Now: now,
+		Claimed:  map[string]bool{"d1": true},
+		Progress: []platform.Progress{{BenefitID: "d2", NextEligibleAt: open}},
+	}
+	res := Build(in)
+	eq(t, ids(res.Queue), []string{})
+	if len(res.Blocked) != 2 {
+		t.Fatalf("blocked=%+v", res.Blocked)
+	}
+	if b := res.Blocked[0]; b.Benefit.ID != "d2" || b.Reason != ReasonCooldown || !b.Until.Equal(open) {
+		t.Fatalf("d2 block=%+v", b)
+	}
+	if b := res.Blocked[1]; b.Benefit.ID != "d3" || b.Reason != ReasonPrecondition {
+		t.Fatalf("d3 must wait on d2, not the clock: %+v", b)
+	}
+	if got := NextCooldown(res); !got.Equal(open) {
+		t.Fatalf("NextCooldown=%v want %v", got, open)
+	}
+
+	in.Now = open.Add(time.Minute)
+	eq(t, ids(Build(in).Queue), []string{"d2"})
+
+	in.Now = time.Time{}
+	eq(t, ids(Build(in).Queue), []string{"d2"})
+}
+
+func TestBuild_CooldownIgnoresNormalDrops(t *testing.T) {
+	c := camp("c", "kick", "Rust", ben("d1", 60))
+	res := Build(Input{
+		Games: rust, Campaigns: []platform.Campaign{c}, Now: time.Now(),
+		Progress: []platform.Progress{{BenefitID: "d1", NextEligibleAt: time.Now().Add(time.Hour)}},
+	})
+	eq(t, ids(res.Queue), []string{"d1"})
+}
+
+func TestNextCooldown_Earliest(t *testing.T) {
+	now := time.Now()
+	res := Result{Blocked: []Blocked{
+		{Reason: ReasonCooldown, Until: now.Add(2 * time.Hour)},
+		{Reason: ReasonSkipped},
+		{Reason: ReasonCooldown, Until: now.Add(time.Hour)},
+	}}
+	if got := NextCooldown(res); !got.Equal(now.Add(time.Hour)) {
+		t.Fatalf("got %v", got)
+	}
+	if !NextCooldown(Result{}).IsZero() {
+		t.Fatal("no cooldown must be zero")
+	}
+}

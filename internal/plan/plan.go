@@ -31,6 +31,9 @@ type Input struct {
 	NotLinked map[string]bool // benefit IDs whose claim the platform refused until linked
 	Order     []string        // session Up next override, benefit IDs
 	Priority  Priority        // campaign order; zero value is PriorityOrdered
+	// Now gates repeat days on Progress.NextEligibleAt. The zero value never
+	// gates.
+	Now time.Time
 }
 
 // Priority picks how campaigns are ordered in the queue.
@@ -56,11 +59,15 @@ const (
 	ReasonNotLinked    Reason = "not_linked"
 	ReasonPrecondition Reason = "precondition"
 	ReasonSkipped      Reason = "skipped"
+	// ReasonCooldown marks a repeat day whose window has not opened yet.
+	ReasonCooldown Reason = "cooldown"
 )
 
 type Blocked struct {
 	Target
 	Reason Reason
+	// Until is when a cooldown ends; zero for other reasons.
+	Until time.Time
 }
 
 type Result struct {
@@ -121,8 +128,12 @@ func Build(in Input) Result {
 	minutes := map[string]int{}
 	hasRow := map[string]bool{}
 	invClaimed := map[string]bool{}
+	eligible := map[string]time.Time{}
 	for _, p := range in.Progress {
 		hasRow[p.BenefitID] = true
+		if p.NextEligibleAt.After(eligible[p.BenefitID]) {
+			eligible[p.BenefitID] = p.NextEligibleAt
+		}
 		if p.MinutesWatched > minutes[p.BenefitID] {
 			minutes[p.BenefitID] = p.MinutesWatched
 		}
@@ -187,11 +198,13 @@ func Build(in Input) Result {
 			t := Target{Campaign: c, Benefit: b, Minutes: minutes[b.ID]}
 			switch {
 			case in.NotLinked[b.ID]:
-				e.blocked = append(e.blocked, Blocked{t, ReasonNotLinked})
+				e.blocked = append(e.blocked, Blocked{Target: t, Reason: ReasonNotLinked})
 			case in.Skipped[b.ID]:
-				e.blocked = append(e.blocked, Blocked{t, ReasonSkipped})
+				e.blocked = append(e.blocked, Blocked{Target: t, Reason: ReasonSkipped})
 			case unmetPrecondition(b, claimed):
-				e.blocked = append(e.blocked, Blocked{t, ReasonPrecondition})
+				e.blocked = append(e.blocked, Blocked{Target: t, Reason: ReasonPrecondition})
+			case b.Repeat != nil && !in.Now.IsZero() && in.Now.Before(eligible[b.ID]):
+				e.blocked = append(e.blocked, Blocked{Target: t, Reason: ReasonCooldown, Until: eligible[b.ID]})
 			default:
 				e.targets = append(e.targets, t)
 			}
@@ -258,4 +271,19 @@ func unmetPrecondition(b platform.DropBenefit, claimed map[string]bool) bool {
 		}
 	}
 	return false
+}
+
+// NextCooldown is the earliest end of a cooldown in res, or zero when no
+// target is cooling down.
+func NextCooldown(res Result) time.Time {
+	var first time.Time
+	for _, b := range res.Blocked {
+		if b.Reason != ReasonCooldown || b.Until.IsZero() {
+			continue
+		}
+		if first.IsZero() || b.Until.Before(first) {
+			first = b.Until
+		}
+	}
+	return first
 }

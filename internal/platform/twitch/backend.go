@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -83,6 +84,9 @@ func (b *Backend) CampaignDetails(ctx context.Context, s platform.Session, campa
 	}
 	if strings.ContainsAny(campaignID, "| ") {
 		return nil, nil
+	}
+	if benefits, ok := b.disc.rewardGroupBenefits(campaignID); ok {
+		return benefits, nil
 	}
 	benefits, allowed, err := b.disc.fetchDetails(ctx, s, campaignID)
 	if err != nil {
@@ -268,6 +272,7 @@ func (b *Backend) ListActiveCampaigns(ctx context.Context, s platform.Session) (
 			return nil, err
 		}
 		camps = b.withShared(ctx, s, camps, allowed)
+		camps = append(camps, b.disc.rewardGroupCampaigns(ctx, s, b.chans, campaignIDs(camps))...)
 		details := make(map[string][]platform.DropBenefit, len(camps))
 		for _, c := range camps {
 			details[c.ID] = c.Benefits
@@ -286,6 +291,7 @@ func (b *Backend) ListActiveCampaigns(ctx context.Context, s platform.Session) (
 	if err != nil {
 		return nil, err
 	}
+	camps = append(camps, b.disc.rewardGroupCampaigns(ctx, s, b.chans, campaignIDs(camps))...)
 	// Drain the allow-lists captured as a side-effect of fetchDetails and
 	// merge them into our cache. ListEligibleChannels reads from this map.
 	allowed := b.disc.drainAllowed()
@@ -298,6 +304,15 @@ func (b *Backend) ListActiveCampaigns(ctx context.Context, s platform.Session) (
 	// Failures are non-fatal: the watcher falls back to polling.
 	b.ensurePubSub(s)
 	return camps, nil
+}
+
+// campaignIDs is the set of ids of camps.
+func campaignIDs(camps []platform.Campaign) map[string]bool {
+	ids := make(map[string]bool, len(camps))
+	for _, c := range camps {
+		ids[c.ID] = true
+	}
+	return ids
 }
 
 // SetPubSubHandlers wires real-time callbacks. Must be called before
@@ -465,12 +480,27 @@ func (b *Backend) ListEligibleChannels(ctx context.Context, s platform.Session, 
 	// of the game. Fall back to the DirectoryPage_Game query — without
 	// this most public campaigns (Minecraft, Apex, etc) have nothing
 	// to watch and the watcher sleeps forever.
-	return b.chans.listForGameDirectory(ctx, s, b.chans.dirSlug(ctx, s, c.GameID, c.Game))
+	slug := b.chans.dirSlug(ctx, s, c.GameID, c.Game)
+	streams, err := b.chans.listForGameDirectory(ctx, s, slug)
+	if err != nil || len(streams) > 0 || c.Kind != platform.KindRepeat {
+		return streams, err
+	}
+	// A repeatable watch group needs no drops-enabled stream: any live
+	// stream of its category counts.
+	return b.chans.listDirectory(ctx, s, slug, false)
 }
 
 func (b *Backend) InventoryProgress(ctx context.Context, s platform.Session) ([]platform.Progress, error) {
 	b.c.bind(s)
-	return b.disc.inventory(ctx, s)
+	rows, err := b.disc.inventory(ctx, s)
+	if err != nil || !b.disc.hasRewardGroups() {
+		return rows, err
+	}
+	userID := s.UserID
+	if id, err := b.watch.resolveUserID(ctx, s); err == nil {
+		userID = strconv.FormatInt(id, 10)
+	}
+	return append(rows, b.disc.rewardGroupProgress(ctx, s, userID)...), nil
 }
 
 // OwnedRewards satisfies platform.OwnedRewardLister.
@@ -596,6 +626,9 @@ func (b *Backend) StopWatch(ctx context.Context, h platform.WatchHandle) error {
 
 func (b *Backend) Claim(ctx context.Context, s platform.Session, drop platform.DropBenefit) error {
 	b.c.bind(s)
+	if drop.Repeat != nil {
+		return b.claim.claimRepeat(ctx, s, drop)
+	}
 	// userID feeds the synthetic-instance-id fallback in claimer.claim
 	// when the inventory dropInstanceID is missing. Cached after the
 	// first watch; resolve failure is non-fatal (claim degrades).

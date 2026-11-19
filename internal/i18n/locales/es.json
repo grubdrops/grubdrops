@@ -795,6 +795,8 @@
   "campaign.blocked_link": "Falta vincular",
   "campaign.blocked_precondition": "Falta un drop anterior",
   "campaign.blocked_skipped": "Omitido",
+  "campaign.blocked_cooldown": "Hecho por hoy",
+  "campaign.repeat_day": "Día {n} de {total}",
   "campaign.no_accounts": "Ninguna cuenta tiene este drop",
   "campaign.open": "Ver campaña",
   "mark.collect": "Marcar como obtenido",

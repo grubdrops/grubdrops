@@ -795,6 +795,8 @@
   "campaign.blocked_link": "Bağlantı gerekli",
   "campaign.blocked_precondition": "Önceki drop gerekli",
   "campaign.blocked_skipped": "Atlandı",
+  "campaign.blocked_cooldown": "Bugünlük tamam",
+  "campaign.repeat_day": "{total} günün {n}. günü",
   "campaign.no_accounts": "Hiçbir hesapta bu drop yok",
   "campaign.open": "Kampanyayı göster",
   "mark.collect": "Alındı işaretle",
