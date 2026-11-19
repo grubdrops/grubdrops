@@ -33,15 +33,13 @@ func (r *Runner) forceChannels() []string {
 
 // liveForce returns the first live channel of logins, in order, or with
 // watch streaks on the first live one still owed its streak watch
-// (streak.go). A lookup error counts as not live. A channel whose watch failed to start within
-// recheckInterval is passed over without a lookup.
+// (streak.go). A lookup error counts as not live. A channel whose watch
+// failed to start within recheckInterval is passed over without a lookup.
+// One pass: without streaks it stops at the first live channel.
 func (r *Runner) liveForce(ctx context.Context, logins []string) (string, platform.Stream, bool) {
-	if r.streakOn() {
-		if login, s, ok := r.streakCandidate(ctx, logins); ok {
-			return login, s, true
-		}
-	}
+	streak := r.streakOn()
 	now := time.Now()
+	first, firstS, found := "", platform.Stream{}, false
 	for _, login := range logins {
 		if login == "" {
 			continue
@@ -58,11 +56,23 @@ func (r *Runner) liveForce(ctx context.Context, logins []string) (string, platfo
 				"account", r.cfg.AccountID, "channel", login, "err", err)
 			continue
 		}
-		if live {
+		if !live {
+			continue
+		}
+		if !streak {
 			return login, s, true
 		}
+		r.mu.Lock()
+		pending := r.streakPendingLocked(streakKey(login, s))
+		r.mu.Unlock()
+		if pending {
+			return login, s, true
+		}
+		if !found {
+			first, firstS, found = login, s, true
+		}
 	}
-	return "", platform.Stream{}, false
+	return first, firstS, found
 }
 
 // startForce watches the first live channel of logins whose watch starts.

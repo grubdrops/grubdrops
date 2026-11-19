@@ -51,7 +51,7 @@ func (t *extraTask) stop() {
 // channels at once.
 func (r *Runner) secondOn() bool {
 	return r.cfg.SecondStream != nil && r.cfg.ForceLookup != nil &&
-		platform.PointsSupported(r.cfg.Platform) && r.cfg.SecondStream()
+		r.cfg.Platform == "twitch" && r.cfg.SecondStream()
 }
 
 // startExtra starts the second watch beside the force watch on primary. It

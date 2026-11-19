@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"context"
 	"log/slog"
 	"time"
 
@@ -25,7 +24,7 @@ var (
 
 // streakOn reads the watch streak setting now. Only Twitch has streaks.
 func (r *Runner) streakOn() bool {
-	return r.cfg.WatchStreak != nil && platform.PointsSupported(r.cfg.Platform) && r.cfg.WatchStreak()
+	return r.cfg.WatchStreak != nil && r.cfg.Platform == "twitch" && r.cfg.WatchStreak()
 }
 
 // streakKey names one broadcast of login; "" when the stream has no
@@ -85,33 +84,4 @@ func (r *Runner) markStreakLocked(key string, now time.Time) {
 // enough for the force recheck to move on. r.mu held.
 func (r *Runner) streakDueLocked(now time.Time) bool {
 	return r.streakKey != "" && now.Sub(r.startedAt) >= streakWatchFor
-}
-
-// streakCandidate returns the first live force channel in logins whose
-// broadcast is still owed its streak watch. Lookups are the force checker's
-// cached ones. A channel whose watch failed to start lately is skipped.
-func (r *Runner) streakCandidate(ctx context.Context, logins []string) (string, platform.Stream, bool) {
-	now := time.Now()
-	for _, login := range logins {
-		if login == "" {
-			continue
-		}
-		r.mu.Lock()
-		failed := now.Before(r.forceFailed[login])
-		r.mu.Unlock()
-		if failed {
-			continue
-		}
-		s, live, err := r.cfg.ForceLookup(ctx, login)
-		if err != nil || !live {
-			continue
-		}
-		r.mu.Lock()
-		pending := r.streakPendingLocked(streakKey(login, s))
-		r.mu.Unlock()
-		if pending {
-			return login, s, true
-		}
-	}
-	return "", platform.Stream{}, false
 }
