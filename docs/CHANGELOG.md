@@ -10,7 +10,7 @@ All notable changes to GrubDrops.
 
 ### Changed
 
-- Reward groups use two new Twitch queries, `ChannelDropsCampaigns` and `DropChannelCampaignsProgress`. When Twitch will not answer the progress query (integrity check), GrubDrops counts the watched minutes itself and gates each day on the claim log. The campaign API gains `day` and `days` on a drop, and the planner a `cooldown` block reason.
+- Reward groups use two new Twitch queries, `ChannelDropsCampaigns` and `DropChannelCampaignsProgress`. Progress and grants come from Twitch, and a day reopens when Twitch's 24-hour window expires. When Twitch gives no progress for a day, GrubDrops counts the watched minutes itself and gates the day on the claim log. Only repeatable groups are mined: Twitch also lists ordinary drop campaigns as one-off groups, and those stay on the normal drops path. The campaign API gains `day` and `days` on a drop, and the planner a `cooldown` block reason.
 
 ## [2.3.4] — 2026-11-18
 
