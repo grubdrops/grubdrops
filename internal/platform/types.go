@@ -127,7 +127,7 @@ type DropBenefit struct {
 // benefit, chained to the day before by Preconditions.
 type Repeat struct {
 	GroupID     string
-	Day, Days   int           // 1-based day, total days (1 if not repeatable)
+	Day, Days   int           // 1-based day, total days (repeatableTimes)
 	Reset       time.Duration // resetIntervalSeconds
 	CategoryIDs []string      // categories a watched stream must be in
 }

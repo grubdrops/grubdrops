@@ -408,3 +408,22 @@ func TestRewardGroups_CanceledPassIsNotCached(t *testing.T) {
 	b.disc.rewardGroupCampaigns(context.Background(), sess, b.chans, map[string]bool{})
 	assert.Equal(t, int32(2), campCalls.Load(), "the next pass reads the game")
 }
+
+func TestRewardGroups_OneOffWatchGroupIsNotMapped(t *testing.T) {
+	// Live Twitch serves ordinary drop campaigns as one-off watch groups too,
+	// reported CLAIMED with grantCount 0; the dashboard path mines those.
+	rc := progressCamp(rgSelf{Status: "CLAIMED", CurrentMinutesWatched: 60, GrantCount: 0})
+	rc.RewardGroups[0].ProgressCriteria.IsRepeatable = false
+	rc.RewardGroups[0].ProgressCriteria.RepeatableConfig = nil
+	_, ok := mapRewardCampaign(rc, "tarkov", time.Now())
+	assert.False(t, ok)
+	assert.Empty(t, progressRows(rc, "u1", time.Now()))
+}
+
+func TestProgressRows_FulfilledClaimsEveryDay(t *testing.T) {
+	rows := progressRows(progressCamp(rgSelf{Status: "FULFILLED", GrantCount: 0}), "u1", time.Now())
+	require.Len(t, rows, 6)
+	for _, r := range rows {
+		assert.True(t, r.Claimed)
+	}
+}

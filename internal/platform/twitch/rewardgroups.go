@@ -131,11 +131,13 @@ func rgDays(g rgGroup) (days int, ok bool) {
 		!pc.IsAutoProgressable || len(pc.Channels) > 0 {
 		return 0, false
 	}
-	days = 1
-	if pc.IsRepeatable && pc.RepeatableConfig != nil && pc.RepeatableConfig.RepeatableTimes > 0 {
-		days = pc.RepeatableConfig.RepeatableTimes
+	// Only repeatable groups: a one-off watch group mirrors a dashboard drop
+	// campaign, which the normal path mines, and Twitch reports it CLAIMED
+	// with grantCount 0.
+	if !pc.IsRepeatable || pc.RepeatableConfig == nil || pc.RepeatableConfig.RepeatableTimes <= 0 {
+		return 0, false
 	}
-	return days, true
+	return pc.RepeatableConfig.RepeatableTimes, true
 }
 
 // mapRewardCampaign turns c into a campaign of its mineable watch groups, one
@@ -218,6 +220,9 @@ func progressRows(c rgCampaign, userID string, now time.Time) []platform.Progres
 		}
 		req := g.ProgressCriteria.Requirements.MinutesWatched
 		done := min(max(g.Self.GrantCount, 0), days)
+		if g.Self.Status == "FULFILLED" {
+			done = days
+		}
 		for day := 1; day <= done; day++ {
 			out = append(out, platform.Progress{BenefitID: repeatBenefitID(g.ID, day), MinutesWatched: req, Claimed: true})
 		}
