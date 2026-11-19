@@ -4,7 +4,7 @@ import type { Account, DeviceStatus, Runner } from '$lib/api/types';
 import accountsFx from '$lib/fixtures/accounts.json';
 import runnersMining from '$lib/fixtures/runners.mining.json';
 import { prefs } from '$lib/prefs.svelte';
-import { MAX_POLL_FAILS, POINTS_CHOICES, POLL_MS, accountLine, activateURL, accountStatus, commitAccountOrder, createDeviceFlow, forceWatchOn, pointsOn, pointsSupported, renameRequest, rowActions, sleepLine } from './accounts';
+import { MAX_POLL_FAILS, POINTS_CHOICES, POLL_MS, accountLine, activateURL, accountStatus, balancesSupported, commitAccountOrder, createDeviceFlow, forceWatchOn, pointsOn, pointsSupported, renameRequest, rowActions, sleepLine } from './accounts';
 import { moveTarget } from './games';
 import { moveItem } from './upnext';
 
@@ -392,6 +392,11 @@ describe('channel points', () => {
 	it('the menu offers Off, Drops + points and Points only, in order', () => {
 		expect(POINTS_CHOICES.map((c) => c.mode)).toEqual(['off', 'drops_points', 'points_only']);
 		expect(POINTS_CHOICES.map((c) => c.label)).toEqual(['accounts.points_off', 'accounts.points_drops', 'accounts.points_only']);
+	});
+
+	it('balances are read on Twitch and Kick', () => {
+		expect(balancesSupported({ platform: 'twitch' })).toBe(true);
+		expect(balancesSupported({ platform: 'kick' })).toBe(true);
 	});
 
 	it('the points picker is Twitch only', () => {

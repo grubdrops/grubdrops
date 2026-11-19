@@ -23,8 +23,8 @@ const (
 	pointsPending = "pending"
 	// pointsError: the last read failed; balance is the last good one.
 	pointsError = "error"
-	// pointsUnavailable: no balance exists, a Kick account or a Twitch
-	// channel without channel points.
+	// pointsUnavailable: no balance exists: a platform without balances, or
+	// a channel without channel points.
 	pointsUnavailable = "unavailable"
 	// pointsOff: not read while the account is paused or its points mode
 	// is off; balance is the last one read.
@@ -99,11 +99,11 @@ func (s *server) pointsEvery() time.Duration {
 // pointsBalance is the API view of one account's cached balance on c.
 func (s *server) pointsBalance(a gen.Account, c store.ForceChannel, row store.PointsBalance, had bool, now time.Time) pointsBalanceJSON {
 	out := pointsBalanceJSON{AccountID: a.ID}
-	if a.Platform != "twitch" || c.Platform != "twitch" {
+	if !platform.BalancesSupported(a.Platform) || a.Platform != c.Platform {
 		out.Status = pointsUnavailable
 		return out
 	}
-	reading := a.Enabled != 0 && platform.PointsMode(a.PointsMode).On()
+	reading := a.Enabled != 0 && platform.EffectivePointsMode(a.Platform, platform.PointsMode(a.PointsMode)).On()
 	if had {
 		out.Balance = row.Balance
 		out.FetchedAt = rfc3339(row.FetchedAt)
@@ -312,7 +312,7 @@ func (s *server) getPoints(w http.ResponseWriter, r *http.Request) {
 		aj := pointsAccountJSON{
 			ID: a.ID, Name: store.AccountName(a), Platform: a.Platform,
 			Enabled: a.Enabled != 0, PointsMode: a.PointsMode,
-			BalancesAvailable: a.Platform == "twitch",
+			BalancesAvailable: platform.BalancesSupported(a.Platform),
 		}
 		if known[a.ID] {
 			t := totals[a.ID]

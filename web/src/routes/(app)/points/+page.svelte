@@ -5,7 +5,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import PageHead from '$lib/components/PageHead.svelte';
 	import PlatformMark from '$lib/components/PlatformMark.svelte';
-	import { accountStatus, forceWatchOn, pointsSupported } from '$lib/accounts';
+	import { accountStatus, balancesSupported, forceWatchOn, pointsSupported } from '$lib/accounts';
 	import { reorder } from '$lib/drag';
 	import { toPut, watchingIds } from '$lib/force-watch';
 	import { formatInt, msToNextMinute, relTime } from '$lib/format';
@@ -74,7 +74,7 @@
 	const list = $derived(live.forceWatch ?? []);
 	const rows = $derived(tabRows(list, tab));
 	const accts = $derived(live.accounts.filter((a) => a.platform === tab));
-	const hasPoints = $derived(pointsSupported({ platform: tab }));
+	const hasPoints = $derived(balancesSupported({ platform: tab }));
 	const idx = $derived(balanceIndex(live.points));
 	const names = $derived(new Map(live.accounts.map((a) => [a.id, a.name])));
 	const known = $derived(new Set(live.accounts.map((a) => a.id)));
@@ -266,6 +266,9 @@
 						<PointsModePicker {a} onpick={(m) => setMode(a, m)} />
 						{#if freshText(f)}<div class="tot"><small class="fresh-{freshTone(f)}">{freshText(f)}</small></div>{/if}
 						{#if modeErr[a.id]}<small class="bad" role="alert">{modeErr[a.id]}</small>{/if}
+					{:else if balancesSupported(a)}
+						<div class="tot"><small>{t('points.kick_chat_note')}</small></div>
+						{#if freshText(f)}<div class="tot"><small class="fresh-{freshTone(f)}">{freshText(f)}</small></div>{/if}
 					{:else}
 						<div class="tot"><small>{t('points.unsupported', { platform: LABEL[a.platform] })}</small></div>
 					{/if}
@@ -333,7 +336,7 @@
 					<div class="chips" role="group" aria-label={t('points.chips', { channel: c.channel })}>
 						{#each accts as a (a.id)}
 							{@const on = c.accounts.includes(a.id)}
-							{@const bv = on && pointsSupported(a) ? balanceView(balanceOf(idx, c, a.id)) : null}
+							{@const bv = on && balancesSupported(a) ? balanceView(balanceOf(idx, c, a.id)) : null}
 							<button
 								type="button"
 								class="chip"

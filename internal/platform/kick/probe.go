@@ -26,6 +26,22 @@ func ProbeClaim(ctx context.Context, sess platform.Session, rewardID, campaignID
 	fmt.Printf("status: %d  body: %s\n", status, string(body))
 }
 
+// ProbePoints GETs the account's channel points on each channel slug and
+// dumps the status and body: the read the channel points button makes.
+func ProbePoints(ctx context.Context, sess platform.Session, slugs []string) {
+	d := newHTTPDoer(nil)
+	for _, slug := range slugs {
+		u := discoveryBase + "/api/v2/channels/" + slug + "/points"
+		fmt.Printf("GET %s\n", u)
+		body, status, err := d.do(ctx, sess, http.MethodGet, u, nil)
+		if err != nil {
+			fmt.Printf("ERR: %v\n", err)
+			continue
+		}
+		fmt.Printf("status: %d  body: %s\n", status, string(body))
+	}
+}
+
 // Probe is a one-shot diagnostic that hits the live Kick endpoints with a real
 // authed session and dumps raw status + body for each, so we can verify the
 // authed response shapes (campaigns/progress field names, the connect_url, the

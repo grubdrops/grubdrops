@@ -65,6 +65,12 @@ func main() {
 		return
 	}
 
+	// `kick-probe <acc> points <slug>...` reads the channel points balance.
+	if category == "points" && len(os.Args) >= 4 {
+		kick.ProbePoints(ctx, sess, os.Args[3:])
+		return
+	}
+
 	kick.Probe(ctx, sess, category)
 }
 

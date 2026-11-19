@@ -18,8 +18,8 @@ import (
 // errNoPointsSession means the account has no session a runner build loaded.
 var errNoPointsSession = errors.New("points balances: no loaded session")
 
-// pointsTargets lists the balances to keep fresh: every enabled Twitch
-// account whose points mode is on, has a loaded session that can read
+// pointsTargets lists the balances to keep fresh: every enabled Twitch or
+// Kick account whose (effective) points mode is on, has a loaded session that can read
 // balances and does not need a login, times each Force watch channel
 // assigned to it.
 func (ro *roster) pointsTargets(ctx context.Context) ([]points.Target, error) {
@@ -33,7 +33,8 @@ func (ro *roster) pointsTargets(ctx context.Context) ([]points.Target, error) {
 	}
 	var out []points.Target
 	for _, a := range accts {
-		if a.Platform != "twitch" || !platform.PointsMode(a.PointsMode).On() || states[a.ID] == runner.StateNeedsLogin {
+		mode := platform.EffectivePointsMode(a.Platform, platform.PointsMode(a.PointsMode))
+		if !platform.BalancesSupported(a.Platform) || !mode.On() || states[a.ID] == runner.StateNeedsLogin {
 			continue
 		}
 		ls, ok := ro.loaded.get(a.ID)

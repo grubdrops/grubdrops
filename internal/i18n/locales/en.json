@@ -281,6 +281,7 @@
   "points.fresh_error": "Couldn't read · showing {time}",
   "points.fresh_error_none": "Couldn't read balances",
   "points.fresh_pending": "Reading balances…",
+  "points.kick_chat_note": "Kick credits channel points for chatting, not watching. GrubDrops shows the balance but cannot raise it.",
   "points.unsupported": "{platform} balances and bonus claims coming soon",
   "points.chips": "Accounts on {channel}",
   "points.watching_now": "Watching now",
