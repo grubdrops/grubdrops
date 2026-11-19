@@ -382,3 +382,29 @@ func TestRewardGroups_FailureIsCached(t *testing.T) {
 func containsOp(raw []byte, op string) bool { return bytes.Contains(raw, []byte(`"`+op+`"`)) }
 
 func bytesReader(b []byte) io.Reader { return bytes.NewReader(b) }
+
+func TestRewardGroups_CanceledPassIsNotCached(t *testing.T) {
+	var campCalls atomic.Int32
+	ctx, cancel := context.WithCancel(context.Background())
+	srv := fakeGQL(t, map[string]func(map[string]any) string{
+		"GameSlug":           func(map[string]any) string { return `{"data":{"game":{"slug":"gta"}}}` },
+		"DirectoryPage_Game": func(map[string]any) string { return dirRust },
+		"ChannelDropsCampaigns": func(map[string]any) string {
+			if campCalls.Add(1) == 1 {
+				cancel() // the scan is canceled while this read is in flight
+				return `{"errors":[{"message":"canceled"}]}`
+			}
+			return `{"data":{"channelDropCampaigns":[]}}`
+		},
+	})
+	defer srv.Close()
+	b := newForTest(srv.URL)
+	sess := platform.Session{AccessToken: "tok", Games: []string{"GTA"}}
+	assert.Empty(t, b.disc.rewardGroupCampaigns(ctx, sess, b.chans, map[string]bool{}))
+	b.disc.mu.Lock()
+	n := len(b.disc.rgByGame)
+	b.disc.mu.Unlock()
+	assert.Zero(t, n, "a canceled pass caches nothing")
+	b.disc.rewardGroupCampaigns(context.Background(), sess, b.chans, map[string]bool{})
+	assert.Equal(t, int32(2), campCalls.Load(), "the next pass reads the game")
+}

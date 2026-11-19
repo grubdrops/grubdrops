@@ -279,6 +279,10 @@ func (d *discovery) rewardGroupCampaigns(ctx context.Context, sess platform.Sess
 		d.mu.Unlock()
 		if !hit || time.Since(e.at) >= rgTTL {
 			camps, ok := d.fetchRewardGroups(ctx, sess, ch, game, slug)
+			if ctx.Err() != nil {
+				// A canceled pass says nothing about the game; cache nothing.
+				return out
+			}
 			e = rgEntry{camps: camps, at: time.Now()}
 			if !ok {
 				// Cached as empty, expiring after rgFailTTL.
