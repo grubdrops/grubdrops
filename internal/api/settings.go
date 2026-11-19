@@ -113,6 +113,9 @@ type settingsBody struct {
 	// WatchStreak serves each new Points watch broadcast its Twitch watch
 	// streak first. Read at each force pick and recheck.
 	WatchStreak bool `json:"watch_streak"`
+	// SecondStream makes a Twitch Points watch watch a second channel too.
+	// Read live.
+	SecondStream bool `json:"second_stream"`
 	// KickDailyReward claims the Kick daily reward once it is ready. Read at
 	// each check.
 	KickDailyReward bool `json:"kick_daily_reward"`
@@ -233,6 +236,9 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 		return b, err
 	}
 	if b.WatchStreak, err = st.WatchStreak(ctx); err != nil {
+		return b, err
+	}
+	if b.SecondStream, err = st.SecondStream(ctx); err != nil {
 		return b, err
 	}
 	if b.KickDailyReward, err = st.KickDailyReward(ctx); err != nil {
@@ -361,6 +367,7 @@ type settingsPut struct {
 	ClaimMoments    *bool `json:"claim_moments"`
 	CommunityGoals  *bool `json:"community_goals"`
 	WatchStreak     *bool `json:"watch_streak"`
+	SecondStream    *bool `json:"second_stream"`
 	KickDailyReward *bool `json:"kick_daily_reward"`
 	ExpShareCatalog *bool `json:"exp_share_catalog"`
 	// ShareCatalogAvailable is accepted so a client can send the GET body
@@ -520,6 +527,11 @@ func (s *server) putSettings(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "internal")
 		return
 	}
+	oldSecond, err := st.SecondStream(ctx)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "internal")
+		return
+	}
 	oldMoments, err := st.ClaimMoments(ctx)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "internal")
@@ -561,7 +573,9 @@ func (s *server) putSettings(w http.ResponseWriter, r *http.Request) {
 	raidsMoved := req.FollowRaids != nil && *req.FollowRaids != oldRaids
 	// So is claim moments.
 	momentsMoved := req.ClaimMoments != nil && *req.ClaimMoments != oldMoments
-	if (sleepMoved || raidsMoved || momentsMoved) && s.d.Pool != nil {
+	// And the second channel.
+	secondMoved := req.SecondStream != nil && *req.SecondStream != oldSecond
+	if (sleepMoved || raidsMoved || momentsMoved || secondMoved) && s.d.Pool != nil {
 		s.d.Pool.SettingsChangedAll()
 	}
 	s.getSettings(w, r)
@@ -693,6 +707,11 @@ func (s *server) applyEngineSettings(ctx context.Context, req settingsPut) error
 	}
 	if req.WatchStreak != nil {
 		if err := st.SetWatchStreak(ctx, *req.WatchStreak); err != nil {
+			return err
+		}
+	}
+	if req.SecondStream != nil {
+		if err := st.SetSecondStream(ctx, *req.SecondStream); err != nil {
 			return err
 		}
 	}

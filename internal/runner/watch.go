@@ -501,8 +501,8 @@ func (r *Runner) clearWatchViewLocked() {
 	r.minutes = 0
 }
 
-// stopWatch ends the live watch, if any, its channel points, raid and
-// moments side tasks and its channel subscription. The current target stays so a restart can resume the
+// stopWatch ends the live watch, if any, its channel points, raid, moments
+// and second watch side tasks and its channel subscription. The current target stays so a restart can resume the
 // same drop; the snapshot's channel, viewers and minutes clear until the next
 // watch polls. The points task is taken in the same locked section that
 // clears the handle: startPoints checks the handle under that lock, so no
@@ -515,6 +515,8 @@ func (r *Runner) stopWatch(ctx context.Context) {
 	r.raids = nil
 	mw := r.moments
 	r.moments = nil
+	xt := r.extra
+	r.extra = nil
 	h := r.handle
 	s := r.stream
 	r.handle = nil
@@ -524,6 +526,7 @@ func (r *Runner) stopWatch(ctx context.Context) {
 	t.stop()
 	rw.stop(r)
 	mw.stop(r)
+	xt.stop()
 	if h == nil {
 		return
 	}

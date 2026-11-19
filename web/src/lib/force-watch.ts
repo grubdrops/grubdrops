@@ -56,9 +56,9 @@ export function watchingIds(c: ForceChannel, runners: readonly Runner[]): string
 	return runners
 		.filter(
 			(r) =>
-				(r.state === 'force_watching' || r.state === 'watching') &&
 				r.platform === c.platform &&
-				r.channel.toLowerCase() === c.channel
+				(((r.state === 'force_watching' || r.state === 'watching') && r.channel.toLowerCase() === c.channel) ||
+					(r.state === 'force_watching' && (r.extra_channel ?? '').toLowerCase() === c.channel))
 		)
 		.map((r) => r.account_id);
 }

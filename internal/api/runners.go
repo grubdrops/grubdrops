@@ -40,20 +40,22 @@ type blockedDTO struct {
 }
 
 type runnerDTO struct {
-	AccountID   string       `json:"account_id"`
-	AccountName string       `json:"account_name"`
-	Platform    string       `json:"platform"`
-	AvatarURL   string       `json:"avatar_url"`
-	State       string       `json:"state"`
-	Current     *targetDTO   `json:"current"`
-	Channel     string       `json:"channel"`
-	ViewerCount int          `json:"viewer_count"`
-	Minutes     int          `json:"minutes"`
-	StartedAt   *string      `json:"started_at"`
-	LastScanAt  *string      `json:"last_scan_at"`
-	UpNext      []targetDTO  `json:"up_next"`
-	Blocked     []blockedDTO `json:"blocked"`
-	OrderCustom bool         `json:"order_custom"`
+	AccountID   string     `json:"account_id"`
+	AccountName string     `json:"account_name"`
+	Platform    string     `json:"platform"`
+	AvatarURL   string     `json:"avatar_url"`
+	State       string     `json:"state"`
+	Current     *targetDTO `json:"current"`
+	Channel     string     `json:"channel"`
+	// ExtraChannel is the second channel a Twitch Points watch watches too.
+	ExtraChannel string       `json:"extra_channel"`
+	ViewerCount  int          `json:"viewer_count"`
+	Minutes      int          `json:"minutes"`
+	StartedAt    *string      `json:"started_at"`
+	LastScanAt   *string      `json:"last_scan_at"`
+	UpNext       []targetDTO  `json:"up_next"`
+	Blocked      []blockedDTO `json:"blocked"`
+	OrderCustom  bool         `json:"order_custom"`
 	// SleepUntil is when the sleep window ends, only in state sleep_window.
 	SleepUntil *string `json:"sleep_until"`
 }
@@ -87,7 +89,7 @@ func RunnerJSON(s runner.Snapshot, a gen.Account, custom bool) runnerDTO {
 	up := s.UpNext
 	d := runnerDTO{
 		AccountID: s.AccountID, AccountName: store.AccountName(a), Platform: s.Platform,
-		AvatarURL: avatarSrc(a.Platform, a.AvatarUrl), State: string(s.State), Channel: s.Channel,
+		AvatarURL: avatarSrc(a.Platform, a.AvatarUrl), State: string(s.State), Channel: s.Channel, ExtraChannel: s.ExtraChannel,
 		ViewerCount: s.ViewerCount, Minutes: s.MinutesWatched,
 		StartedAt: rfc3339(s.StartedAt), LastScanAt: rfc3339(s.LastScanAt),
 		UpNext: make([]targetDTO, 0, len(up)), Blocked: make([]blockedDTO, 0, len(s.Blocked)),

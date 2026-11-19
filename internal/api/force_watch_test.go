@@ -291,3 +291,12 @@ func TestForceWatchers_CountsDropWatches(t *testing.T) {
 	})
 	assert.Equal(t, map[string][]string{"kick/somestreamer": {"a1", "a2"}, "twitch/somestreamer": {"a4"}}, got)
 }
+
+// A Twitch Points watch's second channel counts as watched too.
+func TestForceWatchers_CountsSecondChannel(t *testing.T) {
+	got := forceWatchers([]runner.Snapshot{
+		{AccountID: "a1", Platform: "twitch", Channel: "one", ExtraChannel: "two", State: runner.StateForceWatching},
+		{AccountID: "a2", Platform: "twitch", Channel: "x", ExtraChannel: "two", State: runner.StateWatching},
+	})
+	assert.Equal(t, map[string][]string{"twitch/one": {"a1"}, "twitch/two": {"a1"}, "twitch/x": {"a2"}}, got)
+}

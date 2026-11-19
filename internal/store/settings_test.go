@@ -276,3 +276,22 @@ func TestSettings_WatchStreak(t *testing.T) {
 	on, _ = s.WatchStreak(ctx)
 	assert.False(t, on)
 }
+
+// Second channel is off until turned on.
+func TestSettings_SecondStream(t *testing.T) {
+	db, err := Open(context.Background(), filepath.Join(t.TempDir(), "t.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	s := NewSettings(gen.New(db))
+	ctx := context.Background()
+
+	on, err := s.SecondStream(ctx)
+	require.NoError(t, err)
+	assert.False(t, on, "off by default")
+	require.NoError(t, s.SetSecondStream(ctx, true))
+	on, _ = s.SecondStream(ctx)
+	assert.True(t, on)
+	require.NoError(t, s.SetSecondStream(ctx, false))
+	on, _ = s.SecondStream(ctx)
+	assert.False(t, on)
+}

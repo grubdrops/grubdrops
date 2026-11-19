@@ -232,6 +232,21 @@
 		</div>
 		<div class="row">
 			<div class="lbl">
+				<b id="second-l">{t('settings.second_stream')}</b>
+				<small>{t('settings.second_stream_sub')}</small>
+				{#if errs.second_stream}<small class="bad">{t('settings.save_failed')}</small>{/if}
+			</div>
+			<button
+				type="button"
+				class="sw"
+				role="switch"
+				aria-checked={s.second_stream}
+				aria-labelledby="second-l"
+				onclick={() => save('second_stream', { second_stream: !s.second_stream })}
+			></button>
+		</div>
+		<div class="row">
+			<div class="lbl">
 				<b><label for="scan">{t('settings.scan_interval')}</label></b>
 				<small>{t('settings.scan_interval_sub')}</small>
 				{#if errs.scan_interval_min}<small class="bad">{t('settings.save_failed')}</small>{/if}

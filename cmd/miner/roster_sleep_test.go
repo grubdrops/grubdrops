@@ -227,3 +227,22 @@ func TestRoster_WatchStreak(t *testing.T) {
 	e.ro.settingsChanged()
 	assert.False(t, cfg.WatchStreak())
 }
+
+// The runner's SecondStream reads the saved setting, off by default, live
+// after settingsChanged.
+func TestRoster_SecondStream(t *testing.T) {
+	e := newRosterEnv(t)
+	e.ro.settings = store.NewSettings(e.q)
+	a := e.account(t, "a1", 1, true)
+	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
+	require.NotNil(t, cfg.SecondStream)
+	assert.False(t, cfg.SecondStream(), "off by default")
+
+	require.NoError(t, e.ro.settings.SetSecondStream(e.ctx, true))
+	e.ro.settingsChanged()
+	assert.True(t, cfg.SecondStream())
+
+	require.NoError(t, e.ro.settings.SetSecondStream(e.ctx, false))
+	e.ro.settingsChanged()
+	assert.False(t, cfg.SecondStream())
+}

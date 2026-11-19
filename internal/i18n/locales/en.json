@@ -365,6 +365,8 @@
   "settings.community_goals_sub": "Twitch only, for accounts with channel points on. Gives points to the watched channel's community goals, up to each goal's per-stream limit.",
   "settings.watch_streak": "Watch streaks",
   "settings.watch_streak_sub": "Twitch only. When a Points watch channel starts a new stream, watches it for a few minutes first to keep the watch streak, then goes back to the list order. Drops still come first.",
+  "settings.second_stream": "Second channel",
+  "settings.second_stream_sub": "Twitch only. A Points watch also watches the next live Points watch channel, since Twitch credits channel points on two channels at once. Drops still use one channel.",
   "settings.experimental": "Experimental",
   "settings.exp_share_catalog": "Share Android campaigns with TV accounts",
   "settings.exp_share_catalog_sub": "TV logins also mine campaigns an Android login can see.",

@@ -157,6 +157,7 @@ func (r *Runner) beginForce(ctx context.Context, login string, s platform.Stream
 	r.startRaids(ctx, s.ChannelID)
 	r.startMoments(ctx, s.ChannelID)
 	r.setState(ctx, StateForceWatching)
+	r.startExtra(ctx, login)
 	return nil
 }
 
@@ -329,6 +330,7 @@ func (r *Runner) forceRecheck(ctx context.Context, login string) error {
 		r.stopWatch(ctx)
 		return r.forceFrom(ctx, logins, next, s)
 	default:
+		r.syncExtra(ctx)
 		slog.Debug("runner force channel still live", "kind", "discovery",
 			"account", r.cfg.AccountID, "channel", login, "viewers", s.ViewerCount)
 		r.mu.Lock()

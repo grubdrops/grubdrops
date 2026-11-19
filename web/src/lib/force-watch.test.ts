@@ -90,6 +90,14 @@ describe('watchingIds', () => {
 		];
 		expect(watchingIds(c, runners)).toEqual(['a1', 'a2']);
 	});
+	it('follows the second channel of a Points watch', () => {
+		const c = ch('two', 'twitch', ['a1']);
+		const runners = [
+			{ ...r('a1', 'force_watching', 'one'), extra_channel: 'two' },
+			{ ...r('a2', 'watching', 'x'), extra_channel: 'two' }
+		] as Runner[];
+		expect(watchingIds(c, runners)).toEqual(['a1']);
+	});
 	it('falls back to the server list before runners load', () => {
 		const c = { ...ch('keshaeuw'), watching: ['a2'] };
 		expect(watchingIds(c, [])).toEqual(['a2']);

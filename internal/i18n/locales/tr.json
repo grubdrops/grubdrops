@@ -365,6 +365,8 @@
   "settings.community_goals_sub": "Yalnızca Twitch, kanal puanları açık hesaplar için. İzlenen kanalın topluluk hedeflerine, her hedefin yayın başına sınırına kadar puan verir.",
   "settings.watch_streak": "İzleme serileri",
   "settings.watch_streak_sub": "Yalnızca Twitch. Bir Points watch kanalı yeni yayına başladığında, izleme serisini korumak için önce birkaç dakika onu izler, sonra liste sırasına döner. Drop'lar yine önce gelir.",
+  "settings.second_stream": "İkinci kanal",
+  "settings.second_stream_sub": "Yalnızca Twitch. Twitch aynı anda iki kanalda kanal puanı verdiği için Points watch, canlı olan bir sonraki Points watch kanalını da izler. Drop'lar yine tek kanal kullanır.",
   "settings.experimental": "Deneysel",
   "settings.exp_share_catalog": "Android kampanyalarını TV hesaplarıyla paylaş",
   "settings.exp_share_catalog_sub": "TV girişleri, Android girişinin gördüğü kampanyaları da kazar.",
