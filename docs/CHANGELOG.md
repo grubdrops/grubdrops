@@ -4,6 +4,8 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+## [2.3.5] — 2026-11-18
+
 ### Added
 
 - **Twitch daily watch rewards (#90).** Watch-based reward groups that hang off a game instead of the drops dashboard are now mined, starting with the GTAVI Daily Chest: 60 minutes a day on 6 days. Twitch grants each day by itself, so GrubDrops watches, logs the day and waits. The drop panel shows each day as "Day n of 6" and "Done for today" until the next window opens, and an idle account wakes when it does. Subscription groups and the all-12 "Ultimate Reward" are not mined.
