@@ -166,6 +166,11 @@ type Runner struct {
 	// repeated push claims once.
 	moments    *momentWatch
 	momentSeen map[string]time.Time
+	// streakKey is the broadcast the running force watch is serving its
+	// watch streak to (streak.go); "" = not a streak watch. streakDone
+	// holds the broadcasts already served.
+	streakKey  string
+	streakDone map[string]time.Time
 
 	// notifiedSwept dedupes sweep notifications by reward title, per run.
 	notifiedSwept map[string]struct{}

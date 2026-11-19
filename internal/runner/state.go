@@ -125,6 +125,10 @@ type Config struct {
 	// claim task, so they need the account's points mode on. Read at each
 	// claim; nil = off.
 	CommunityGoals func() bool
+	// WatchStreak makes a Twitch Points watch first serve each new
+	// broadcast of a force channel its watch streak (streak.go). Read at
+	// each force pick and recheck; nil = off.
+	WatchStreak func() bool
 	// KickDailyReward turns the daily reward claim (daily_reward.go) on when
 	// the backend is a platform.DailyRewardClaimer. Read at each check; nil =
 	// off.

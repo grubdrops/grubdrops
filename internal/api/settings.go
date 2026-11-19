@@ -110,6 +110,9 @@ type settingsBody struct {
 	// CommunityGoals gives channel points to the watched Twitch channel's
 	// community goals. Read at each points claim.
 	CommunityGoals bool `json:"community_goals"`
+	// WatchStreak serves each new Points watch broadcast its Twitch watch
+	// streak first. Read at each force pick and recheck.
+	WatchStreak bool `json:"watch_streak"`
 	// KickDailyReward claims the Kick daily reward once it is ready. Read at
 	// each check.
 	KickDailyReward bool `json:"kick_daily_reward"`
@@ -227,6 +230,9 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 		return b, err
 	}
 	if b.CommunityGoals, err = st.CommunityGoals(ctx); err != nil {
+		return b, err
+	}
+	if b.WatchStreak, err = st.WatchStreak(ctx); err != nil {
 		return b, err
 	}
 	if b.KickDailyReward, err = st.KickDailyReward(ctx); err != nil {
@@ -354,6 +360,7 @@ type settingsPut struct {
 	FollowRaids     *bool `json:"follow_raids"`
 	ClaimMoments    *bool `json:"claim_moments"`
 	CommunityGoals  *bool `json:"community_goals"`
+	WatchStreak     *bool `json:"watch_streak"`
 	KickDailyReward *bool `json:"kick_daily_reward"`
 	ExpShareCatalog *bool `json:"exp_share_catalog"`
 	// ShareCatalogAvailable is accepted so a client can send the GET body
@@ -681,6 +688,11 @@ func (s *server) applyEngineSettings(ctx context.Context, req settingsPut) error
 	}
 	if req.CommunityGoals != nil {
 		if err := st.SetCommunityGoals(ctx, *req.CommunityGoals); err != nil {
+			return err
+		}
+	}
+	if req.WatchStreak != nil {
+		if err := st.SetWatchStreak(ctx, *req.WatchStreak); err != nil {
 			return err
 		}
 	}

@@ -327,6 +327,7 @@ const (
 	keyFollowRaids        = "settings:follow_raids"
 	keyClaimMoments       = "settings:claim_moments"
 	keyCommunityGoals     = "settings:community_goals"
+	keyWatchStreak        = "settings:watch_streak"
 	keyKickDailyReward    = "settings:kick_daily_reward"
 	keyExpShareCatalog    = "settings:exp_share_catalog"
 )
@@ -395,6 +396,17 @@ func (s *Settings) CommunityGoals(ctx context.Context) (bool, error) {
 
 func (s *Settings) SetCommunityGoals(ctx context.Context, on bool) error {
 	return s.setBool(ctx, keyCommunityGoals, on)
+}
+
+// WatchStreak reports whether a Twitch Points watch first watches each new
+// broadcast of a Points watch channel long enough for its watch streak.
+// Default off.
+func (s *Settings) WatchStreak(ctx context.Context) (bool, error) {
+	return s.boolKey(ctx, keyWatchStreak, false)
+}
+
+func (s *Settings) SetWatchStreak(ctx context.Context, on bool) error {
+	return s.setBool(ctx, keyWatchStreak, on)
 }
 
 // KickDailyReward reports whether a Kick account claims its daily reward once

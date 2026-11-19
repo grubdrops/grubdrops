@@ -208,3 +208,22 @@ func TestRoster_CommunityGoals(t *testing.T) {
 	e.ro.settingsChanged()
 	assert.False(t, cfg.CommunityGoals())
 }
+
+// The runner's WatchStreak reads the saved setting, off by default, live
+// after settingsChanged.
+func TestRoster_WatchStreak(t *testing.T) {
+	e := newRosterEnv(t)
+	e.ro.settings = store.NewSettings(e.q)
+	a := e.account(t, "a1", 1, true)
+	cfg := e.ro.runnerConfig(e.ctx, a, e.fake, platform.Session{}, nil)
+	require.NotNil(t, cfg.WatchStreak)
+	assert.False(t, cfg.WatchStreak(), "off by default")
+
+	require.NoError(t, e.ro.settings.SetWatchStreak(e.ctx, true))
+	e.ro.settingsChanged()
+	assert.True(t, cfg.WatchStreak())
+
+	require.NoError(t, e.ro.settings.SetWatchStreak(e.ctx, false))
+	e.ro.settingsChanged()
+	assert.False(t, cfg.WatchStreak())
+}

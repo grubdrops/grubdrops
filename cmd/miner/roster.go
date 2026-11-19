@@ -468,6 +468,7 @@ func (ro *roster) runnerConfig(ctx context.Context, a gen.Account, b platform.Ba
 		FollowRaids:    ro.followRaids,
 		ClaimMoments:   ro.claimMoments,
 		CommunityGoals: ro.communityGoals,
+		WatchStreak:    ro.watchStreak,
 		SleepUntil:     ro.sleepUntilFor(a),
 		// Kick only: the runner skips a backend without the claim.
 		KickDailyReward: ro.kickDailyReward,
@@ -747,6 +748,8 @@ type runSettings struct {
 	moments bool
 	// goals is the community goals setting.
 	goals bool
+	// streak is the watch streak setting.
+	streak bool
 	// share is the experimental share of the Android catalog with TV
 	// accounts.
 	share bool
@@ -799,12 +802,13 @@ func (ro *roster) readRunSettings() (c runSettings, ok bool) {
 		daily, e8 := ro.settings.KickDailyReward(ctx)
 		moments, e9 := ro.settings.ClaimMoments(ctx)
 		goals, e10 := ro.settings.CommunityGoals(ctx)
-		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10); err != nil {
+		streak, e11 := ro.settings.WatchStreak(ctx)
+		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11); err != nil {
 			// Not cached: the next read tries again.
 			ro.log().Warn("read runner settings failed", "kind", "error", "err", err)
 			return c, false
 		}
-		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, moments: moments, goals: goals, share: share, daily: daily}
+		c = runSettings{lang: lang, priority: plan.Priority(p), scan: time.Duration(n) * time.Minute, preempt: on, raids: raids, moments: moments, goals: goals, streak: streak, share: share, daily: daily}
 		start, ok1 := timeutil.ParseClock(sw.Start)
 		end, ok2 := timeutil.ParseClock(sw.End)
 		c.sleep = sw.Enabled && ok1 && ok2 && start != end
@@ -842,6 +846,9 @@ func (ro *roster) claimMoments() bool { return ro.runSettings().moments }
 
 // communityGoals is the community goals setting. A failed read gives off.
 func (ro *roster) communityGoals() bool { return ro.runSettings().goals }
+
+// watchStreak is the watch streak setting. A failed read gives off.
+func (ro *roster) watchStreak() bool { return ro.runSettings().streak }
 
 // kickDailyReward is the Kick daily reward claim setting. A failed read
 // gives off.
