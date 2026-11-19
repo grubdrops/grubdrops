@@ -63,7 +63,8 @@ func TestReadyDrops(t *testing.T) {
 		assert.Equal(t, OpInventory.Name, req.OperationName)
 		_, _ = w.Write([]byte(`{"data":{"currentUser":{"inventory":{"dropCampaignsInProgress":[
 		  {"id":"campA","name":"Spring Drops","game":{"name":"Rust"},"accountLinkURL":"https://rust.example/link","self":{"isAccountConnected":true},"timeBasedDrops":[
-		    {"id":"ready","name":"Ready Drop","requiredMinutesWatched":60,"self":{"currentMinutesWatched":60,"isClaimed":false,"dropInstanceID":"inst-ready"}},
+		    {"id":"ready","name":"Ready Drop","requiredMinutesWatched":60,"self":{"currentMinutesWatched":60,"isClaimed":false,"dropInstanceID":"inst-ready"},
+		     "benefitEdges":[{"benefit":{"id":"b0","name":"Ready Drop","imageAssetURL":""}},{"benefit":{"id":"b1","name":"Ready Drop","imageAssetURL":"https://img.example/ready.png"}}]},
 		    {"id":"partial","name":"Partial","requiredMinutesWatched":60,"self":{"currentMinutesWatched":30,"isClaimed":false,"dropInstanceID":"inst-partial"}},
 		    {"id":"claimed","name":"Claimed","requiredMinutesWatched":60,"self":{"currentMinutesWatched":60,"isClaimed":true,"dropInstanceID":"inst-claimed"}},
 		    {"id":"noinst","name":"No Instance","requiredMinutesWatched":10,"self":{"currentMinutesWatched":10,"isClaimed":false,"dropInstanceID":""}}
@@ -80,6 +81,7 @@ func TestReadyDrops(t *testing.T) {
 	assert.Equal(t, "inst-ready", out[0].Benefit.InstanceID)
 	assert.Equal(t, 60, out[0].Benefit.RequiredMinutes)
 	assert.Equal(t, "Ready Drop", out[0].Benefit.Name)
+	assert.Equal(t, "https://img.example/ready.png", out[0].Benefit.ImageURL, "image from the first benefit edge that has one")
 	assert.Equal(t, platform.Campaign{
 		ID: "campA", Platform: "twitch", Name: "Spring Drops", Game: "Rust",
 		AccountLinked: true, AccountLinkChecked: true, AccountLinkURL: "https://rust.example/link",

@@ -596,12 +596,23 @@ func (d *discovery) readyDrops(ctx context.Context, sess platform.Session) ([]pl
 			if td.Self.IsClaimed || td.Self.DropInstanceID == "" || td.Self.CurrentMinutesWatched < td.RequiredMinutesWatched {
 				continue
 			}
+			// The reward image rides on the benefit edges, as on the
+			// dashboard: without it a drop claimed from the inventory was
+			// logged with no image on Inventory's Claimed list.
+			img := ""
+			for _, be := range td.BenefitEdges {
+				if be.Benefit.ImageAssetURL != "" {
+					img = be.Benefit.ImageAssetURL
+					break
+				}
+			}
 			out = append(out, platform.ReadyDrop{Campaign: c, Benefit: platform.DropBenefit{
 				ID:              td.ID,
 				CampaignID:      camp.ID,
 				Name:            td.Name,
 				RequiredMinutes: td.RequiredMinutesWatched,
 				InstanceID:      td.Self.DropInstanceID,
+				ImageURL:        img,
 			}})
 		}
 	}

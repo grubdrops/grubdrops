@@ -22,6 +22,7 @@ All notable changes to GrubDrops.
 - **Up next shows the box art of a game added from Kick on its Twitch rows too.** Inventory's Up next looked the art up by the game's own name, so a Twitch row naming the game the Twitch way ("Grand Theft Auto VI" for "Grand Theft Auto VI (GTA)") showed none. It now matches the Twitch name too, ignoring case.
 - **Kick watch mode Chrome and the auto fallback work with the default compose.** Both needed an always-on sidecar (`GRUB_BROWSER_URL`), which the default compose leaves empty, so they logged "no sidecar client configured" and fell back to the WebSocket watch although the miner creates a sidecar per account over the docker socket. Auto-created sidecars are now enough.
 - **Twitch discovery also searches a game under its Twitch name.** A game whose Twitch name differs from its own name is now looked up under both in the Twitch directory and in reward groups, so the GTAVI Daily Chest is found for a game added from Kick.
+- **A Twitch drop claimed from the inventory keeps its image.** Drops claimed by the ready-drop check or the inventory sweep, for example one finished while another drop was being mined, were logged without an image, so Inventory's Claimed list showed a blank tile although the campaign drawer had it. The inventory read now takes the image from the drop's benefit, as the dashboard does.
 
 ## [2.3.6] — 2026-11-19
 
