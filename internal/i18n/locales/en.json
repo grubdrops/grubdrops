@@ -360,6 +360,8 @@
   "settings.follow_raids_sub": "Twitch only. Joins raids after a short random delay. Keeps watching the same channel.",
   "settings.claim_moments": "Claim moments",
   "settings.claim_moments_sub": "Twitch only. Claims the moments the watched channel hands out, after a short random delay.",
+  "settings.community_goals": "Community goals",
+  "settings.community_goals_sub": "Twitch only, for accounts with channel points on. Gives points to the watched channel's community goals, up to each goal's per-stream limit.",
   "settings.experimental": "Experimental",
   "settings.exp_share_catalog": "Share Android campaigns with TV accounts",
   "settings.exp_share_catalog_sub": "TV logins also mine campaigns an Android login can see.",

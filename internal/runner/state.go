@@ -120,6 +120,11 @@ type Config struct {
 	// when the backend is a platform.MomentClaimer. Read live; nil = off.
 	// SettingsChanged applies a change to the running watch.
 	ClaimMoments func() bool
+	// CommunityGoals turns community goal contributions on (points.go)
+	// when the backend is a platform.GoalContributor. They ride the points
+	// claim task, so they need the account's points mode on. Read at each
+	// claim; nil = off.
+	CommunityGoals func() bool
 	// KickDailyReward turns the daily reward claim (daily_reward.go) on when
 	// the backend is a platform.DailyRewardClaimer. Read at each check; nil =
 	// off.

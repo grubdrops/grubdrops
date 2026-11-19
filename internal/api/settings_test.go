@@ -577,3 +577,25 @@ func TestSettings_ClaimMoments(t *testing.T) {
 	assert.False(t, got.ClaimMoments)
 	assert.Equal(t, 2, e.live)
 }
+
+// Community goals reads off by default and saves. Runners read it at each
+// points claim, so a change needs no live apply.
+func TestSettings_CommunityGoals(t *testing.T) {
+	e := newSettingsEnv(t)
+	_, b := e.do("GET", "/settings", nil)
+	var got settingsBody
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.CommunityGoals, "off by default")
+
+	code, b := e.do("PUT", "/settings", map[string]any{"community_goals": true})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.True(t, got.CommunityGoals)
+	assert.Equal(t, 0, e.live, "read at each claim, no live apply")
+	assert.Equal(t, 0, e.rescans, "no rescan")
+
+	code, b = e.do("PUT", "/settings", map[string]any{"community_goals": false})
+	require.Equal(t, 200, code)
+	require.NoError(t, json.Unmarshal(b, &got))
+	assert.False(t, got.CommunityGoals)
+}

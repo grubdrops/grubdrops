@@ -107,6 +107,9 @@ type settingsBody struct {
 	FollowRaids bool `json:"follow_raids"`
 	// ClaimMoments claims moments on the watched Twitch channel. Read live.
 	ClaimMoments bool `json:"claim_moments"`
+	// CommunityGoals gives channel points to the watched Twitch channel's
+	// community goals. Read at each points claim.
+	CommunityGoals bool `json:"community_goals"`
 	// KickDailyReward claims the Kick daily reward once it is ready. Read at
 	// each check.
 	KickDailyReward bool `json:"kick_daily_reward"`
@@ -221,6 +224,9 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 		return b, err
 	}
 	if b.ClaimMoments, err = st.ClaimMoments(ctx); err != nil {
+		return b, err
+	}
+	if b.CommunityGoals, err = st.CommunityGoals(ctx); err != nil {
 		return b, err
 	}
 	if b.KickDailyReward, err = st.KickDailyReward(ctx); err != nil {
@@ -347,6 +353,7 @@ type settingsPut struct {
 	Preempt         *bool `json:"preempt"`
 	FollowRaids     *bool `json:"follow_raids"`
 	ClaimMoments    *bool `json:"claim_moments"`
+	CommunityGoals  *bool `json:"community_goals"`
 	KickDailyReward *bool `json:"kick_daily_reward"`
 	ExpShareCatalog *bool `json:"exp_share_catalog"`
 	// ShareCatalogAvailable is accepted so a client can send the GET body
@@ -669,6 +676,11 @@ func (s *server) applyEngineSettings(ctx context.Context, req settingsPut) error
 	}
 	if req.ClaimMoments != nil {
 		if err := st.SetClaimMoments(ctx, *req.ClaimMoments); err != nil {
+			return err
+		}
+	}
+	if req.CommunityGoals != nil {
+		if err := st.SetCommunityGoals(ctx, *req.CommunityGoals); err != nil {
 			return err
 		}
 	}

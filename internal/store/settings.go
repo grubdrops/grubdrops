@@ -326,6 +326,7 @@ const (
 	keyPreempt            = "settings:preempt"
 	keyFollowRaids        = "settings:follow_raids"
 	keyClaimMoments       = "settings:claim_moments"
+	keyCommunityGoals     = "settings:community_goals"
 	keyKickDailyReward    = "settings:kick_daily_reward"
 	keyExpShareCatalog    = "settings:exp_share_catalog"
 )
@@ -383,6 +384,17 @@ func (s *Settings) ClaimMoments(ctx context.Context) (bool, error) {
 
 func (s *Settings) SetClaimMoments(ctx context.Context, on bool) error {
 	return s.setBool(ctx, keyClaimMoments, on)
+}
+
+// CommunityGoals reports whether a Twitch account whose points mode is on
+// gives its points on the watched channel to that channel's running
+// community goals. Default off.
+func (s *Settings) CommunityGoals(ctx context.Context) (bool, error) {
+	return s.boolKey(ctx, keyCommunityGoals, false)
+}
+
+func (s *Settings) SetCommunityGoals(ctx context.Context, on bool) error {
+	return s.setBool(ctx, keyCommunityGoals, on)
 }
 
 // KickDailyReward reports whether a Kick account claims its daily reward once

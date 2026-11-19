@@ -296,6 +296,22 @@ type PointsClaimer interface {
 	ClaimChannelPoints(ctx context.Context, s Session, channel string) (PointsClaim, error)
 }
 
+// GoalContribution is the result of one ContributeCommunityGoals call.
+type GoalContribution struct {
+	// Goals is how many community goals got points.
+	Goals int
+	// Points is the total points given to them.
+	Points int
+}
+
+// GoalContributor is optional: give the account's channel points on a
+// watched channel to that channel's running community goals, up to each
+// goal's per-stream limit and what the goal still needs. A channel with no
+// running goal returns a zero GoalContribution and a nil error. Twitch only.
+type GoalContributor interface {
+	ContributeCommunityGoals(ctx context.Context, s Session, channel string) (GoalContribution, error)
+}
+
 // DailyReward is one daily reward a DailyRewardClaimer claimed. Reward and
 // Rarity are empty when the claim response did not name them.
 type DailyReward struct {

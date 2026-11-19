@@ -460,6 +460,8 @@ export interface Settings {
 	follow_raids: boolean;
 	/** Twitch: claim moments on the watched channel. Off by default. */
 	claim_moments: boolean;
+	/** Twitch: give points to the watched channel's community goals (points mode on). Off by default. */
+	community_goals: boolean;
 	/** Experimental: Kick accounts claim their daily reward. Off by default. */
 	kick_daily_reward: boolean;
 	/** Experimental: TV-login Twitch accounts also mine the Android catalog. Off by default. */
@@ -511,6 +513,7 @@ export interface SettingsPatch {
 	preempt?: boolean;
 	follow_raids?: boolean;
 	claim_moments?: boolean;
+	community_goals?: boolean;
 	kick_daily_reward?: boolean;
 	exp_share_catalog?: boolean;
 	proxy_enabled?: boolean;

@@ -238,3 +238,22 @@ func TestSettings_ClaimMoments(t *testing.T) {
 	on, _ = s.ClaimMoments(ctx)
 	assert.False(t, on)
 }
+
+// Community goals is off until turned on.
+func TestSettings_CommunityGoals(t *testing.T) {
+	db, err := Open(context.Background(), filepath.Join(t.TempDir(), "t.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	s := NewSettings(gen.New(db))
+	ctx := context.Background()
+
+	on, err := s.CommunityGoals(ctx)
+	require.NoError(t, err)
+	assert.False(t, on, "off by default")
+	require.NoError(t, s.SetCommunityGoals(ctx, true))
+	on, _ = s.CommunityGoals(ctx)
+	assert.True(t, on)
+	require.NoError(t, s.SetCommunityGoals(ctx, false))
+	on, _ = s.CommunityGoals(ctx)
+	assert.False(t, on)
+}

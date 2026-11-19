@@ -152,6 +152,8 @@ type Runner struct {
 	logStepErr, logPicked, logStart, logProgress onceLog
 	// logPoints dedupes channel points claim failures (points.go).
 	logPoints onceLog
+	// logGoals dedupes community goal contribution failures (points.go).
+	logGoals onceLog
 	// points is the running channel points claim side task; nil = none.
 	points *pointsTask
 	// raids is the running raid side task of the watch (raid.go); nil =
