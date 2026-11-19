@@ -96,7 +96,9 @@ func TestRepeat_EmptyStreamGameDoesNotCount(t *testing.T) {
 	}
 }
 
-func TestRepeat_LogGateMergesWithBackendRow(t *testing.T) {
+func TestRepeat_BackendRowKeepsTwitchGate(t *testing.T) {
+	// Live: Twitch reopens the day at its window expiry, earlier than the
+	// logged claim plus 24h, so the log gate must not hold a backend row.
 	loggedAt := time.Now().Add(-time.Hour)
 	claims := &correctingClaims{
 		fakeClaims: &fakeClaims{ids: map[string]bool{"g:day01": true}},
@@ -104,19 +106,15 @@ func TestRepeat_LogGateMergesWithBackendRow(t *testing.T) {
 	}
 	r := New(Config{AccountID: "acc", Platform: "twitch", Backend: platformtest.NewFake(), Games: rustGames, Claims: claims})
 	camps := []platform.Campaign{repeatCamp(3, 24*time.Hour)}
-	gate := loggedAt.Add(24 * time.Hour)
-	early := []platform.Progress{{BenefitID: "g:day02", MinutesWatched: 5, NextEligibleAt: loggedAt}}
-	rows := r.withRepeatLocal(context.Background(), camps, early, map[string]bool{"g:day01": true})
-	if len(rows) != 1 || !rows[0].NextEligibleAt.Equal(gate) || rows[0].MinutesWatched != 5 {
-		t.Fatalf("rows=%+v, want the log gate to win over an earlier backend time", rows)
+	windowEnd := loggedAt.Add(20 * time.Hour)
+	backend := []platform.Progress{{BenefitID: "g:day02", MinutesWatched: 5, NextEligibleAt: windowEnd}}
+	rows := r.withRepeatLocal(context.Background(), camps, backend, map[string]bool{"g:day01": true})
+	if len(rows) != 1 || !rows[0].NextEligibleAt.Equal(windowEnd) || rows[0].MinutesWatched != 5 {
+		t.Fatalf("rows=%+v, want Twitch's window gate kept", rows)
 	}
-	late := []platform.Progress{{BenefitID: "g:day02", NextEligibleAt: gate.Add(time.Hour)}}
-	rows = r.withRepeatLocal(context.Background(), camps, late, map[string]bool{"g:day01": true})
-	if !rows[0].NextEligibleAt.Equal(gate.Add(time.Hour)) {
-		t.Fatalf("rows=%+v, want the later backend time to stay", rows)
-	}
-	if early[0].NextEligibleAt != loggedAt {
-		t.Fatal("caller's slice was modified")
+	rows = r.withRepeatLocal(context.Background(), camps, nil, map[string]bool{"g:day01": true})
+	if len(rows) != 1 || rows[0].BenefitID != "g:day02" || !rows[0].NextEligibleAt.Equal(loggedAt.Add(24*time.Hour)) {
+		t.Fatalf("rows=%+v, want the log gate on a day Twitch gave no row", rows)
 	}
 }
 

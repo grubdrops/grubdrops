@@ -427,3 +427,54 @@ func TestProgressRows_FulfilledClaimsEveryDay(t *testing.T) {
 		assert.True(t, r.Claimed)
 	}
 }
+
+func TestRewardGroups_PollingOutlivesTheDiscoveryCache(t *testing.T) {
+	// Seen live: scans refresh the cache about hourly, so progress polling
+	// stopped 30 minutes in and the day restarted from a local zero.
+	var pc, cc atomic.Int32
+	srv := rgServer(t, `{"data":{}}`, &pc, &cc)
+	defer srv.Close()
+	b := newForTest(srv.URL)
+	sess := platform.Session{AccessToken: "tok", Games: []string{"Grand Theft Auto VI"}}
+	_, err := b.ListActiveCampaigns(context.Background(), sess)
+	require.NoError(t, err)
+
+	age := func(d time.Duration) {
+		b.disc.mu.Lock()
+		for k, e := range b.disc.rgByGame {
+			e.at = time.Now().Add(-d)
+			b.disc.rgByGame[k] = e
+		}
+		b.disc.mu.Unlock()
+	}
+	age(rgTTL + 5*time.Minute)
+	assert.True(t, b.disc.hasRewardGroups(), "an hour-old entry still polls")
+	age(rgPollStale + time.Minute)
+	assert.False(t, b.disc.hasRewardGroups(), "a game nobody rescanned for hours stops")
+}
+
+func TestProgressRows_GrantedWindowGatesNextDay(t *testing.T) {
+	// Live self right after day 1 was granted: the window's 60 minutes stay,
+	// nextEligibleAt is empty, and the window runs on.
+	now := time.Date(2026, 11, 19, 1, 14, 0, 0, time.UTC)
+	exp := time.Date(2026, 11, 19, 22, 31, 38, 0, time.UTC)
+	win := &struct {
+		StartedAt string `json:"startedAt"`
+		ExpiresAt string `json:"expiresAt"`
+	}{StartedAt: "2026-11-18T22:31:38Z", ExpiresAt: exp.Format(time.RFC3339)}
+	rows := progressRows(progressCamp(rgSelf{Status: "IN_PROGRESS", CurrentMinutesWatched: 60, GrantCount: 1, CurrentWindow: win}), "u1", now)
+	require.Len(t, rows, 2)
+	assert.True(t, rows[0].Claimed)
+	assert.Equal(t, "grp:day02", rows[1].BenefitID)
+	assert.Equal(t, 0, rows[1].MinutesWatched, "the granted window's minutes are not day 2's")
+	assert.True(t, rows[1].NextEligibleAt.Equal(exp), "day 2 opens when the window expires")
+
+	// A fresh window after expiry counts normally.
+	fresh := &struct {
+		StartedAt string `json:"startedAt"`
+		ExpiresAt string `json:"expiresAt"`
+	}{StartedAt: exp.Add(time.Hour).Format(time.RFC3339), ExpiresAt: exp.Add(25 * time.Hour).Format(time.RFC3339)}
+	rows = progressRows(progressCamp(rgSelf{Status: "IN_PROGRESS", CurrentMinutesWatched: 12, GrantCount: 1, CurrentWindow: fresh}), "u1", exp.Add(90*time.Minute))
+	assert.Equal(t, 12, rows[1].MinutesWatched)
+	assert.True(t, rows[1].NextEligibleAt.IsZero())
+}

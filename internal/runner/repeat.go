@@ -49,11 +49,10 @@ func (r *Runner) repeatTick(target plan.Target, stream *platform.Stream, progres
 	return append(slices.Clone(progress), row)
 }
 
-// withRepeatLocal gates each unclaimed repeat day on the claim log: the
-// earlier day's logged time plus the group's reset interval. The gate is the
-// later of that and the backend's own NextEligibleAt, so Twitch's lagging
-// answer cannot open a day early. A day the backend gave no row for gets one
-// when it has a gate or locally counted minutes.
+// withRepeatLocal gates each unclaimed repeat day the backend gave no row for
+// on the claim log: the earlier day's logged time plus the group's reset
+// interval. Such a day gets a row when it has a gate or locally counted
+// minutes. A backend row keeps Twitch's own window gate.
 func (r *Runner) withRepeatLocal(ctx context.Context, camps []platform.Campaign, progress []platform.Progress, claimed map[string]bool) []platform.Progress {
 	progress = slices.Clone(progress)
 	idx := make(map[string]int, len(progress))
@@ -73,10 +72,9 @@ func (r *Runner) withRepeatLocal(ctx context.Context, camps []platform.Campaign,
 					gate = at.Add(b.Repeat.Reset)
 				}
 			}
-			if i, ok := idx[b.ID]; ok {
-				if gate.After(progress[i].NextEligibleAt) {
-					progress[i].NextEligibleAt = gate
-				}
+			if _, ok := idx[b.ID]; ok {
+				// Twitch's row carries its own window gate; the log gate
+				// would hold the day past Twitch's reset.
 				continue
 			}
 			row := platform.Progress{BenefitID: b.ID, NextEligibleAt: gate}

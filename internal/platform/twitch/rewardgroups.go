@@ -41,6 +41,9 @@ const (
 	// rgFailTTL is how long a game whose reward groups could not be read is
 	// left alone, so a broken query is not retried on every scan.
 	rgFailTTL = 10 * time.Minute
+	// rgPollStale is how long a cached campaign keeps its progress polled
+	// without a rescan refreshing it.
+	rgPollStale = 6 * time.Hour
 	// rgDirTTL is how long a directory read of the TV walk is reused.
 	rgDirTTL = time.Minute
 	// rgProgressTTL caches the progress read.
@@ -234,6 +237,14 @@ func progressRows(c rgCampaign, userID string, now time.Time) []platform.Progres
 			MinutesWatched: g.Self.CurrentMinutesWatched,
 			NextEligibleAt: parseISO(g.Self.NextEligibleAt),
 		}
+		// Twitch grants one day per window: once the window's minutes meet
+		// the requirement after a grant, the next day opens when it expires
+		// (live: nextEligibleAt stays empty).
+		if w := g.Self.CurrentWindow; done > 0 && w != nil && g.Self.CurrentMinutesWatched >= req {
+			if exp := parseISO(w.ExpiresAt); exp.After(p.NextEligibleAt) {
+				p.NextEligibleAt = exp
+			}
+		}
 		// Minutes left over from the day before a grant are stale: they count
 		// only inside a window that opened at or after the grant.
 		stale := false
@@ -386,7 +397,9 @@ type rgDirEntry struct {
 func (d *discovery) activeChannelsLocked(now time.Time) map[string]bool {
 	out := map[string]bool{}
 	for _, e := range d.rgByGame {
-		if now.Sub(e.at) >= rgTTL {
+		// Scans refresh entries less often than rgTTL, so a stale entry still
+		// polls; rgPollStale only drops a game nobody rescanned for hours.
+		if now.Sub(e.at) >= rgPollStale {
 			continue
 		}
 		for _, c := range e.camps {
