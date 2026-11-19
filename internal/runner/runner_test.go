@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -598,4 +599,21 @@ func TestRunner_RescanEndsIdleWait(t *testing.T) {
 	}
 	cancel()
 	<-done
+}
+
+// The session lists a game's Twitch name too when it differs, so Twitch
+// discovery finds a game added under its Kick name.
+func TestNew_SessionGamesCarryTwitchName(t *testing.T) {
+	f := platformtest.NewFake()
+	r := newRunner(f, func(c *Config) {
+		c.Games = []plan.Game{
+			{Name: "Grand Theft Auto VI (GTA)", Slug: "grand-theft-auto-vi-gta", TwitchName: "Grand Theft Auto VI"},
+			{Name: "WARDOGS", Slug: "wardogs", TwitchName: "wardogs"},
+			{Name: "Rust", Slug: "rust"},
+		}
+	})
+	want := []string{"Grand Theft Auto VI (GTA)", "Grand Theft Auto VI", "WARDOGS", "Rust"}
+	if got := r.cfg.Session.Games; !slices.Equal(got, want) {
+		t.Fatalf("Session.Games=%v, want %v", got, want)
+	}
 }
