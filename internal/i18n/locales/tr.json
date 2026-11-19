@@ -357,6 +357,8 @@
   "settings.follow_raids_sub": "Yalnızca Twitch. Kısa rastgele bir beklemeden sonra baskınlara katılır. Aynı kanalı izlemeye devam eder.",
   "settings.claim_moments": "Anları topla",
   "settings.claim_moments_sub": "Yalnızca Twitch. İzlenen kanalın dağıttığı anları kısa rastgele bir beklemeden sonra toplar.",
+  "settings.community_goals": "Topluluk hedefleri",
+  "settings.community_goals_sub": "Yalnızca Twitch, kanal puanları açık hesaplar için. İzlenen kanalın topluluk hedeflerine, her hedefin yayın başına sınırına kadar puan verir.",
   "settings.experimental": "Deneysel",
   "settings.exp_share_catalog": "Android kampanyalarını TV hesaplarıyla paylaş",
   "settings.exp_share_catalog_sub": "TV girişleri, Android girişinin gördüğü kampanyaları da kazar.",

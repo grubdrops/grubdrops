@@ -122,6 +122,7 @@ func (r *Runner) pointsLoop(ctx context.Context, done chan struct{}, pc platform
 	defer t.Stop()
 	for {
 		r.claimPoints(ctx, pc, channel, timeout)
+		r.contributeGoals(ctx, channel, timeout)
 		select {
 		case <-ctx.Done():
 			return
@@ -162,4 +163,44 @@ func (r *Runner) claimPoints(ctx context.Context, pc platform.PointsClaimer, cha
 		attrs = append(attrs, "balance", res.Balance)
 	}
 	slog.Info("runner claimed channel points bonus", attrs...)
+}
+
+// goalContributor is the backend's community goal contributor when the
+// community goals setting is on, else ok is false.
+func (r *Runner) goalContributor() (platform.GoalContributor, bool) {
+	if r.cfg.CommunityGoals == nil || !r.cfg.CommunityGoals() {
+		return nil, false
+	}
+	gc, ok := r.cfg.Backend.(platform.GoalContributor)
+	return gc, ok
+}
+
+// contributeGoals gives points to the watched channel's running community
+// goals once, under its own timeout, after the bonus claim. It runs only
+// with the points claim task, so only for an account whose points mode is
+// on. A contribution logs at INFO; none logs nothing; a failure logs once
+// per distinct error.
+func (r *Runner) contributeGoals(ctx context.Context, channel string, timeout time.Duration) {
+	gc, ok := r.goalContributor()
+	if !ok || ctx.Err() != nil {
+		return
+	}
+	actx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	res, err := gc.ContributeCommunityGoals(actx, r.cfg.Session, channel)
+	if ctx.Err() != nil {
+		return // the watch stopped mid-call
+	}
+	if err != nil {
+		if r.logGoals.Changed(err.Error()) {
+			slog.Warn("runner community goal contribution failed", "kind", "error",
+				"account", r.cfg.AccountID, "channel", channel, "err", err)
+		}
+	} else {
+		r.logGoals.Reset()
+	}
+	if res.Points > 0 {
+		slog.Info("runner contributed to community goals", "kind", "info", "account", r.cfg.AccountID,
+			"channel", channel, "goals", res.Goals, "points", res.Points)
+	}
 }
