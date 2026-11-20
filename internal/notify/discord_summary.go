@@ -92,7 +92,7 @@ func discordSummary(embed map[string]any, r *SummaryReport) map[string]any {
 			}
 			// Keep the last field for the "more games" note.
 			last := len(fields) == discordMaxFields-1 && gi < len(groups)-1
-			if last || !add(fmt.Sprintf("🎮 %s %s (%d)", game, platformDot(g.platform), len(g.drops)), lines) {
+			if last || !add(fmt.Sprintf("🎮 %s %s (%d)", mdEscape(game), platformDot(g.platform), len(g.drops)), lines) {
 				add("…", []string{"*" + fmt.Sprintf(i18n.T(r.Lang, "summary.more_games"), len(groups)-gi) + "*"})
 				break
 			}
