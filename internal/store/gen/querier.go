@@ -92,9 +92,9 @@ type Querier interface {
 	ListBenefitsForCampaign(ctx context.Context, campaignID string) ([]Benefit, error)
 	ListChosenGames(ctx context.Context) ([]ListChosenGamesRow, error)
 	ListClaimLogBenefitIDs(ctx context.Context, accountID string) ([]string, error)
+	ListClaimLogBetween(ctx context.Context, arg ListClaimLogBetweenParams) ([]ClaimLog, error)
 	// Every claim of one campaign on one platform, oldest first.
 	ListClaimLogForCampaign(ctx context.Context, arg ListClaimLogForCampaignParams) ([]ClaimLog, error)
-	ListClaimLogBetween(ctx context.Context, arg ListClaimLogBetweenParams) ([]ClaimLog, error)
 	ListClaimLogGames(ctx context.Context) ([]string, error)
 	// An empty game, account_id or pattern matches any. The pattern is a LIKE pattern with bang as the escape char, applied through the like function.
 	ListClaimLogPage(ctx context.Context, arg ListClaimLogPageParams) ([]ClaimLog, error)
