@@ -404,3 +404,17 @@ func TestAccounts_CreateKickPointsMode(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "drops_points", a.PointsMode)
 }
+
+// The points mode is part of the insert, so a created account never exists on
+// a different mode first.
+func TestAccounts_CreateSetsPointsModeInInsert(t *testing.T) {
+	e, _ := accountsEnv(t)
+	tid := e.createAccount("twitch", "T")
+	kid := e.createAccount("kick", "K")
+	ta, err := e.s.d.Q.GetAccount(context.Background(), tid)
+	require.NoError(t, err)
+	assert.Equal(t, "off", ta.PointsMode)
+	ka, err := e.s.d.Q.GetAccount(context.Background(), kid)
+	require.NoError(t, err)
+	assert.Equal(t, "drops_points", ka.PointsMode)
+}

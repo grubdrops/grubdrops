@@ -148,3 +148,21 @@ func TestQueries_UpdateAccountAvatar(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, url, got.AvatarUrl)
 }
+
+func TestCreateAccount_PointsMode(t *testing.T) {
+	q := gen.New(openTest(t))
+	ctx := context.Background()
+	now := time.Now().Unix()
+	for id, mode := range map[string]string{"pm1": "", "pm2": "drops_points"} {
+		a, err := q.CreateAccount(ctx, gen.CreateAccountParams{
+			ID: id, Platform: "kick", Status: "idle", FingerprintJson: "{}", Enabled: 1,
+			CreatedAt: now, UpdatedAt: now, PointsMode: mode,
+		})
+		require.NoError(t, err)
+		want := mode
+		if want == "" {
+			want = "off"
+		}
+		assert.Equal(t, want, a.PointsMode)
+	}
+}

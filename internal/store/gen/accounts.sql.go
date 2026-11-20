@@ -11,8 +11,8 @@ import (
 )
 
 const createAccount = `-- name: CreateAccount :one
-INSERT INTO accounts (id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, sort_order)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts))
+INSERT INTO accounts (id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, sort_order, points_mode)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts), COALESCE(NULLIF(CAST(? AS TEXT), ''), 'off'))
 RETURNING id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, avatar_url, custom_name, sort_order, own_games, skip_sleep, points_mode
 `
 
@@ -26,6 +26,7 @@ type CreateAccountParams struct {
 	Enabled         int64          `json:"enabled"`
 	CreatedAt       int64          `json:"created_at"`
 	UpdatedAt       int64          `json:"updated_at"`
+	PointsMode      string         `json:"points_mode"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -39,6 +40,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.Enabled,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PointsMode,
 	)
 	var i Account
 	err := row.Scan(

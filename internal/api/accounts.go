@@ -150,24 +150,20 @@ func (s *server) createAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	id := genAccountID()
 	now := time.Now().Unix()
+	// A Kick account starts on Drops + points, as Kick accounts always ran
+	// before they had a points mode: its Points watch channels fill idle
+	// time. Set in the insert, so a failure cannot leave a row on `off`.
+	mode := ""
+	if body.Platform == "kick" {
+		mode = string(platform.PointsDropsPoints)
+	}
 	if _, err := s.d.Q.CreateAccount(r.Context(), gen.CreateAccountParams{
 		ID: id, Platform: body.Platform, DisplayName: name,
 		Status: "idle", FingerprintJson: "{}", Enabled: 1,
-		CreatedAt: now, UpdatedAt: now,
+		CreatedAt: now, UpdatedAt: now, PointsMode: mode,
 	}); err != nil {
 		writeErr(w, http.StatusInternalServerError, "internal")
 		return
-	}
-	if body.Platform == "kick" {
-		// A Kick account starts on Drops + points, as Kick accounts always ran
-		// before they had a points mode: its Points watch channels fill idle
-		// time.
-		if err := s.d.Q.SetAccountPointsMode(r.Context(), gen.SetAccountPointsModeParams{
-			PointsMode: string(platform.PointsDropsPoints), UpdatedAt: now, ID: id,
-		}); err != nil {
-			writeErr(w, http.StatusInternalServerError, "internal")
-			return
-		}
 	}
 	s.accountChanged(id)
 	writeJSON(w, http.StatusCreated, map[string]string{"id": id})
