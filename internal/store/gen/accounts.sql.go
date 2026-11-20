@@ -12,7 +12,7 @@ import (
 
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, sort_order, points_mode)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts), COALESCE(NULLIF(CAST(? AS TEXT), ''), 'off'))
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts), COALESCE(NULLIF(CAST(?10 AS TEXT), ''), 'off'))
 RETURNING id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, avatar_url, custom_name, sort_order, own_games, skip_sleep, points_mode
 `
 

@@ -1,6 +1,6 @@
 -- name: CreateAccount :one
 INSERT INTO accounts (id, platform, display_name, status, webhook_url, fingerprint_json, enabled, created_at, updated_at, sort_order, points_mode)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts), COALESCE(NULLIF(CAST(? AS TEXT), ''), 'off'))
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM accounts), COALESCE(NULLIF(CAST(sqlc.arg(points_mode) AS TEXT), ''), 'off'))
 RETURNING *;
 
 -- name: GetAccount :one
