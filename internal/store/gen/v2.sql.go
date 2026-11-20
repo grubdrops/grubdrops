@@ -527,6 +527,38 @@ func (q *Queries) ListRecentClaimLog(ctx context.Context, limit int64) ([]ClaimL
 	return items, nil
 }
 
+const listWatchMinutesDay = `-- name: ListWatchMinutesDay :many
+SELECT account_id, minutes FROM watch_minutes WHERE day = ? AND minutes > 0 ORDER BY minutes DESC, account_id
+`
+
+type ListWatchMinutesDayRow struct {
+	AccountID string `json:"account_id"`
+	Minutes   int64  `json:"minutes"`
+}
+
+func (q *Queries) ListWatchMinutesDay(ctx context.Context, day string) ([]ListWatchMinutesDayRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWatchMinutesDay, day)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWatchMinutesDayRow
+	for rows.Next() {
+		var i ListWatchMinutesDayRow
+		if err := rows.Scan(&i.AccountID, &i.Minutes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const putAccountScan = `-- name: PutAccountScan :exec
 INSERT INTO account_scans (account_id, scanned_at, reconciled_at, error)
 VALUES (?, ?, ?, ?)

@@ -594,6 +594,7 @@ func run(ctx context.Context) error {
 			Minutes:  collector.Minutes,
 			Claims:   collector.Claims,
 			Notifier: notifier,
+			Accounts: q.ListAllAccounts,
 			Zone:     displayZone.Location,
 		})
 	})

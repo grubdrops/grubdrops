@@ -138,6 +138,7 @@ type Querier interface {
 	// Campaigns announced but not yet started. Whitelist filtering is
 	// applied in Go.
 	ListUpcomingCampaigns(ctx context.Context, arg ListUpcomingCampaignsParams) ([]Campaign, error)
+	ListWatchMinutesDay(ctx context.Context, day string) ([]ListWatchMinutesDayRow, error)
 	MarkFeedNotificationsRead(ctx context.Context, readAt sql.NullInt64) (int64, error)
 	MarkNeedsLinkDropListed(ctx context.Context, arg MarkNeedsLinkDropListedParams) error
 	MarkNeedsLinkDropUnlisted(ctx context.Context, arg MarkNeedsLinkDropUnlistedParams) error

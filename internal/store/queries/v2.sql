@@ -63,6 +63,9 @@ SELECT CAST(COALESCE(SUM(minutes), 0) AS INTEGER) FROM watch_minutes;
 -- name: SumWatchMinutesDay :one
 SELECT CAST(COALESCE(SUM(minutes), 0) AS INTEGER) FROM watch_minutes WHERE day = ?;
 
+-- name: ListWatchMinutesDay :many
+SELECT account_id, minutes FROM watch_minutes WHERE day = ? AND minutes > 0 ORDER BY minutes DESC, account_id;
+
 -- name: PutAccountScan :exec
 -- A zero timestamp keeps the stored value. The error is always written.
 INSERT INTO account_scans (account_id, scanned_at, reconciled_at, error)
