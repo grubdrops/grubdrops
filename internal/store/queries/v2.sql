@@ -22,6 +22,9 @@ SELECT benefit_id FROM claim_log WHERE account_id = ? AND source = 'manual';
 -- name: ListRecentClaimLog :many
 SELECT * FROM claim_log ORDER BY claimed_at DESC, benefit_id ASC LIMIT ?;
 
+-- name: ListClaimLogBetween :many
+SELECT * FROM claim_log WHERE claimed_at >= sqlc.arg(since) AND claimed_at < sqlc.arg(until) ORDER BY claimed_at ASC, benefit_id ASC;
+
 -- name: CountClaimLogSince :one
 SELECT COUNT(*) FROM claim_log WHERE claimed_at >= ?;
 

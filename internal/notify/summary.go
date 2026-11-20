@@ -10,6 +10,7 @@ const FieldReport = "report"
 // and the drops claimed, oldest first.
 type SummaryReport struct {
 	Day      time.Time
+	Lang     string // UI language for the labels; empty is English
 	Minutes  int
 	Accounts []SummaryAccount
 	Drops    []SummaryDrop

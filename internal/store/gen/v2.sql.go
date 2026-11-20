@@ -488,6 +488,50 @@ func (q *Queries) ListManualClaimLogBenefitIDs(ctx context.Context, accountID st
 	return items, nil
 }
 
+const listClaimLogBetween = `-- name: ListClaimLogBetween :many
+SELECT account_id, benefit_id, platform, game, campaign_id, campaign_name, benefit_name, image_url, code, source, claimed_at FROM claim_log WHERE claimed_at >= ?1 AND claimed_at < ?2 ORDER BY claimed_at ASC, benefit_id ASC
+`
+
+type ListClaimLogBetweenParams struct {
+	Since int64 `json:"since"`
+	Until int64 `json:"until"`
+}
+
+func (q *Queries) ListClaimLogBetween(ctx context.Context, arg ListClaimLogBetweenParams) ([]ClaimLog, error) {
+	rows, err := q.db.QueryContext(ctx, listClaimLogBetween, arg.Since, arg.Until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ClaimLog
+	for rows.Next() {
+		var i ClaimLog
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.BenefitID,
+			&i.Platform,
+			&i.Game,
+			&i.CampaignID,
+			&i.CampaignName,
+			&i.BenefitName,
+			&i.ImageUrl,
+			&i.Code,
+			&i.Source,
+			&i.ClaimedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRecentClaimLog = `-- name: ListRecentClaimLog :many
 SELECT account_id, benefit_id, platform, game, campaign_id, campaign_name, benefit_name, image_url, code, source, claimed_at FROM claim_log ORDER BY claimed_at DESC, benefit_id ASC LIMIT ?
 `

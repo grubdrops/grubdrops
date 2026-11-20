@@ -111,7 +111,7 @@ func (c Config) send(ctx context.Context, midnight time.Time) {
 		"title":   i18n.T(lang, "summary.title"),
 		"msg":     fmt.Sprintf(i18n.T(lang, "summary.message"), day, minutes, claims),
 	}
-	if r := c.report(ctx, start, midnight, day, minutes); r != nil {
+	if r := c.report(ctx, start, midnight, day, lang, minutes); r != nil {
 		fields[notify.FieldReport] = r
 	}
 	if err := c.Notifier.Notify(ctx, notify.EventSummary, fields); err != nil {
@@ -119,18 +119,15 @@ func (c Config) send(ctx context.Context, midnight time.Time) {
 	}
 }
 
-// maxReportClaims bounds the claim log rows read for one day's report.
-const maxReportClaims = 500
-
 // report details the day for notifiers that render it. A failed read
 // gives nil, and the summary goes out with its one-line message.
-func (c Config) report(ctx context.Context, start, end time.Time, day string, minutes int) *notify.SummaryReport {
+func (c Config) report(ctx context.Context, start, end time.Time, day, lang string, minutes int) *notify.SummaryReport {
 	perAccount, err := c.Minutes.DayByAccount(ctx, day)
 	if err != nil {
 		slog.Warn("daily summary: report minutes", "kind", "error", "err", err)
 		return nil
 	}
-	recent, err := c.Claims.Recent(ctx, maxReportClaims)
+	claims, err := c.Claims.Between(ctx, start, end)
 	if err != nil {
 		slog.Warn("daily summary: report claims", "kind", "error", "err", err)
 		return nil
@@ -151,18 +148,15 @@ func (c Config) report(ctx context.Context, start, end time.Time, day string, mi
 		}
 		return id
 	}
-	r := &notify.SummaryReport{Day: start, Minutes: minutes}
+	r := &notify.SummaryReport{Day: start, Minutes: minutes, Lang: lang}
 	for _, m := range perAccount {
 		r.Accounts = append(r.Accounts, notify.SummaryAccount{
 			Label: label(m.AccountID), Platform: names[m.AccountID].Platform, Minutes: m.Minutes,
 		})
 	}
-	// Recent is newest first; the report lists the day oldest first.
-	for i := len(recent) - 1; i >= 0; i-- {
-		e := recent[i]
-		if e.ClaimedAt.Before(start) || !e.ClaimedAt.Before(end) {
-			continue
-		}
+	// Between is oldest first and covers the whole day, so the list matches
+	// the CountSince-based count in the one-line message.
+	for _, e := range claims {
 		r.Drops = append(r.Drops, notify.SummaryDrop{
 			Game: e.Game, Drop: e.BenefitName, Platform: e.Platform, Account: label(e.AccountID),
 		})

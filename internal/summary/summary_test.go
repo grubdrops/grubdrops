@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -144,4 +145,42 @@ func TestSummary_SendsYesterday(t *testing.T) {
 
 func TestSummary_ToggleOffSendsNothing(t *testing.T) {
 	assert.Empty(t, runSummary(t, false))
+}
+
+// A day with more than 500 claims lists every drop, and the count in the
+// report matches the one-line count.
+func TestSummary_ReportCoversBusyDay(t *testing.T) {
+	ctx := context.Background()
+	db, err := store.Open(ctx, filepath.Join(t.TempDir(), "t.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	q := gen.New(db)
+	claims := store.NewClaimLog(q)
+	loc := time.UTC
+	start := time.Date(2026, 5, 10, 0, 0, 0, 0, loc)
+	end := start.AddDate(0, 0, 1)
+	const n = 650
+	for i := 0; i < n; i++ {
+		require.NoError(t, claims.Record(ctx, store.ClaimEntry{
+			AccountID: "a1", BenefitID: fmt.Sprintf("b%04d", i), Platform: "twitch", Game: "Rust",
+			BenefitName: "drop", ClaimedAt: start.Add(time.Duration(i) * time.Minute / 2),
+		}))
+	}
+	// Claims after the day must not leak in, and must not hide the day's.
+	for i := 0; i < 50; i++ {
+		require.NoError(t, claims.Record(ctx, store.ClaimEntry{
+			AccountID: "a1", BenefitID: fmt.Sprintf("late%02d", i), Platform: "twitch", Game: "Rust",
+			ClaimedAt: end.Add(time.Duration(i+1) * time.Minute),
+		}))
+	}
+	c := Config{Minutes: store.NewWatchMinutes(q), Claims: claims}
+	r := c.report(ctx, start, end, "2026-05-10", "en", 0)
+	require.NotNil(t, r)
+	assert.Len(t, r.Drops, n)
+
+	since, err := claims.CountSince(ctx, start)
+	require.NoError(t, err)
+	after, err := claims.CountSince(ctx, end)
+	require.NoError(t, err)
+	assert.Equal(t, since-after, len(r.Drops))
 }

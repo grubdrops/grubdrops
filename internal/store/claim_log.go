@@ -102,6 +102,15 @@ func (l *ClaimLog) Recent(ctx context.Context, limit int) ([]ClaimEntry, error) 
 	return claimEntries(rows), nil
 }
 
+// Between returns every claim with since <= claimed_at < until, oldest first.
+func (l *ClaimLog) Between(ctx context.Context, since, until time.Time) ([]ClaimEntry, error) {
+	rows, err := l.Q.ListClaimLogBetween(ctx, gen.ListClaimLogBetweenParams{Since: since.Unix(), Until: until.Unix()})
+	if err != nil {
+		return nil, err
+	}
+	return claimEntries(rows), nil
+}
+
 // ForCampaign returns every claim of one campaign on one platform, oldest
 // first.
 func (l *ClaimLog) ForCampaign(ctx context.Context, platform, campaignID string) ([]ClaimEntry, error) {
