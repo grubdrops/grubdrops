@@ -235,6 +235,23 @@
 		return commit(keep.map((k) => games.find((g) => g.id === k)!));
 	}
 
+	// Removing from the search results: the hits stay open, so mark the
+	// removed one as addable again and shift the later ranks up.
+	let confirmingHit = $state<string | null>(null);
+	async function removeHit(hit: SearchHit): Promise<void> {
+		confirmingHit = null;
+		const gone = hit.priority;
+		await remove(hit.id);
+		if (failed) return;
+		hits = hits.map((h) =>
+			h.id === hit.id
+				? { ...h, chosen: false, priority: null }
+				: gone !== null && h.priority !== null && h.priority > gone
+					? { ...h, priority: h.priority - 1 }
+					: h
+		);
+	}
+
 	const dragOpts = {
 		enabled: () => !saving && !ending,
 		onStart: (from: number) => (drag = { id: games[from].id, from, to: from }),
@@ -334,12 +351,19 @@
 											<small>{t('games.already', { n: s.hit.priority })}</small>
 										{/if}
 									</span>
-									<button
-										type="button"
-										class="add-btn"
-										disabled={s.hit.chosen || busy !== null}
-										onclick={() => add(s.hit.name)}>{s.hit.chosen ? t('games.added') : t('games.add')}</button
-									>
+									{#if s.hit.chosen && confirmingHit === s.hit.id}
+										{@const hit = s.hit}
+										<span class="conf">
+											<span>{t('games.remove_confirm', { game: hit.name })}</span>
+											<button type="button" class="danger" disabled={saving} onclick={() => removeHit(hit)}>{t('games.remove')}</button>
+											<button type="button" class="plain" onclick={() => (confirmingHit = null)}>{t('games.cancel')}</button>
+										</span>
+									{:else if s.hit.chosen}
+										{@const id = s.hit.id}
+										<button type="button" class="add-btn rm-btn" disabled={saving} onclick={() => (confirmingHit = id)}>{t('games.remove')}</button>
+									{:else}
+										<button type="button" class="add-btn" disabled={busy !== null} onclick={() => add(s.hit.name)}>{t('games.add')}</button>
+									{/if}
 								{:else}
 									<span class="thumb" aria-hidden="true">+</span>
 									<span class="nm"><b>{t('games.add_named', { name: s.name })}</b></span>
@@ -635,6 +659,10 @@
 	.add-btn:hover:not(:disabled) {
 		border-color: var(--accent);
 		color: var(--accent);
+	}
+	.rm-btn:hover:not(:disabled) {
+		border-color: color-mix(in srgb, var(--red) 45%, transparent);
+		color: var(--red);
 	}
 	.add-btn:disabled {
 		color: var(--t2);
