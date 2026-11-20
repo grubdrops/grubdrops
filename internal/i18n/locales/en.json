@@ -296,7 +296,7 @@
   "points.fresh_error": "Couldn't read · showing {time}",
   "points.fresh_error_none": "Couldn't read balances",
   "points.fresh_pending": "Reading balances…",
-  "points.kick_chat_note": "Kick has no bonus to claim: watch time raises the balance. In our tests it only started after one chat message on the channel.",
+  "points.kick_chat_note": "Kick has no bonus to claim: watch time seems to raise the balance. In our tests it only appeared to start after one chat message on the channel.",
   "points.unsupported": "{platform} balances and bonus claims coming soon",
   "points.chips": "Accounts on {channel}",
   "points.watching_now": "Watching now",
