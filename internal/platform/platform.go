@@ -254,9 +254,9 @@ func PointsSupported(plat string) bool {
 }
 
 // BalancesSupported reports whether accounts on platform plat can read
-// channel-points balances: Twitch, and Kick. Kick has no bonus to claim and,
-// as far as tested, credits points for chat activity, not watch time, so a
-// Kick balance is shown but not raised.
+// channel-points balances: Twitch, and Kick. Kick has no bonus to claim; its
+// balance grows with watch time (in our tests only after one chat message on
+// the channel).
 func BalancesSupported(plat string) bool {
 	return plat == "twitch" || plat == "kick"
 }

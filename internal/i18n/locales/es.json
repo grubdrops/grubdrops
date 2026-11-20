@@ -296,7 +296,7 @@
   "points.fresh_error": "No se pudo leer · valor de {time}",
   "points.fresh_error_none": "No se pudieron leer los saldos",
   "points.fresh_pending": "Leyendo saldos…",
-  "points.kick_chat_note": "Kick da puntos de canal por chatear, no por ver. GrubDrops muestra el saldo pero no puede subirlo.",
+  "points.kick_chat_note": "Kick no tiene bono que reclamar: el tiempo de visualización sube el saldo. En nuestras pruebas solo empezó tras un mensaje en el chat del canal.",
   "points.unsupported": "Saldos y bonos de {platform} muy pronto",
   "points.chips": "Cuentas en {channel}",
   "points.watching_now": "Viendo ahora",

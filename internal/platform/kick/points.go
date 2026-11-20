@@ -44,8 +44,8 @@ func (a *api) ChannelPoints(ctx context.Context, sess platform.Session, slug str
 }
 
 // ChannelPointsBalance reads the account's channel points on channel (a
-// slug). Kick has no bonus to claim, and its points come from chat activity
-// rather than watch time, so this only reads. Satisfies
+// slug). Kick has no bonus to claim, so this only reads; the balance grows
+// with watch time. Satisfies
 // platform.PointsBalancer.
 func (b *Backend) ChannelPointsBalance(ctx context.Context, s platform.Session, channel string) (int, error) {
 	if channel == "" {

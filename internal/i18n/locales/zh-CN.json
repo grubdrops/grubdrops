@@ -296,7 +296,7 @@
   "points.fresh_error": "读取失败 · 显示 {time} 的值",
   "points.fresh_error_none": "无法读取余额",
   "points.fresh_pending": "正在读取余额…",
-  "points.kick_chat_note": "Kick 的频道积分来自聊天，而不是观看。GrubDrops 会显示余额，但无法增加。",
+  "points.kick_chat_note": "Kick 没有可领取的奖励：观看时长会增加余额。在我们的测试中，需要先在该频道聊天发一条消息才开始累积。",
   "points.unsupported": "{platform} 余额和奖励领取即将推出",
   "points.chips": "{channel} 的账号",
   "points.watching_now": "正在观看",
