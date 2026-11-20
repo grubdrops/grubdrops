@@ -3,6 +3,8 @@ package notify
 import (
 	"fmt"
 	"strings"
+
+	"github.com/grubdrops/grubdrops/internal/i18n"
 )
 
 // Discord embed limits the summary stays within.
@@ -24,8 +26,13 @@ const summaryColor = 0x3498DB
 func discordSummary(embed map[string]any, r *SummaryReport) map[string]any {
 	embed["title"] = "📊 " + embed["title"].(string)
 	embed["color"] = summaryColor
-	embed["description"] = fmt.Sprintf("📅 **%s**\n⏱ **%s** watched · 🎁 **%d** %s claimed",
-		r.Day.Format("Monday, 2 January 2006"), formatMinutes(r.Minutes), len(r.Drops), plural(len(r.Drops), "drop", "drops"))
+	claimed := fmt.Sprintf(i18n.T(r.Lang, "summary.claimed_other"), "**"+fmt.Sprint(len(r.Drops))+"**")
+	if len(r.Drops) == 1 {
+		claimed = fmt.Sprintf(i18n.T(r.Lang, "summary.claimed_one"), "**1**")
+	}
+	embed["description"] = fmt.Sprintf("📅 **%s**\n⏱ %s · 🎁 %s",
+		r.Day.Format("2006-01-02"),
+		fmt.Sprintf(i18n.T(r.Lang, "summary.watched"), "**"+formatMinutes(r.Minutes)+"**"), claimed)
 	embed["footer"] = map[string]any{"text": "GrubDrops"}
 
 	var fields []any
@@ -55,27 +62,27 @@ func discordSummary(embed map[string]any, r *SummaryReport) map[string]any {
 	if len(watch) == 0 {
 		watch = []string{"—"}
 	}
-	add("⏱ Watch time", watch)
+	add("⏱ "+i18n.T(r.Lang, "summary.watch_time"), watch)
 
 	if len(r.Drops) == 0 {
-		add("🎁 Drops claimed", []string{"None today"})
+		add("🎁 "+i18n.T(r.Lang, "summary.drops_claimed"), []string{i18n.T(r.Lang, "summary.none_today")})
 	} else {
 		manyAccounts := len(distinct(r.Drops, func(d SummaryDrop) string { return d.Account })) > 1
 		groups := groupDrops(r.Drops)
 		for gi, g := range groups {
 			game := g.game
 			if game == "" {
-				game = "Other"
+				game = i18n.T(r.Lang, "summary.other_game")
 			}
 			lines := make([]string, 0, len(g.drops))
 			for i, d := range g.drops {
 				if i == maxSummaryDropsPerGame {
-					lines = append(lines, fmt.Sprintf("*+%d more*", len(g.drops)-i))
+					lines = append(lines, "*"+fmt.Sprintf(i18n.T(r.Lang, "summary.more_drops"), len(g.drops)-i)+"*")
 					break
 				}
 				item := d.Drop
 				if item == "" {
-					item = "Drop"
+					item = i18n.T(r.Lang, "summary.drop")
 				}
 				line := "• " + mdEscape(item)
 				if manyAccounts && d.Account != "" {
@@ -86,7 +93,7 @@ func discordSummary(embed map[string]any, r *SummaryReport) map[string]any {
 			// Keep the last field for the "more games" note.
 			last := len(fields) == discordMaxFields-1 && gi < len(groups)-1
 			if last || !add(fmt.Sprintf("🎮 %s %s (%d)", game, platformDot(g.platform), len(g.drops)), lines) {
-				add("…", []string{fmt.Sprintf("*+%d more games*", len(groups)-gi)})
+				add("…", []string{"*" + fmt.Sprintf(i18n.T(r.Lang, "summary.more_games"), len(groups)-gi) + "*"})
 				break
 			}
 		}
@@ -134,11 +141,4 @@ func clip(s string, max int) string {
 		r = r[:len(r)-1]
 	}
 	return string(r) + "…"
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }

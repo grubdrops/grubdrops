@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html"
 	"strings"
+
+	"github.com/grubdrops/grubdrops/internal/i18n"
 )
 
 // telegramMessageLimit is the Bot API text length limit for sendMessage.
@@ -19,9 +21,9 @@ func telegramSummary(title string, r *SummaryReport) string {
 	esc := html.EscapeString
 	var b strings.Builder
 	b.WriteString("📊 <b>" + esc(title) + "</b>\n")
-	b.WriteString("📅 <i>" + esc(r.Day.Format("Monday, 2 January 2006")) + "</i>\n\n")
+	b.WriteString("📅 <i>" + esc(r.Day.Format("2006-01-02")) + "</i>\n\n")
 
-	b.WriteString("⏱ <b>Watch time:</b> <code>" + esc(formatMinutes(r.Minutes)) + "</code>\n")
+	b.WriteString("⏱ <b>" + esc(i18n.T(r.Lang, "summary.watch_time")) + ":</b> <code>" + esc(formatMinutes(r.Minutes)) + "</code>\n")
 	for _, a := range r.Accounts {
 		name := a.Label
 		if p := platformLabel(a.Platform); p != "" {
@@ -32,24 +34,24 @@ func telegramSummary(title string, r *SummaryReport) string {
 	b.WriteString("\n")
 
 	if len(r.Drops) == 0 {
-		b.WriteString("🎁 <b>Drops claimed:</b> none\n")
+		b.WriteString("🎁 <b>" + esc(i18n.T(r.Lang, "summary.drops_claimed")) + ":</b> " + esc(i18n.T(r.Lang, "summary.none")) + "\n")
 	} else {
-		b.WriteString(fmt.Sprintf("🎁 <b>Drops claimed:</b> <code>%d</code>\n", len(r.Drops)))
+		b.WriteString(fmt.Sprintf("🎁 <b>%s:</b> <code>%d</code>\n", esc(i18n.T(r.Lang, "summary.drops_claimed")), len(r.Drops)))
 		manyAccounts := len(distinct(r.Drops, func(d SummaryDrop) string { return d.Account })) > 1
 		for _, g := range groupDrops(r.Drops) {
 			name := g.game
 			if name == "" {
-				name = "Other"
+				name = i18n.T(r.Lang, "summary.other_game")
 			}
 			b.WriteString(fmt.Sprintf("\n🎮 <b>%s</b> %s <i>(%d)</i>\n", esc(name), platformDot(g.platform), len(g.drops)))
 			for i, d := range g.drops {
 				if i == maxSummaryDropsPerGame {
-					b.WriteString(fmt.Sprintf("   <i>+%d more</i>\n", len(g.drops)-i))
+					b.WriteString("   <i>" + esc(fmt.Sprintf(i18n.T(r.Lang, "summary.more_drops"), len(g.drops)-i)) + "</i>\n")
 					break
 				}
 				item := d.Drop
 				if item == "" {
-					item = "Drop"
+					item = i18n.T(r.Lang, "summary.drop")
 				}
 				line := "   • " + esc(item)
 				if manyAccounts && d.Account != "" {
@@ -69,7 +71,7 @@ func telegramSummary(title string, r *SummaryReport) string {
 		if i := strings.LastIndex(cut, "\n"); i > 0 {
 			cut = cut[:i]
 		}
-		out = cut + "\n<i>… cut</i>"
+		out = cut + "\n<i>… " + esc(i18n.T(r.Lang, "summary.cut")) + "</i>"
 	}
 	return out
 }

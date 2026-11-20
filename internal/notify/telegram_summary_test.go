@@ -33,7 +33,7 @@ func TestTelegram_SummaryReport(t *testing.T) {
 	require.Len(t, got, 1)
 	assert.Equal(t, strings.Join([]string{
 		"📊 <b>Daily summary</b>",
-		"📅 <i>Thursday, 19 November 2026</i>",
+		"📅 <i>2026-11-19</i>",
 		"",
 		"⏱ <b>Watch time:</b> <code>20h 34m</code>",
 		"🟢 Kick · Ann&lt;a&gt; — <code>10h 58m</code>",
