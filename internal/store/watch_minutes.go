@@ -26,3 +26,22 @@ func (w *WatchMinutes) Day(ctx context.Context, day string) (int, error) {
 	n, err := w.Q.SumWatchMinutesDay(ctx, day)
 	return int(n), err
 }
+
+// AccountMinutes is one account's watch minutes on a day.
+type AccountMinutes struct {
+	AccountID string
+	Minutes   int
+}
+
+// DayByAccount lists each account with minutes on one day, most first.
+func (w *WatchMinutes) DayByAccount(ctx context.Context, day string) ([]AccountMinutes, error) {
+	rows, err := w.Q.ListWatchMinutesDay(ctx, day)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]AccountMinutes, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, AccountMinutes{AccountID: r.AccountID, Minutes: int(r.Minutes)})
+	}
+	return out, nil
+}

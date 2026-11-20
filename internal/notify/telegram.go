@@ -291,6 +291,9 @@ func buildTelegramText(event Event, fields map[string]any) string {
 		if title == "" {
 			title = titleFor(event)
 		}
+		if r, ok := fields[FieldReport].(*SummaryReport); ok && r != nil {
+			return telegramSummary(title, r)
+		}
 		line("<b>" + esc(title) + "</b>")
 		if msg := str("msg"); msg != "" {
 			line(esc(msg))

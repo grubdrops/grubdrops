@@ -10,6 +10,7 @@ import (
 	"github.com/grubdrops/grubdrops/internal/i18n"
 	"github.com/grubdrops/grubdrops/internal/notify"
 	"github.com/grubdrops/grubdrops/internal/store"
+	"github.com/grubdrops/grubdrops/internal/store/gen"
 )
 
 // Config wires the summary loop. Zone and Now may be nil (time.Local, time.Now).
@@ -18,6 +19,9 @@ type Config struct {
 	Minutes  *store.WatchMinutes
 	Claims   *store.ClaimLog
 	Notifier notify.Notifier
+	// Accounts names the accounts in the detailed report. Nil leaves
+	// account rows unnamed.
+	Accounts func(context.Context) ([]gen.Account, error)
 	Zone     func() *time.Location
 	Now      func() time.Time
 }
@@ -107,7 +111,61 @@ func (c Config) send(ctx context.Context, midnight time.Time) {
 		"title":   i18n.T(lang, "summary.title"),
 		"msg":     fmt.Sprintf(i18n.T(lang, "summary.message"), day, minutes, claims),
 	}
+	if r := c.report(ctx, start, midnight, day, minutes); r != nil {
+		fields[notify.FieldReport] = r
+	}
 	if err := c.Notifier.Notify(ctx, notify.EventSummary, fields); err != nil {
 		slog.Warn("daily summary: send", "kind", "error", "err", err)
 	}
+}
+
+// maxReportClaims bounds the claim log rows read for one day's report.
+const maxReportClaims = 500
+
+// report details the day for notifiers that render it. A failed read
+// gives nil, and the summary goes out with its one-line message.
+func (c Config) report(ctx context.Context, start, end time.Time, day string, minutes int) *notify.SummaryReport {
+	perAccount, err := c.Minutes.DayByAccount(ctx, day)
+	if err != nil {
+		slog.Warn("daily summary: report minutes", "kind", "error", "err", err)
+		return nil
+	}
+	recent, err := c.Claims.Recent(ctx, maxReportClaims)
+	if err != nil {
+		slog.Warn("daily summary: report claims", "kind", "error", "err", err)
+		return nil
+	}
+	names := map[string]gen.Account{}
+	if c.Accounts != nil {
+		accs, err := c.Accounts(ctx)
+		if err != nil {
+			slog.Warn("daily summary: report accounts", "kind", "error", "err", err)
+		}
+		for _, a := range accs {
+			names[a.ID] = a
+		}
+	}
+	label := func(id string) string {
+		if a, ok := names[id]; ok {
+			return store.AccountName(a)
+		}
+		return id
+	}
+	r := &notify.SummaryReport{Day: start, Minutes: minutes}
+	for _, m := range perAccount {
+		r.Accounts = append(r.Accounts, notify.SummaryAccount{
+			Label: label(m.AccountID), Platform: names[m.AccountID].Platform, Minutes: m.Minutes,
+		})
+	}
+	// Recent is newest first; the report lists the day oldest first.
+	for i := len(recent) - 1; i >= 0; i-- {
+		e := recent[i]
+		if e.ClaimedAt.Before(start) || !e.ClaimedAt.Before(end) {
+			continue
+		}
+		r.Drops = append(r.Drops, notify.SummaryDrop{
+			Game: e.Game, Drop: e.BenefitName, Platform: e.Platform, Account: label(e.AccountID),
+		})
+	}
+	return r
 }

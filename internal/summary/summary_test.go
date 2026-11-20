@@ -83,7 +83,10 @@ func runSummary(t *testing.T, enabled bool) []sent {
 	require.NoError(t, minutes.Add(ctx, "a2", "2026-05-10", 8))
 	require.NoError(t, minutes.Add(ctx, "a1", "2026-05-11", 99))
 	rec := func(id string, at time.Time) {
-		require.NoError(t, claims.Record(ctx, store.ClaimEntry{AccountID: "a1", BenefitID: id, ClaimedAt: at}))
+		require.NoError(t, claims.Record(ctx, store.ClaimEntry{
+			AccountID: "a1", BenefitID: id, ClaimedAt: at,
+			Platform: "twitch", Game: "Rust", BenefitName: "drop " + id,
+		}))
 	}
 	rec("b1", time.Date(2026, 5, 10, 9, 0, 0, 0, loc))
 	rec("b2", time.Date(2026, 5, 10, 23, 59, 0, 0, loc))
@@ -97,6 +100,9 @@ func runSummary(t *testing.T, enabled bool) []sent {
 	go func() {
 		defer close(done)
 		Run(rctx, Config{Settings: settings, Minutes: minutes, Claims: claims, Notifier: n,
+			Accounts: func(context.Context) ([]gen.Account, error) {
+				return []gen.Account{{ID: "a1", Platform: "twitch", DisplayName: "one", CustomName: "First"}}, nil
+			},
 			Zone: func() *time.Location { return loc }, Now: clk.now})
 	}()
 	// Let the loop spin a few cycles before midnight, then cross it.
@@ -121,6 +127,19 @@ func TestSummary_SendsYesterday(t *testing.T) {
 	assert.Equal(t, 50, got[0].fields["minutes"])
 	assert.Equal(t, 2, got[0].fields["claims"])
 	assert.Equal(t, "2026-05-10: 50 min watched, 2 drops claimed.", got[0].fields["msg"])
+
+	r, ok := got[0].fields[notify.FieldReport].(*notify.SummaryReport)
+	require.True(t, ok)
+	assert.Equal(t, "2026-05-10", r.Day.Format("2006-01-02"))
+	assert.Equal(t, 50, r.Minutes)
+	assert.Equal(t, []notify.SummaryAccount{
+		{Label: "First", Platform: "twitch", Minutes: 42},
+		{Label: "a2", Minutes: 8},
+	}, r.Accounts)
+	assert.Equal(t, []notify.SummaryDrop{
+		{Game: "Rust", Drop: "drop b1", Platform: "twitch", Account: "First"},
+		{Game: "Rust", Drop: "drop b2", Platform: "twitch", Account: "First"},
+	}, r.Drops)
 }
 
 func TestSummary_ToggleOffSendsNothing(t *testing.T) {

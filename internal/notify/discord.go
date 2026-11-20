@@ -201,6 +201,9 @@ func buildEmbed(event Event, fields map[string]any) map[string]any {
 		if embed["title"] == "" {
 			embed["title"] = titleFor(event)
 		}
+		if r, ok := fields[FieldReport].(*SummaryReport); ok && r != nil {
+			return discordSummary(embed, r)
+		}
 		embed["description"] = str("msg")
 		return embed
 	}
