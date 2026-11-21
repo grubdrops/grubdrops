@@ -4,11 +4,13 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-11-20
+
 ### Added
 
 - **Watch streaks (#92).** A new Engine switch, Watch streaks (Twitch only, off by default). When a Points watch channel starts a new stream, an idle account watches it for 7 minutes first, ahead of the list order, to keep its watch streak, then goes back to the order. A streak watch keeps its channel until it is served, unless the stream ends. A drop still comes first. `GET/PUT /api/settings` gain `watch_streak`.
 - **Second channel (#92).** A new Engine switch, Second channel (Twitch only, off by default). Twitch credits channel points on two channels at once, so a Points watch also watches the next live Points watch channel after its own: it sends that channel's minute-watched beacon every tick, claims its bonus when points are on, and moves to another live channel or stops when it ends. Drop watches keep one channel, since drops credit one. With Watch streaks on, a second watch that lasts 7 minutes serves its broadcast's streak too, so the Points watch does not switch to it for one. The Points page and Home show the second channel as watched; runners in `GET /api/runners` gain `extra_channel`. `GET/PUT /api/settings` gain `second_stream`. Based on the multi-stream idea from #82.
-- **Kick channel points balances.** The Points page and Home's Points watch card now show a Kick account's balance on each of its Points watch channels, read hourly like Twitch's from the endpoint Kick's player uses (`/api/v2/channels/{slug}/points`). Kick has no bonus to claim: its balance seems to grow with watch time. In our tests an hour of watch on a channel left the balance unchanged until the account had sent one chat message there; after that, one night of GrubDrops watch appeared to raise it from 70 to 830. That is a single observation, not yet confirmed. `kick-probe <account> points <slug>…` dumps the raw read.
+- **Kick channel points balances.** The Points page and Home's Points watch card now show a Kick account's balance on each of its Points watch channels, read hourly like Twitch's from the endpoint Kick's player uses (`/api/v2/channels/{slug}/points`). Kick has no bonus to claim: its balance seems to grow with watch time. In our tests an hour of watch on a channel left the balance unchanged until the account had sent one chat message there; after that, GrubDrops watch raised it, from 70 to 830 over one night and from 5860 to 6160 over three hours on another channel. `kick-probe <account> points <slug>…` dumps the raw read.
 - **Kick accounts get the points mode picker.** Drops only, Drops + points or Points only, like Twitch, so a Kick account can put its Points watch channels first or skip them. Migration 0033 moves Kick accounts at the old `off` default to `drops_points` and new Kick accounts start on it, so nothing changes until a mode is picked. Watch streaks and the second channel stay Twitch only.
 - **Remove a game from the Games search.** A game you already have now shows a Remove button in the Games search results instead of a greyed-out "Added". Click it, confirm, and the game leaves your list without scrolling to it.
 
@@ -18,6 +20,7 @@ All notable changes to GrubDrops.
 - **A drop watch prefers your Points watch channels.** When a Points watch channel is among the channels a campaign counts on, the account watches it instead of the busiest one, in Points watch order, so one watch earns the drop and that channel's points and streak. Other channels keep the viewer-count order.
 - **Open campaigns also offer your live Points watch channels.** A campaign with no channel list counts on any participating channel of its game, but only the busiest ones were tried, so a smaller favourite never came up. A live Points watch channel streaming the campaign's game is now added too, and goes first. One that does not take part shows no progress and is rotated out by the usual freeze check. Restricted campaigns are unchanged.
 - **A drop watch on a Points watch channel shows as watching it.** The Points page and Home's Points watch card listed such a channel as "Live · unwatched" while an account was on it for a drop. A drop watch now counts as watching it, like a Points watch.
+- **Dependencies.** The images build on Go 1.27 and Node 26, and the Go and web dependencies are updated, among them goose 3.30 and the modernc SQLite driver 1.62.
 
 ### Fixed
 
