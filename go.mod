@@ -15,11 +15,11 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/justinas/nosurf v1.2.0
 	github.com/nlpodyssey/gopickle v0.3.0
-	github.com/pressly/goose/v3 v3.30.0
+	github.com/pressly/goose/v3 v3.30.1
 	github.com/refraction-networking/utls v1.8.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/crypto v0.58.0
-	golang.org/x/net v0.62.0
+	golang.org/x/crypto v0.59.0
+	golang.org/x/net v0.63.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sync v0.25.0
 	google.golang.org/grpc v1.85.0
@@ -49,7 +49,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mfridman/interpolate v0.0.2 // indirect
+	github.com/mfridman/interpolate v0.2.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
