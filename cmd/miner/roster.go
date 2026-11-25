@@ -755,6 +755,10 @@ type runSettings struct {
 	// hold a valid window.
 	sleep                bool
 	sleepStart, sleepEnd int
+	// sleepJitter bounds each account's daily shift; sleepSeed is the
+	// install's seed for it.
+	sleepJitter time.Duration
+	sleepSeed   string
 	// gen is runGen when the read began.
 	gen uint64
 }
@@ -798,7 +802,8 @@ func (ro *roster) readRunSettings() (c runSettings, ok bool) {
 		daily, e8 := ro.settings.KickDailyReward(ctx)
 		streak, e9 := ro.settings.WatchStreak(ctx)
 		second, e10 := ro.settings.SecondStream(ctx)
-		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10); err != nil {
+		seed, e11 := ro.settings.SleepSeed(ctx)
+		if err := errors.Join(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11); err != nil {
 			// Not cached: the next read tries again.
 			ro.log().Warn("read runner settings failed", "kind", "error", "err", err)
 			return c, false
@@ -808,6 +813,8 @@ func (ro *roster) readRunSettings() (c runSettings, ok bool) {
 		end, ok2 := timeutil.ParseClock(sw.End)
 		c.sleep = sw.Enabled && ok1 && ok2 && start != end
 		c.sleepStart, c.sleepEnd = start, end
+		c.sleepJitter = time.Duration(sw.JitterMin) * time.Minute
+		c.sleepSeed = seed
 	}
 	return c, true
 }
@@ -858,7 +865,9 @@ func (ro *roster) sharedTwitchCatalog(ctx context.Context) ([]platform.Campaign,
 }
 
 // sleepUntilFor is the runner's SleepUntil for account a: the saved sleep
-// window with daily jitter, read live in the display zone. Never inside it
+// window with daily jitter, read live in the display zone. The jitter is
+// keyed on the install seed and the account, so accounts don't sleep in
+// lockstep. Never inside it
 // while the account skips the window, also read live.
 func (ro *roster) sleepUntilFor(a gen.Account) func(now time.Time) (time.Time, bool) {
 	return func(now time.Time) (time.Time, bool) {
@@ -870,7 +879,7 @@ func (ro *roster) sleepUntilFor(a gen.Account) func(now time.Time) (time.Time, b
 		if ro.zone != nil {
 			loc = ro.zone()
 		}
-		return timeutil.SleepUntil(now, loc, c.sleepStart, c.sleepEnd, true)
+		return timeutil.SleepUntil(now, loc, c.sleepStart, c.sleepEnd, c.sleepJitter, c.sleepSeed+"|"+a.ID)
 	}
 }
 

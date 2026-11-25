@@ -75,6 +75,9 @@ type settingsSleep struct {
 	Enabled bool   `json:"enabled"`
 	Start   string `json:"start"`
 	End     string `json:"end"`
+	// JitterMin is how far, in minutes, each account's start and end shift
+	// each day, 0 to 120. 0 keeps the set times.
+	JitterMin int `json:"jitter_min"`
 }
 
 // settingsSSO reports the OIDC SSO config, which comes from the env. It
@@ -270,7 +273,7 @@ func (s *server) loadSettings(ctx context.Context) (settingsBody, error) {
 	if err != nil {
 		return b, err
 	}
-	b.Sleep = settingsSleep{Enabled: sleep.Enabled, Start: sleep.Start, End: sleep.End}
+	b.Sleep = settingsSleep{Enabled: sleep.Enabled, Start: sleep.Start, End: sleep.End, JitterMin: sleep.JitterMin}
 	b.SSO.Enabled = s.ssoOn()
 	if s.d.OIDC != nil {
 		b.SSO.Name = s.d.OIDC.Name()
@@ -374,9 +377,10 @@ type settingsPut struct {
 		IntervalSec   *int    `json:"interval_sec"`
 	} `json:"canary"`
 	Sleep *struct {
-		Enabled *bool   `json:"enabled"`
-		Start   *string `json:"start"`
-		End     *string `json:"end"`
+		Enabled   *bool   `json:"enabled"`
+		Start     *string `json:"start"`
+		End       *string `json:"end"`
+		JitterMin *int    `json:"jitter_min"`
 	} `json:"sleep"`
 	// SSO is accepted so a client can send the GET body back. Ignored.
 	SSO json.RawMessage `json:"sso"`
@@ -395,6 +399,9 @@ func mergeSleep(cur store.SleepWindow, req settingsPut) store.SleepWindow {
 		}
 		if p.End != nil {
 			cur.End = *p.End
+		}
+		if p.JitterMin != nil {
+			cur.JitterMin = *p.JitterMin
 		}
 	}
 	return cur
@@ -490,7 +497,7 @@ func (s *server) putSettings(w http.ResponseWriter, r *http.Request) {
 	// Checked merged with the saved window, so start == end is caught
 	// however the two arrive.
 	newSleep := mergeSleep(oldSleep, req)
-	if req.Sleep != nil && !store.ValidSleepWindow(newSleep.Start, newSleep.End) {
+	if req.Sleep != nil && (!store.ValidSleepWindow(newSleep.Start, newSleep.End) || !store.ValidSleepJitter(newSleep.JitterMin)) {
 		writeErr(w, http.StatusBadRequest, "bad_request")
 		return
 	}

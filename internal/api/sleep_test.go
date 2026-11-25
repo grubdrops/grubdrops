@@ -19,21 +19,21 @@ func TestSettings_SleepWindow(t *testing.T) {
 	e := newSettingsEnv(t)
 	ctx := context.Background()
 	_, b := e.do("GET", "/settings", nil)
-	assert.JSONEq(t, `{"enabled":false,"start":"02:00","end":"08:00"}`, jsonPath(t, b, "sleep"))
+	assert.JSONEq(t, `{"enabled":false,"start":"02:00","end":"08:00","jitter_min":20}`, jsonPath(t, b, "sleep"))
 
 	code, b := e.do("PUT", "/settings", map[string]any{"sleep": map[string]any{"enabled": true, "start": "23:30", "end": "07:00"}})
 	require.Equal(t, 200, code, string(b))
-	assert.JSONEq(t, `{"enabled":true,"start":"23:30","end":"07:00"}`, jsonPath(t, b, "sleep"))
+	assert.JSONEq(t, `{"enabled":true,"start":"23:30","end":"07:00","jitter_min":20}`, jsonPath(t, b, "sleep"))
 	assert.Equal(t, 1, e.live, "a sleep change reaches the runners live")
 	assert.Equal(t, 0, e.rescans, "a sleep change rescans nothing")
 	w, err := e.st.SleepWindow(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00"}, w)
+	assert.Equal(t, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00", JitterMin: 20}, w)
 
 	// Partial: only the start moves.
 	code, b = e.do("PUT", "/settings", map[string]any{"sleep": map[string]any{"start": "22:00"}})
 	require.Equal(t, 200, code, string(b))
-	assert.JSONEq(t, `{"enabled":true,"start":"22:00","end":"07:00"}`, jsonPath(t, b, "sleep"))
+	assert.JSONEq(t, `{"enabled":true,"start":"22:00","end":"07:00","jitter_min":20}`, jsonPath(t, b, "sleep"))
 	assert.Equal(t, 2, e.live)
 
 	// Unchanged: no nudge.
@@ -41,23 +41,31 @@ func TestSettings_SleepWindow(t *testing.T) {
 	require.Equal(t, 200, code)
 	assert.Equal(t, 2, e.live)
 
+	// The shift alone is a change too.
+	code, b = e.do("PUT", "/settings", map[string]any{"sleep": map[string]any{"jitter_min": 90}})
+	require.Equal(t, 200, code, string(b))
+	assert.JSONEq(t, `{"enabled":true,"start":"22:00","end":"07:00","jitter_min":90}`, jsonPath(t, b, "sleep"))
+	assert.Equal(t, 3, e.live)
+
 	// Turning it off is a change.
 	code, _ = e.do("PUT", "/settings", map[string]any{"sleep": map[string]any{"enabled": false}})
 	require.Equal(t, 200, code)
-	assert.Equal(t, 3, e.live)
+	assert.Equal(t, 4, e.live)
 	assert.Equal(t, 0, e.rescans)
 }
 
 func TestSettings_SleepWindowInvalidSavesNothing(t *testing.T) {
 	e := newSettingsEnv(t)
 	ctx := context.Background()
-	require.NoError(t, e.st.SetSleepWindow(ctx, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00"}))
+	require.NoError(t, e.st.SetSleepWindow(ctx, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00", JitterMin: 20}))
 	for _, sleep := range []map[string]any{
 		{"start": "25:00"},
 		{"end": "7:00"},
 		{"start": "07:00"}, // equals the saved end
 		{"start": "10:00", "end": "10:00"},
 		{"enabled": true, "start": ""},
+		{"jitter_min": -1},
+		{"jitter_min": 121},
 	} {
 		code, b := e.do("PUT", "/settings", map[string]any{"theme": "light", "sleep": sleep})
 		assert.Equal(t, 400, code, "%v", sleep)
@@ -65,7 +73,7 @@ func TestSettings_SleepWindowInvalidSavesNothing(t *testing.T) {
 		th, _ := e.st.UITheme(ctx)
 		assert.Equal(t, "dark", th)
 		w, _ := e.st.SleepWindow(ctx)
-		assert.Equal(t, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00"}, w)
+		assert.Equal(t, store.SleepWindow{Enabled: true, Start: "23:30", End: "07:00", JitterMin: 20}, w)
 	}
 	assert.Equal(t, 0, e.updates)
 	assert.Equal(t, 0, e.rescans)

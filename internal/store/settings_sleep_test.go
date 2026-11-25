@@ -21,9 +21,9 @@ func TestSettings_SleepWindow(t *testing.T) {
 
 	w, err := s.SleepWindow(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, SleepWindow{Enabled: false, Start: "02:00", End: "08:00"}, w, "off by default, 02:00-08:00")
+	assert.Equal(t, SleepWindow{Enabled: false, Start: "02:00", End: "08:00", JitterMin: 20}, w, "off by default, 02:00-08:00, ±20 min")
 
-	want := SleepWindow{Enabled: true, Start: "23:30", End: "07:00"}
+	want := SleepWindow{Enabled: true, Start: "23:30", End: "07:00", JitterMin: 0}
 	require.NoError(t, s.SetSleepWindow(ctx, want))
 	w, err = s.SleepWindow(ctx)
 	require.NoError(t, err)
@@ -34,6 +34,8 @@ func TestSettings_SleepWindow(t *testing.T) {
 		{Enabled: true, Start: "23:30", End: "7:00"},
 		{Enabled: true, Start: "06:00", End: "06:00"},
 		{Enabled: false, Start: "", End: "07:00"},
+		{Enabled: true, Start: "23:30", End: "07:00", JitterMin: -1},
+		{Enabled: true, Start: "23:30", End: "07:00", JitterMin: 121},
 	} {
 		require.Error(t, s.SetSleepWindow(ctx, bad), "%+v", bad)
 		w, _ = s.SleepWindow(ctx)
@@ -44,6 +46,24 @@ func TestSettings_SleepWindow(t *testing.T) {
 	require.NoError(t, s.setString(ctx, keySleepStart, "nope"))
 	w, _ = s.SleepWindow(ctx)
 	assert.Equal(t, "02:00", w.Start)
+	require.NoError(t, s.setString(ctx, keySleepJitter, "999"))
+	w, _ = s.SleepWindow(ctx)
+	assert.Equal(t, 20, w.JitterMin)
+}
+
+func TestSettings_SleepSeed(t *testing.T) {
+	db, err := Open(context.Background(), filepath.Join(t.TempDir(), "t.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	s := NewSettings(gen.New(db))
+	ctx := context.Background()
+
+	a, err := s.SleepSeed(ctx)
+	require.NoError(t, err)
+	assert.Len(t, a, 32)
+	b, err := s.SleepSeed(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, a, b, "made once, then kept")
 }
 
 func TestAccounts_SkipSleepColumn(t *testing.T) {

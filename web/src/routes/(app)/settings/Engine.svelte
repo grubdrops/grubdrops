@@ -9,7 +9,7 @@
 	import { withScheme } from '$lib/hint';
 	import { t } from '$lib/i18n/index.svelte';
 	import Icon from '$lib/components/Icon.svelte';
-	import { SCAN_INTERVALS, isProxyURL, minutesLabel, sleepProblem } from '$lib/settings';
+	import { SCAN_INTERVALS, SLEEP_JITTERS, isProxyURL, minutesLabel, sleepProblem } from '$lib/settings';
 	import SectionHead from './SectionHead.svelte';
 
 	let {
@@ -25,6 +25,8 @@
 	} = $props();
 
 	const scanOptions = $derived(SCAN_INTERVALS.includes(s.scan_interval_min) ? SCAN_INTERVALS : [...SCAN_INTERVALS, s.scan_interval_min]);
+	const sleepJitter = $derived(s.sleep.jitter_min ?? 20);
+	const jitterOptions = $derived(SLEEP_JITTERS.includes(sleepJitter) ? SLEEP_JITTERS : [...SLEEP_JITTERS, sleepJitter].sort((a, b) => a - b));
 
 	const KICK_MODES = [
 		{ id: 'auto', key: 'settings.kick_auto', sub: 'settings.kick_auto_sub' },
@@ -287,6 +289,21 @@
 				</div>
 				<button type="button" class="btn" disabled={!sleepDirty} onclick={saveSleepNow}>{t('accounts.save')}</button>
 			</div>
+			<div class="field jitter">
+				<label for="sl-jitter">{t('settings.sleep_jitter')}</label>
+				<select
+					class="sel"
+					id="sl-jitter"
+					value={sleepJitter}
+					onchange={(e) => {
+						const v = Number(e.currentTarget.value);
+						if (e.isTrusted && v !== sleepJitter) void save('sleep_jitter', { sleep: { jitter_min: v } });
+					}}
+				>
+					{#each jitterOptions as m (m)}<option value={m}>{m === 0 ? t('settings.sleep_jitter_off') : minutesLabel(m)}</option>{/each}
+				</select>
+				{#if errs.sleep_jitter}<small class="bad">{t('settings.save_failed')}</small>{/if}
+			</div>
 			<small class="help">{t('settings.sleep_help', { zone: s.timezone || s.zone_effective || 'UTC' })}</small>
 			{#if sleepBad}<span class="feedback bad" role="alert">{t(sleepBad)}</span>{/if}
 			{#if errs.sleep_times}<span class="feedback bad">{t('settings.save_failed')}</span>{/if}
@@ -391,5 +408,9 @@
 	.times .field {
 		flex: 1;
 		min-width: 120px;
+	}
+	.jitter {
+		margin-top: 10px;
+		max-width: 260px;
 	}
 </style>

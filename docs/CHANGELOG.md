@@ -4,7 +4,13 @@ All notable changes to GrubDrops.
 
 ## [Unreleased]
 
+### Added
+
+- **Set how far the sleep window shifts (#100).** Settings → Engine → Sleep window has a "Shift by up to" menu: Off (exact times), 10, 20, 30 or 45 min, or 1 h, 90 min or 2 h. The default is 20 min, as before. The shift is capped at a third of the awake time between two windows, so an account always wakes each day. `GET/PUT /api/settings` gain `sleep.jitter_min` (0 to 120), stored as the KV key `settings:sleep_jitter_min`.
+
 ### Changed
+
+- **Each account's sleep window now shifts on its own (#100).** The nightly shift used to depend on the date alone, so every account on every install started and stopped at the same moment. It now also depends on a random seed made once per install (KV key `settings:sleep_seed`) and on the account, so accounts stop and wake at different times. Home and the header still show the earliest wake.
 
 - **GrubDrops is now licensed under the GNU AGPL v3.0.** It stays open source. Anyone who shares a modified GrubDrops, or runs one as a service for others, must publish their full source under the same license. Versions up to v2.4.0 remain under MIT; that notice is kept in `LICENSE.MIT`.
 
