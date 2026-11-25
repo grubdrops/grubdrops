@@ -11,7 +11,7 @@
   <a href="https://github.com/grubdrops/grubdrops/pkgs/container/grubdrops"><img alt="ghcr.io image" src="https://img.shields.io/badge/ghcr.io-grubdrops-2496ED?logo=github"></a>
   <img alt="Twitch" src="https://img.shields.io/badge/Twitch-drops-9146FF?logo=twitch&logoColor=white">
   <img alt="Kick" src="https://img.shields.io/badge/Kick-drops-53FC18?logo=kick&logoColor=black">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <img alt="License" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange">
 </p>
 
 <p align="center">
@@ -165,6 +165,8 @@ GRUB_DEV_API=http://127.0.0.1:18080 npm --prefix web run dev
 ## 致谢、许可与使用
 
 基于 [DevilXD/TwitchDropsMiner](https://github.com/DevilXD/TwitchDropsMiner) 和 [HyperBeats/KickDropsMiner](https://github.com/HyperBeats/KickDropsMiner) 对 Twitch 和 Kick 掉宝机制的研究。
-以 [MIT 许可证](../../LICENSE) 发布。请只在自己的账号上、在各平台条款范围内使用，风险自负。
+以 [PolyForm Noncommercial 1.0.0 许可证](../../LICENSE) 发布。可免费用于个人、爱好和非营利用途，可自由使用、修改和分享。禁止出售本软件或将其作为付费服务运营。v2.4.0 及之前的版本以 MIT 许可证发布（[LICENSE.MIT](../../LICENSE.MIT)）。
+
+请只在自己的账号上、在各平台条款范围内使用，风险自负。
 
 <sub>参见<a href="../CHANGELOG.md">更新日志</a>和<a href="../DESIGN.md">设计说明</a>。</sub>
