@@ -6,7 +6,7 @@ All notable changes to GrubDrops.
 
 ### Changed
 
-- **GrubDrops is now licensed under the PolyForm Noncommercial License 1.0.0.** It stays free to use, change and share for personal, hobby and nonprofit use, but selling it or running it as a paid service is not allowed. Versions up to v2.4.0 remain under MIT; that notice is kept in `LICENSE.MIT`.
+- **GrubDrops is now licensed under the GNU AGPL v3.0.** It stays open source. Anyone who shares a modified GrubDrops, or runs one as a service for others, must publish their full source under the same license. Versions up to v2.4.0 remain under MIT; that notice is kept in `LICENSE.MIT`.
 
 ## [2.4.0] — 2026-11-20
 
