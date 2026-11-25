@@ -501,6 +501,8 @@ export interface SleepWindow {
 	enabled: boolean;
 	start: string;
 	end: string;
+	/** How far each account's start and end shift each night, in minutes; 0 keeps the set times. Older fixtures leave it out. */
+	jitter_min?: number;
 }
 
 export interface SettingsPatch {

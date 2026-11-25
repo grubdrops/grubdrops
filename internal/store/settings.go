@@ -2,12 +2,15 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/grubdrops/grubdrops/internal/store/gen"
 	"github.com/grubdrops/grubdrops/internal/timeutil"
@@ -436,17 +439,23 @@ const (
 	keySleepEnabled = "settings:sleep_enabled"
 	keySleepStart   = "settings:sleep_start" // "HH:MM" in the display timezone
 	keySleepEnd     = "settings:sleep_end"   // "HH:MM"; at or before start = next day
+	keySleepJitter  = "settings:sleep_jitter_min"
+	keySleepSeed    = "settings:sleep_seed" // random hex, made on first read
 
-	DefaultSleepStart = "02:00"
-	DefaultSleepEnd   = "08:00"
+	DefaultSleepStart     = "02:00"
+	DefaultSleepEnd       = "08:00"
+	DefaultSleepJitterMin = 20
+	MaxSleepJitterMin     = 120
 )
 
 // SleepWindow is the daily window in which every account without skip_sleep
 // stops watching. Start and End are "HH:MM" in the display timezone; an End
-// at or before Start crosses midnight.
+// at or before Start crosses midnight. JitterMin is how far, in minutes, each
+// account's start and end may shift each day; 0 keeps the set times.
 type SleepWindow struct {
 	Enabled    bool
 	Start, End string
+	JitterMin  int
 }
 
 // ValidSleepWindow reports whether start and end are "HH:MM" and differ.
@@ -456,11 +465,21 @@ func ValidSleepWindow(start, end string) bool {
 	return ok1 && ok2 && s != e
 }
 
-// SleepWindow reads the sleep window. Default off, 02:00 to 08:00. A stored
-// pair that does not parse, or has start equal to end, reads as the default
-// times.
+// ValidSleepJitter reports whether n is an allowed shift in minutes.
+func ValidSleepJitter(n int) bool { return n >= 0 && n <= MaxSleepJitterMin }
+
+// SleepWindow reads the sleep window. Default off, 02:00 to 08:00, shifting
+// up to 20 min. A stored pair that does not parse, or has start equal to end,
+// reads as the default times; a bad shift reads as the default shift.
 func (s *Settings) SleepWindow(ctx context.Context) (SleepWindow, error) {
-	w := SleepWindow{Start: DefaultSleepStart, End: DefaultSleepEnd}
+	w := SleepWindow{Start: DefaultSleepStart, End: DefaultSleepEnd, JitterMin: DefaultSleepJitterMin}
+	j, err := s.getString(ctx, keySleepJitter)
+	if err != nil {
+		return w, err
+	}
+	if n, perr := strconv.Atoi(j); perr == nil && ValidSleepJitter(n) {
+		w.JitterMin = n
+	}
 	on, err := s.boolKey(ctx, keySleepEnabled, false)
 	if err != nil {
 		return w, err
@@ -492,6 +511,12 @@ func (s *Settings) SetSleepWindow(ctx context.Context, w SleepWindow) error {
 	if !ValidSleepWindow(w.Start, w.End) {
 		return fmt.Errorf("invalid sleep window %q-%q", w.Start, w.End)
 	}
+	if !ValidSleepJitter(w.JitterMin) {
+		return fmt.Errorf("invalid sleep jitter %d", w.JitterMin)
+	}
+	if err := s.setString(ctx, keySleepJitter, strconv.Itoa(w.JitterMin)); err != nil {
+		return err
+	}
 	if err := s.setString(ctx, keySleepStart, w.Start); err != nil {
 		return err
 	}
@@ -499,6 +524,27 @@ func (s *Settings) SetSleepWindow(ctx context.Context, w SleepWindow) error {
 		return err
 	}
 	return s.setBool(ctx, keySleepEnabled, w.Enabled)
+}
+
+// sleepSeedMu keeps two first reads from each saving a different seed.
+var sleepSeedMu sync.Mutex
+
+// SleepSeed is this install's random seed for the sleep window's daily
+// shift, so installs don't all shift alike. It is made and saved on the
+// first read.
+func (s *Settings) SleepSeed(ctx context.Context) (string, error) {
+	sleepSeedMu.Lock()
+	defer sleepSeedMu.Unlock()
+	v, err := s.getString(ctx, keySleepSeed)
+	if err != nil || v != "" {
+		return v, err
+	}
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	v = hex.EncodeToString(b)
+	return v, s.setString(ctx, keySleepSeed, v)
 }
 
 // PriorityMode orders the mining queue: ordered (game list order) or

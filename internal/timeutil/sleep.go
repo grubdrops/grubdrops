@@ -6,9 +6,13 @@ import (
 	"time"
 )
 
-// SleepJitter bounds the daily random shift of the sleep window's start and
-// end, each way.
+// SleepJitter is the default bound of the daily random shift of the sleep
+// window's start and end, each way.
 const SleepJitter = 20 * time.Minute
+
+// MaxSleepJitter is the largest shift the setting allows. SleepUntil's
+// look-back assumes it stays well under a day.
+const MaxSleepJitter = 120 * time.Minute
 
 // minSleepSpan is the shortest a jittered window may get. A window set
 // shorter than this keeps its set length instead.
@@ -45,28 +49,30 @@ func FormatClock(min int) string {
 // in loc, and if so when it ends. start and end are minutes after midnight;
 // an end at or before start crosses midnight. start == end never sleeps.
 //
-// With jitter, each window's start and end shift by up to SleepJitter,
-// keyed on the calendar date the window starts on, so the wake time stays
-// the same all day. Windows that overlap under jitter merge, so the
-// returned wake is never itself inside a window.
-func SleepUntil(now time.Time, loc *time.Location, start, end int, jitter bool) (wake time.Time, in bool) {
+// With jitter > 0, each window's start and end shift by up to jitter (capped
+// at MaxSleepJitter), keyed on seed and the calendar date the window starts
+// on, so the wake time stays the same all day. Different seeds (installs,
+// accounts) shift differently. Windows that overlap under jitter merge, so
+// the returned wake is never itself inside a window.
+func SleepUntil(now time.Time, loc *time.Location, start, end int, jitter time.Duration, seed string) (wake time.Time, in bool) {
 	if loc == nil {
 		loc = time.UTC
 	}
 	if start == end || start < 0 || end < 0 || start >= 1440 || end >= 1440 {
 		return time.Time{}, false
 	}
+	jitter = min(max(jitter, 0), MaxSleepJitter)
 	y, m, d := now.In(loc).Date()
 	// A window can start up to two calendar days back (near-24h window plus
 	// jitter) or on the next day (a start just after midnight, jittered
 	// back before it).
 	for off := -2; off <= 1; off++ {
-		s, e := sleepBounds(y, m, d+off, loc, start, end, jitter)
+		s, e := sleepBounds(y, m, d+off, loc, start, end, jitter, seed)
 		if now.Before(s) || !now.Before(e) {
 			continue
 		}
 		for next := off + 1; next <= off+3; next++ {
-			ns, ne := sleepBounds(y, m, d+next, loc, start, end, jitter)
+			ns, ne := sleepBounds(y, m, d+next, loc, start, end, jitter, seed)
 			if ns.After(e) {
 				break
 			}
@@ -82,7 +88,7 @@ func SleepUntil(now time.Time, loc *time.Location, start, end int, jitter bool) 
 // sleepBounds is the window that starts on calendar day y-m-d in loc
 // (normalized like time.Date). It is empty (s == e) when a DST jump leaves
 // no time between the set start and end.
-func sleepBounds(y int, m time.Month, d int, loc *time.Location, start, end int, jitter bool) (s, e time.Time) {
+func sleepBounds(y int, m time.Month, d int, loc *time.Location, start, end int, jitter time.Duration, seed string) (s, e time.Time) {
 	s = time.Date(y, m, d, start/60, start%60, 0, 0, loc)
 	endDay := d
 	if end <= start {
@@ -93,23 +99,29 @@ func sleepBounds(y int, m time.Month, d int, loc *time.Location, start, end int,
 	if span <= 0 {
 		return s, s
 	}
-	if !jitter {
+	// Keep a third of the awake gap free of shift, so one night's end never
+	// reaches the next night's start and the account always wakes each day.
+	if gap := (24*time.Hour - span) / 3; jitter > gap {
+		jitter = gap
+	}
+	if jitter < time.Minute {
 		return s, e
 	}
 	day := time.Date(y, m, d, 12, 0, 0, 0, loc)
-	s = s.Add(sleepJitter(day, "start"))
-	e = e.Add(sleepJitter(day, "end"))
+	s = s.Add(sleepJitter(day, seed, "start", jitter))
+	e = e.Add(sleepJitter(day, seed, "end", jitter))
 	if floor := min(span, minSleepSpan); e.Sub(s) < floor {
 		e = s.Add(floor)
 	}
 	return s, e
 }
 
-// sleepJitter is the shift, in whole minutes within ±SleepJitter, for the
-// window starting on day's calendar date. tag tells the start and end apart.
-func sleepJitter(day time.Time, tag string) time.Duration {
+// sleepJitter is the shift, in whole minutes within ±bound, for the window
+// starting on day's calendar date under seed. tag tells the start and end
+// apart.
+func sleepJitter(day time.Time, seed, tag string, bound time.Duration) time.Duration {
 	h := fnv.New32a()
-	_, _ = h.Write([]byte(day.Format(time.DateOnly) + tag))
-	n := int64(SleepJitter / time.Minute)
+	_, _ = h.Write([]byte(seed + "|" + day.Format(time.DateOnly) + "|" + tag))
+	n := int64(bound / time.Minute)
 	return time.Duration(int64(h.Sum32())%(2*n+1)-n) * time.Minute
 }

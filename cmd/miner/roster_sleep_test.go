@@ -45,6 +45,15 @@ func TestRoster_SleepWindow(t *testing.T) {
 	want := now.Add(120 * time.Minute)
 	assert.WithinDuration(t, want, wake, timeutil.SleepJitter+time.Minute)
 
+	// Shift 0 wakes at the set end exactly.
+	win.JitterMin = 0
+	require.NoError(t, e.ro.settings.SetSleepWindow(e.ctx, win))
+	e.ro.settingsChanged()
+	wake, in = cfg.SleepUntil(now)
+	require.True(t, in)
+	assert.Equal(t, timeutil.FormatClock(m+120), wake.In(tokyo).Format("15:04"))
+	win.JitterMin = 20
+
 	// The same window read in UTC (Tokyo is UTC+9) is not around now.
 	e.ro.zone = func() *time.Location { return time.UTC }
 	_, in = cfg.SleepUntil(now)

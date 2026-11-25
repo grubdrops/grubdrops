@@ -24,7 +24,8 @@
 	"sleep": {
 		"enabled": false,
 		"start": "02:00",
-		"end": "08:00"
+		"end": "08:00",
+		"jitter_min": 20
 	},
 	"sso": {
 		"enabled": false,

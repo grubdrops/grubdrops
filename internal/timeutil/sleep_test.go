@@ -70,7 +70,7 @@ func TestSleepUntil_NoJitter(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			wake, in := SleepUntil(c.now, loc, clock(t, c.start), clock(t, c.end), false)
+			wake, in := SleepUntil(c.now, loc, clock(t, c.start), clock(t, c.end), 0, "")
 			if in != c.in || !wake.Equal(c.wake) {
 				t.Fatalf("got in=%v wake=%v; want in=%v wake=%v", in, wake, c.in, c.wake)
 			}
@@ -82,22 +82,22 @@ func TestSleepUntil_NoJitter(t *testing.T) {
 func TestSleepUntil_UsesZone(t *testing.T) {
 	tokyo, _ := time.LoadLocation("Asia/Tokyo")
 	now := time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC) // 03:00 next day in Tokyo
-	wake, in := SleepUntil(now, tokyo, clock(t, "02:00"), clock(t, "08:00"), false)
+	wake, in := SleepUntil(now, tokyo, clock(t, "02:00"), clock(t, "08:00"), 0, "")
 	if !in || !wake.Equal(at(tokyo, 2026, 6, 11, 8, 0)) {
 		t.Fatalf("in=%v wake=%v", in, wake)
 	}
-	if _, in := SleepUntil(now, time.UTC, clock(t, "02:00"), clock(t, "08:00"), false); in {
+	if _, in := SleepUntil(now, time.UTC, clock(t, "02:00"), clock(t, "08:00"), 0, ""); in {
 		t.Fatal("18:00 UTC is outside 02:00-08:00 UTC")
 	}
 	// A nil zone is UTC.
-	if _, in := SleepUntil(now, nil, clock(t, "17:00"), clock(t, "19:00"), false); !in {
+	if _, in := SleepUntil(now, nil, clock(t, "17:00"), clock(t, "19:00"), 0, ""); !in {
 		t.Fatal("nil zone should be UTC")
 	}
 }
 
 func TestSleepUntil_StartEqualsEndNeverSleeps(t *testing.T) {
 	for h := range 24 {
-		if _, in := SleepUntil(at(time.UTC, 2026, 6, 10, h, 0), time.UTC, 120, 120, true); in {
+		if _, in := SleepUntil(at(time.UTC, 2026, 6, 10, h, 0), time.UTC, 120, 120, SleepJitter, "seed"); in {
 			t.Fatalf("start==end slept at %02d:00", h)
 		}
 	}
@@ -109,12 +109,12 @@ func TestSleepUntil_DST(t *testing.T) {
 		t.Fatal(err)
 	}
 	// 2026-03-08: clocks jump 02:00 EST to 03:00 EDT.
-	wake, in := SleepUntil(at(ny, 2026, 3, 8, 4, 0), ny, clock(t, "01:00"), clock(t, "05:00"), false)
+	wake, in := SleepUntil(at(ny, 2026, 3, 8, 4, 0), ny, clock(t, "01:00"), clock(t, "05:00"), 0, "")
 	if !in || !wake.Equal(at(ny, 2026, 3, 8, 5, 0)) {
 		t.Fatalf("spring forward: in=%v wake=%v", in, wake)
 	}
 	// Cross-midnight window into the spring-forward night.
-	wake, in = SleepUntil(at(ny, 2026, 3, 8, 3, 30), ny, clock(t, "23:00"), clock(t, "07:00"), false)
+	wake, in = SleepUntil(at(ny, 2026, 3, 8, 3, 30), ny, clock(t, "23:00"), clock(t, "07:00"), 0, "")
 	if !in || !wake.Equal(at(ny, 2026, 3, 8, 7, 0)) {
 		t.Fatalf("spring forward cross-midnight: in=%v wake=%v", in, wake)
 	}
@@ -122,12 +122,12 @@ func TestSleepUntil_DST(t *testing.T) {
 	first := time.Date(2026, 11, 1, 5, 30, 0, 0, time.UTC)  // 01:30 EDT
 	second := time.Date(2026, 11, 1, 6, 30, 0, 0, time.UTC) // 01:30 EST
 	for _, now := range []time.Time{first, second} {
-		wake, in = SleepUntil(now, ny, clock(t, "00:00"), clock(t, "03:00"), false)
+		wake, in = SleepUntil(now, ny, clock(t, "00:00"), clock(t, "03:00"), 0, "")
 		if !in || !wake.Equal(at(ny, 2026, 11, 1, 3, 0)) {
 			t.Fatalf("fall back %v: in=%v wake=%v", now, in, wake)
 		}
 	}
-	if _, in := SleepUntil(at(ny, 2026, 11, 1, 3, 0), ny, clock(t, "00:00"), clock(t, "03:00"), false); in {
+	if _, in := SleepUntil(at(ny, 2026, 11, 1, 3, 0), ny, clock(t, "00:00"), clock(t, "03:00"), 0, ""); in {
 		t.Fatal("fall back: 03:00 should be awake")
 	}
 }
@@ -138,7 +138,7 @@ func TestSleepJitter_BoundedAndVaries(t *testing.T) {
 	for i := range 400 {
 		d := day.AddDate(0, 0, i)
 		for _, tag := range []string{"start", "end"} {
-			j := sleepJitter(d, tag)
+			j := sleepJitter(d, "seed", tag, SleepJitter)
 			if j < -SleepJitter || j > SleepJitter {
 				t.Fatalf("%s %s jitter %v out of ±%v", d.Format(time.DateOnly), tag, j, SleepJitter)
 			}
@@ -146,7 +146,7 @@ func TestSleepJitter_BoundedAndVaries(t *testing.T) {
 				t.Fatalf("jitter %v not whole minutes", j)
 			}
 			seen[j] = true
-			if sleepJitter(d, tag) != j {
+			if sleepJitter(d, "seed", tag, SleepJitter) != j {
 				t.Fatal("jitter not deterministic")
 			}
 		}
@@ -166,7 +166,7 @@ func TestSleepUntil_JitterStableAndBounded(t *testing.T) {
 	for i := range 120 {
 		d := time.Date(2026, 1, 1, 0, 0, 0, 0, loc).AddDate(0, 0, i)
 		y, m, dd := d.Date()
-		s, e := sleepBounds(y, m, dd, loc, start, end, true)
+		s, e := sleepBounds(y, m, dd, loc, start, end, SleepJitter, "seed")
 		ns := at(loc, y, m, dd, 23, 30)
 		ne := at(loc, y, m, dd+1, 7, 0)
 		if ds := s.Sub(ns); ds < -SleepJitter || ds > SleepJitter {
@@ -182,7 +182,7 @@ func TestSleepUntil_JitterStableAndBounded(t *testing.T) {
 		// before the jittered end. All report the same wake.
 		var wakes []time.Time
 		for _, now := range []time.Time{s, s.Add(time.Minute), at(loc, y, m, dd+1, 3, 0), e.Add(-time.Second)} {
-			w, in := SleepUntil(now, loc, start, end, true)
+			w, in := SleepUntil(now, loc, start, end, SleepJitter, "seed")
 			if !in {
 				t.Fatalf("day %d: %v not in window [%v, %v)", i, now, s, e)
 			}
@@ -193,10 +193,10 @@ func TestSleepUntil_JitterStableAndBounded(t *testing.T) {
 				t.Fatalf("day %d: wake %v, want %v", i, w, e)
 			}
 		}
-		if _, in := SleepUntil(s.Add(-time.Second), loc, start, end, true); in {
+		if _, in := SleepUntil(s.Add(-time.Second), loc, start, end, SleepJitter, "seed"); in {
 			t.Fatalf("day %d: asleep before the jittered start", i)
 		}
-		if _, in := SleepUntil(e, loc, start, end, true); in {
+		if _, in := SleepUntil(e, loc, start, end, SleepJitter, "seed"); in {
 			t.Fatalf("day %d: asleep at the jittered wake", i)
 		}
 	}
@@ -215,7 +215,7 @@ func TestSleepUntil_JitterNeverInverts(t *testing.T) {
 		for i := range 400 {
 			d := time.Date(2026, 1, 1, 0, 0, 0, 0, loc).AddDate(0, 0, i)
 			y, m, dd := d.Date()
-			s, e := sleepBounds(y, m, dd, loc, start, end, true)
+			s, e := sleepBounds(y, m, dd, loc, start, end, SleepJitter, "seed")
 			if e.Sub(s) < floor {
 				t.Fatalf("%v day %d: window %v..%v is %v, want >= %v", w, i, s, e, e.Sub(s), floor)
 			}
@@ -229,17 +229,60 @@ func TestSleepUntil_WakeIsAwake(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")
 	start, end := clock(t, "08:00"), clock(t, "07:50")
 	now := time.Date(2026, 3, 1, 0, 0, 0, 0, loc)
-	for i := 0; i < 60*24*20; i += 7 {
-		n := now.Add(time.Duration(i) * time.Minute)
-		w, in := SleepUntil(n, loc, start, end, true)
+	for _, j := range []time.Duration{SleepJitter, MaxSleepJitter} {
+		for i := 0; i < 60*24*20; i += 7 {
+			n := now.Add(time.Duration(i) * time.Minute)
+			w, in := SleepUntil(n, loc, start, end, j, "seed")
+			if !in {
+				continue
+			}
+			if !w.After(n) {
+				t.Fatalf("±%v %v: wake %v not after now", j, n, w)
+			}
+			if _, again := SleepUntil(w, loc, start, end, j, "seed"); again {
+				t.Fatalf("±%v %v: wake %v is inside a window", j, n, w)
+			}
+		}
+	}
+}
+
+// The seed decides the shift: two seeds disagree on most days, and the bound
+// is respected at the largest setting.
+func TestSleepJitter_SeedAndBound(t *testing.T) {
+	day := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	differ := 0
+	for i := range 100 {
+		d := day.AddDate(0, 0, i)
+		a := sleepJitter(d, "install-a|acc1", "start", MaxSleepJitter)
+		b := sleepJitter(d, "install-b|acc1", "start", MaxSleepJitter)
+		if a < -MaxSleepJitter || a > MaxSleepJitter {
+			t.Fatalf("jitter %v out of ±%v", a, MaxSleepJitter)
+		}
+		if a != b {
+			differ++
+		}
+	}
+	if differ < 90 {
+		t.Fatalf("seeds agree on %d of 100 days", 100-differ)
+	}
+}
+
+// Jitter 0 keeps the set times exactly; a bound over the max is capped.
+func TestSleepUntil_JitterZeroAndCap(t *testing.T) {
+	loc := time.UTC
+	start, end := clock(t, "02:00"), clock(t, "08:00")
+	for i := range 30 {
+		y, m, d := time.Date(2026, 1, 1, 0, 0, 0, 0, loc).AddDate(0, 0, i).Date()
+		w, in := SleepUntil(at(loc, y, m, d, 5, 0), loc, start, end, 0, "seed")
+		if !in || !w.Equal(at(loc, y, m, d, 8, 0)) {
+			t.Fatalf("day %d: jitter 0 wake %v in=%v", i, w, in)
+		}
+		w, in = SleepUntil(at(loc, y, m, d, 5, 0), loc, start, end, 10*time.Hour, "seed")
 		if !in {
-			continue
+			t.Fatalf("day %d: 05:00 should sleep under capped jitter", i)
 		}
-		if !w.After(n) {
-			t.Fatalf("%v: wake %v not after now", n, w)
-		}
-		if _, again := SleepUntil(w, loc, start, end, true); again {
-			t.Fatalf("%v: wake %v is inside a window", n, w)
+		if dw := w.Sub(at(loc, y, m, d, 8, 0)); dw < -MaxSleepJitter || dw > MaxSleepJitter {
+			t.Fatalf("day %d: wake off by %v, cap is %v", i, dw, MaxSleepJitter)
 		}
 	}
 }

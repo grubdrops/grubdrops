@@ -55,6 +55,9 @@ export function shareCatalogToggle(s: Pick<Settings, 'share_catalog_available'>)
 /** Minutes the server accepts for scan_interval_min. */
 export const SCAN_INTERVALS = [15, 30, 60, 180, 360, 720, 1440];
 
+/** Sleep window shifts offered, in minutes; 0 keeps the set times. The server allows 0 to 120. */
+export const SLEEP_JITTERS = [0, 10, 20, 30, 45, 60, 90, 120];
+
 /** Canary intervals offered, in seconds; 0 turns the canary off. */
 export const CANARY_INTERVALS = [0, 3600, 3 * 3600, 6 * 3600, 12 * 3600, 24 * 3600];
 
