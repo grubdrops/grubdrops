@@ -11,7 +11,7 @@
   <a href="https://github.com/grubdrops/grubdrops/pkgs/container/grubdrops"><img alt="ghcr.io image" src="https://img.shields.io/badge/ghcr.io-grubdrops-2496ED?logo=github"></a>
   <img alt="Twitch" src="https://img.shields.io/badge/Twitch-drops-9146FF?logo=twitch&logoColor=white">
   <img alt="Kick" src="https://img.shields.io/badge/Kick-drops-53FC18?logo=kick&logoColor=black">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-green">
+  <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-blue">
 </p>
 
 <p align="center">
@@ -193,6 +193,8 @@ GRUB_DEV_API=http://127.0.0.1:18080 npm --prefix web run dev
 ## Credits, license and use
 
 Built on what [DevilXD/TwitchDropsMiner](https://github.com/DevilXD/TwitchDropsMiner) and [HyperBeats/KickDropsMiner](https://github.com/HyperBeats/KickDropsMiner) worked out about Twitch and Kick drops.
-Released under the [MIT License](LICENSE). Use it on your own accounts and within each platform's terms, at your own risk.
+Released under the [GNU AGPL v3.0](LICENSE). If you change GrubDrops and share it, or run it as a service for others, you must publish your full source under the same license. Versions up to v2.4.0 were MIT ([LICENSE.MIT](LICENSE.MIT)).
+
+Use it on your own accounts and within each platform's terms, at your own risk.
 
 <sub>See the <a href="docs/CHANGELOG.md">changelog</a> and <a href="docs/DESIGN.md">design notes</a>.</sub>
